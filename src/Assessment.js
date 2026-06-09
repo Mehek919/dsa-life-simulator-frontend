@@ -24,11 +24,13 @@ function Assessment({ user }) {
   const progress = (current / questions.length) * 100;
 
   // ---- Countdown Timer ----
-  useEffect(() => {
-    if (timeLeft <= 0) { handleSubmit(score); return; }
-    const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [timeLeft]);
+  // ---- Countdown Timer ----
+useEffect(() => {
+  if (timeLeft <= 0) { handleSubmit(score); return; }
+  const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+  return () => clearTimeout(timer);
+}, [timeLeft, handleSubmit, score]); // ✅ Added missing dependencies
+
 
   const handleSelect = (index) => {
     if (answered) return;
