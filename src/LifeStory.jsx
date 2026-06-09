@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import API_BASE from './config';
 import { useNavigate } from 'react-router-dom';
-const API = `${API_BASE}/story`;
 const LEVEL_NAMES = {
   1: 'Junior',
   2: 'Mid',

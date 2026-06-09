@@ -9,8 +9,6 @@ import {
   where,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios    from 'axios';                    // ✅ Add this
-import API_BASE from './config';
 // ── icon map per event type ──────────────────
 const TYPE_ICON = {
   challenge_solved:    '🔥',
