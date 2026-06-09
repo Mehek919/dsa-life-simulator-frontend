@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const TOPICS = ['Array', 'LinkedList', 'Stack', 'Queue', 'Tree', 'Graph', 'DynamicProgramming'];
 
 const PHASE = {
@@ -31,7 +31,11 @@ export default function Arena({ user, userData, setUserData }) {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    const socket = io(SOCKET_URL);
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+    });
+
     socketRef.current = socket;
 
     socket.on('arena:waiting', ({ message }) => {
@@ -65,7 +69,7 @@ export default function Arena({ user, userData, setUserData }) {
 
         setUserData(prev => ({
           ...prev,
-          elo:     myData.newElo,
+          elo: myData.newElo,
           credits: (prev?.credits || 0) + myData.credits,
         }));
       }
