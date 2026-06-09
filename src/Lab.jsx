@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import API_BASE from './config';
 // ── Constants ──────────────────────────────────────────────────────────────────
 var TOPICS = [
   'Array', 'LinkedList', 'Stack', 'Queue',
@@ -159,7 +158,7 @@ export default function Lab(props) {
     }
     setReviewing(true);
     try {
-      var res = await axios.post('http://localhost:5000/challenges/ai-review', {
+      var res = await axios.post(`${API_BASE}/challenges/ai-review`, {
         question:      question,
         options:       options,
         correctAnswer: correctAnswer,
@@ -200,8 +199,7 @@ export default function Lab(props) {
     var ex = improved ? (improved.explanation || '') : '';
 
     try {
-      var res = await axios.post('http://localhost:5000/challenges/publish', {
-        userId:        user.uid,
+      var res = await axios.post(`${API_BASE}/challenges/publish`, {
         creatorName:   user.displayName,
         question:      q,
         options:       o,
