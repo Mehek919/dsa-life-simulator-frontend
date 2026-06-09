@@ -3,6 +3,10 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "alias": "dsa-life-simulator-frontend.vercel.app"
     }
+
   ]
 }
