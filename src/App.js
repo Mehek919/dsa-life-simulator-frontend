@@ -3,10 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { createOrFetchUser } from './utils/userService';
-
+const Arena = lazy(() => import('./Arena'));
 // ✅ Lazy loaded components
 const Login       = lazy(() => import('./Login'));
-const World       = lazy(() => import('./World'));
+const World = lazy(() => import('./World')); // ✅ capital W
 const Profile     = lazy(() => import('./Profile'));
 const Home        = lazy(() => import('./Home'));
 const Lab         = lazy(() => import('./Lab'));
@@ -154,6 +154,11 @@ export default function App() {
             <Guard user={user}>
               <Results user={user} userData={userData} />
             </Guard>
+          } />
+          <Route path="/arena" element={
+           <Guard user={user}>
+            <Arena user={user} userData={userData} setUserData={setUserData} />
+          </Guard>
           } />
 
           <Route path="*" element={<Navigate to="/" replace />} />

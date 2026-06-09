@@ -57,11 +57,31 @@ var ORBS = [
 
 // ── Animated Background ────────────────────────────────────────────────────────
 function AnimatedBackground() {
+  var navigate = useNavigate();
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 0,
-      background: '#0a0a14', overflow: 'hidden', pointerEvents: 'none',
+      background: '#0a0a14', overflow: 'hidden', pointerEvents: 'auto',
     }}>
+      <button
+        onClick={function () {
+          console.log('🔥 ARENA TEST CLICKED!');
+          navigate('/arena');
+        }}
+        style={{
+          padding: '10px 20px',
+          background: 'red',
+          color: 'white',
+          border: 'none',
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          zIndex: 9999,
+          pointerEvents: 'auto',
+        }}
+      >
+        TEST ARENA
+      </button>
       {ORBS.map(function (orb, i) {
         return (
           <div key={i} style={{

@@ -460,8 +460,8 @@ export default function Hub({ user, userData, setUserData }) {
         gap:          16,
         flexWrap:     'wrap',
       }}>
-        <button
-          onClick={() => navigate('/world')}
+        <button onClick={() => navigate('/')}
+          
           style={{
             background:   'none',
             border:       '1px solid #333',

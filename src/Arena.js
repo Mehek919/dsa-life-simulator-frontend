@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const TOPICS = ['Array', 'LinkedList', 'Stack', 'Queue', 'Tree', 'Graph', 'DynamicProgramming'];
-
 const PHASE = {
   LOBBY:   'LOBBY',
   WAITING: 'WAITING',
@@ -229,7 +228,7 @@ export default function Arena({ user, userData, setUserData }) {
             </motion.button>
 
             <button
-              onClick={() => navigate('/world')}
+              onClick={() => navigate('/')}
               style={{
                 marginTop: 16, width: '100%', padding: '12px',
                 background: 'transparent', border: '1px solid #333',
@@ -285,7 +284,8 @@ export default function Arena({ user, userData, setUserData }) {
                 color: '#888', cursor: 'pointer', fontSize: 14,
               }}
             >
-              </button>
+              Cancel Match
+            </button>
           </motion.div>
         )}
 
