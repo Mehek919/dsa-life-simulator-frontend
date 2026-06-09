@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
 import allQuestions from './questions';
+
 function Assessment({ user }) {
   const { topic } = useParams();
   const navigate = useNavigate();
   const questions = allQuestions.filter(q => q.topic === topic);
+
   const [current,   setCurrent]   = useState(0);
   const [score,     setScore]     = useState(0);
   const [selected,  setSelected]  = useState(null);
@@ -23,14 +25,39 @@ function Assessment({ user }) {
   const secs     = timeLeft % 60;
   const progress = (current / questions.length) * 100;
 
-  // ---- Countdown Timer ----
-  // ---- Countdown Timer ----
-useEffect(() => {
-  if (timeLeft <= 0) { handleSubmit(score); return; }
-  const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-  return () => clearTimeout(timer);
-}, [timeLeft, handleSubmit, score]); // ✅ Added missing dependencies
+  // ---- handleSubmit wrapped in useCallback ----
+  const handleSubmit = useCallback(async (finalScore) => {
+    const timeTaken     = 900 - timeLeft;
+    const totalScore    = questions.reduce((sum, q) => sum + q.points, 0);
+    const latestAnswers = answersRef.current;
 
+    try {
+      const res = await axios.post(`${API_BASE}/assess`, {
+        userId:     user.uid,
+        name:       user.displayName,
+        email:      user.email,
+        topic,
+        score:      finalScore,
+        totalScore,
+        timeTaken,
+        answers:    latestAnswers
+      });
+      navigate('/results/' + res.data.assessmentId, {
+        state: { score: finalScore, totalScore, timeTaken, answers: latestAnswers, topic }
+      });
+    } catch (err) {
+      navigate('/results/local_' + Date.now(), {
+        state: { score: finalScore, totalScore, timeTaken, answers: latestAnswers, topic }
+      });
+    }
+  }, [timeLeft, questions, user, topic, navigate]);
+
+  // ---- Countdown Timer ----
+  useEffect(() => {
+    if (timeLeft <= 0) { handleSubmit(score); return; }
+    const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [timeLeft, handleSubmit, score]);
 
   const handleSelect = (index) => {
     if (answered) return;
@@ -62,34 +89,6 @@ useEffect(() => {
       }, 250);
     } else {
       handleSubmit(newScore);
-    }
-  };
-
-  const handleSubmit = async (finalScore) => {
-    const timeTaken     = 900 - timeLeft;
-    const totalScore    = questions.reduce((sum, q) => sum + q.points, 0);
-    const latestAnswers = answersRef.current;
-
-    try {
-      const res = await axios.post(`${API_BASE}/assess`, {
-        userId:     user.uid,
-        name:       user.displayName,
-        email:      user.email,
-        topic,
-        score:      finalScore,
-        totalScore,
-        timeTaken,
-        answers:    latestAnswers
-      });
-      // ✅ Concatenation — immune to $$ bug
-      navigate('/results/' + res.data.assessmentId, {
-        state: { score: finalScore, totalScore, timeTaken, answers: latestAnswers, topic }
-      });
-    } catch (err) {
-      // ✅ Concatenation — immune to $$ bug
-      navigate('/results/local_' + Date.now(), {
-        state: { score: finalScore, totalScore, timeTaken, answers: latestAnswers, topic }
-      });
     }
   };
 
@@ -195,4 +194,3 @@ useEffect(() => {
 }
 
 export default Assessment;
-

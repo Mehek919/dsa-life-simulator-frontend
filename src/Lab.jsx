@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE from './config';
 // ── Constants ──────────────────────────────────────────────────────────────────
 var TOPICS = [
   'Array', 'LinkedList', 'Stack', 'Queue',
