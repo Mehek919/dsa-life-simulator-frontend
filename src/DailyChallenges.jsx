@@ -23,7 +23,7 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
   const [completedCount, setCompletedCount] = useState(0);
   const [bonusAwarded,   setBonusAwarded]   = useState(false);
 
-  // ✅ FIXED: Wrapped in useCallback with proper dependencies
+  // ✅ SINGLE fetchChallenges wrapped in useCallback
   const fetchChallenges = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -40,9 +40,7 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
 
       const res = await axios.get(
         `${API_BASE}/daily-challenges/${userId}`,
-        {
-          params: { topic }
-        }
+        { params: { topic } }
       );
 
       console.log('✅ Challenges received:', res.data);
@@ -58,15 +56,15 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
     } finally {
       setLoading(false);
     }
-  }, [user?.uid, userData?.topic]); // ✅ Stable dependencies
+  }, [user?.uid, userData?.topic]);
 
-  // ✅ useEffect with fetchChallenges as dependency
+  // ✅ useEffect depends on fetchChallenges
   useEffect(() => {
     fetchChallenges();
   }, [fetchChallenges]);
 
-  // ── ✅ FIXED: Correct submit URL + body ───────────────────
-  async function handleSubmit(challengeId) {
+  // ✅ handleSubmit
+  const handleSubmit = useCallback(async (challengeId) => {
     if (!answer.trim() || answer.trim().length < 10) {
       showToast('⚠️ Please write at least 10 characters.', 'warn');
       return;
@@ -84,10 +82,8 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
       );
 
       const d = res.data;
-
       console.log('✅ Submit response:', d);
 
-      // Update local challenge list
       setChallenges(prev =>
         prev.map(c =>
           c.id === challengeId
@@ -102,7 +98,6 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
       setActiveIdx(null);
       setAnswer('');
 
-      // Bubble rewards up to World
       if (onRewardsEarned) {
         onRewardsEarned({
           newCredits: d.newCredits,
@@ -124,7 +119,7 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
     } finally {
       setSubmitting(false);
     }
-  }
+  }, [user?.uid, userData?.topic, answer, completedCount, onRewardsEarned]);
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type });
@@ -345,7 +340,6 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = {
   overlay: {
     position: 'fixed', inset: 0,
