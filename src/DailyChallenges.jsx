@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -40,7 +39,6 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
       console.log('📡 User ID:', userId);
       console.log('📡 Topic:', topic);
       console.log('📡 API Base:', API_BASE);
-      console.log('📡 Fetching challenges for:', userId, topic);
 
       const res = await axios.get(
         `${API_BASE}/daily-challenges/${userId}`,
