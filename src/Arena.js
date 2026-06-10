@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,23 @@ export default function Arena({ user, userData, setUserData }) {
   const [opponentMsg, setOpponentMsg] = useState('');
   const timerRef = useRef(null);
 
+  // ✅ FIX 1: Wrap handleSubmit in useCallback so it's stable
+  const handleSubmit = useCallback((timeout = false) => {
+    if (submitted) return;
+    setSubmitted(true);
+    clearInterval(timerRef.current);
+
+    const timeTaken = startTime ? Date.now() - startTime : 90000;
+
+    socketRef.current.emit('arena:submit_answer', {
+      battleId,
+      userId:   user.uid,
+      answer:   timeout ? null : selected,
+      timeTaken,
+    });
+  }, [submitted, startTime, battleId, user?.uid, selected]);
+
+  // ✅ FIX 2: Stable socket setup — deps array has user.uid and setUserData
   useEffect(() => {
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -68,7 +85,7 @@ export default function Arena({ user, userData, setUserData }) {
 
         setUserData(prev => ({
           ...prev,
-          elo: myData.newElo,
+          elo:     myData.newElo,
           credits: (prev?.credits || 0) + myData.credits,
         }));
       }
@@ -82,8 +99,10 @@ export default function Arena({ user, userData, setUserData }) {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, setUserData]);
 
+  // ✅ FIX 3: handleSubmit is now stable via useCallback — safe to add as dep
   useEffect(() => {
     if (phase !== PHASE.BATTLE) return;
 
@@ -99,7 +118,7 @@ export default function Arena({ user, userData, setUserData }) {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [phase]);
+  }, [phase, handleSubmit]);
 
   function joinQueue() {
     setPhase(PHASE.WAITING);
@@ -115,21 +134,6 @@ export default function Arena({ user, userData, setUserData }) {
   function cancelQueue() {
     socketRef.current.emit('arena:leave_queue');
     setPhase(PHASE.LOBBY);
-  }
-
-  function handleSubmit(timeout = false) {
-    if (submitted) return;
-    setSubmitted(true);
-    clearInterval(timerRef.current);
-
-    const timeTaken = startTime ? Date.now() - startTime : 90000;
-
-    socketRef.current.emit('arena:submit_answer', {
-      battleId,
-      userId:   user.uid,
-      answer:   timeout ? null : selected,
-      timeTaken,
-    });
   }
 
   function backToLobby() {
@@ -151,7 +155,7 @@ export default function Arena({ user, userData, setUserData }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background : 'linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 50%, #0a1628 100%)',
+      background: 'linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 50%, #0a1628 100%)',
       color: '#fff',
       fontFamily: 'Arial, sans-serif',
       padding: '20px',
@@ -180,9 +184,9 @@ export default function Arena({ user, userData, setUserData }) {
               </h1>
               <p style={{ color: '#888', fontSize: 16 }}>1v1 Real-Time DSA Battles</p>
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 24 }}>
-                <Stat label="Your ELO"        value={userData?.elo           || 1000} color="#ffd93d" />
-                <Stat label="Battles Won"     value={userData?.battlesWon    || 0}    color="#00ff88" />
-                <Stat label="Battles Played"  value={userData?.battlesPlayed || 0}    color="#1a73e8" />
+                <Stat label="Your ELO"       value={userData?.elo           || 1000} color="#ffd93d" />
+                <Stat label="Battles Won"    value={userData?.battlesWon    || 0}    color="#00ff88" />
+                <Stat label="Battles Played" value={userData?.battlesPlayed || 0}    color="#1a73e8" />
               </div>
             </div>
 
@@ -452,6 +456,7 @@ export default function Arena({ user, userData, setUserData }) {
         {/* ══ RESULT ═════════════════════════════════════ */}
         {phase === PHASE.RESULT && result && (
           <motion.div
+            key="result"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             style={{ maxWidth: 600, margin: '0 auto', paddingTop: 40, textAlign: 'center' }}
@@ -528,17 +533,16 @@ export default function Arena({ user, userData, setUserData }) {
                     display: 'grid', gridTemplateColumns: '1fr 1fr',
                     gap: 12, marginBottom: 28,
                   }}>
-                    <EloCard
-                      name="You"
-                      oldElo={myData.oldElo}
-                      newElo={myData.newElo}
-                      isYou
-                    />
-                    <EloCard
-                      name={opponent?.displayName?.split(' ')[0] || 'Opponent'}
-                      oldElo={result.player1.userId === user.uid ? result.player2.oldElo : result.player1.oldElo}
-                      newElo={result.player1.userId === user.uid ? result.player2.newElo : result.player1.newElo}
-                    />
+                    <EloCard name="You"      oldElo={myData.oldElo} newElo={myData.newElo} isYou />
+                    <EloCard name="Opponent" oldElo={
+                      result.player1.userId === user.uid
+                        ? result.player2.oldElo
+                        : result.player1.oldElo
+                    } newElo={
+                      result.player1.userId === user.uid
+                        ? result.player2.newElo
+                        : result.player1.newElo
+                    } />
                   </div>
 
                   <div style={{ display: 'flex', gap: 12 }}>
@@ -550,15 +554,13 @@ export default function Arena({ user, userData, setUserData }) {
                         flex: 1, padding: '14px',
                         background: 'linear-gradient(135deg, #ff6b6b, #ee0979)',
                         border: 'none', borderRadius: 12,
-                        color: '#fff', fontSize: 16, fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 0 20px rgba(255,107,107,0.3)',
+                        color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
                       }}
                     >
-                      ⚔️ Battle Again
+                      ⚔️ Play Again
                     </motion.button>
                     <button
-                      onClick={() => navigate('/world')}
+                      onClick={() => navigate('/')}
                       style={{
                         flex: 1, padding: '14px',
                         background: 'transparent', border: '1px solid #333',
@@ -579,13 +581,35 @@ export default function Arena({ user, userData, setUserData }) {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function Stat({ label, value, color }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+function PlayerCard({ name, photoURL, elo, label, color, flip = false }) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: flip ? 'row-reverse' : 'row',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <img
+        src={photoURL || `https://ui-avatars.com/api/?name=${name}&background=random`}
+        alt={name}
+        style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${color}` }}
+      />
+      <div style={{ textAlign: flip ? 'right' : 'left' }}>
+        <div style={{ fontSize: 11, color, fontWeight: 700, letterSpacing: 1 }}>{label}</div>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>{name}</div>
+        <div style={{ fontSize: 12, color: '#666' }}>ELO {elo}</div>
+      </div>
     </div>
   );
 }
@@ -595,52 +619,29 @@ function StatBox({ label, value, color }) {
     <div style={{
       background: 'rgba(255,255,255,0.04)',
       border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12, padding: '14px 10px',
+      borderRadius: 12, padding: '16px 10px', textAlign: 'center',
     }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#555' }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 11, color: '#666' }}>{label}</div>
     </div>
   );
 }
 
-function EloCard({ name, oldElo, newElo, isYou }) {
-  const diff = newElo - oldElo;
+function EloCard({ name, oldElo, newElo, isYou = false }) {
+  const diff  = newElo - oldElo;
+  const color = diff >= 0 ? '#00ff88' : '#ff4444';
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: `1px ${isYou ? 'rgba(0,255,136,0.2)' : 'rgba(255,255,255,0.08)'}`,
-      borderRadius: 12, padding: 14,
+      background: isYou ? 'rgba(0,255,136,0.06)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${isYou ? 'rgba(0,255,136,0.2)' : 'rgba(255,255,255,0.08)'}`,
+      borderRadius: 12, padding: 16, textAlign: 'center',
     }}>
       <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{name}</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{newElo}</div>
-      <div style={{
-        fontSize: 12, fontWeight: 700, marginTop: 4,
-        color: diff >= 0 ? '#00ff88' : '#ff4444',
-      }}>
+      <div style={{ fontSize: 20, fontWeight: 800 }}>{newElo}</div>
+      <div style={{ fontSize: 13, color, marginTop: 4 }}>
         {diff >= 0 ? '+' : ''}{diff} ELO
       </div>
     </div>
   );
 }
 
-function PlayerCard({ name, photoURL, elo, label, color, flip }) {
-  return (
-    <div style={{ textAlign: flip ? 'right' : 'left' }}>
-      <div style={{ fontSize: 10, color: '#555', marginBottom: 4, letterSpacing: 1 }}>{label}</div>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        flexDirection: flip ? 'row-reverse' : 'row',
-      }}>
-        <img
-          src={photoURL || '/default-avatar.png'}
-          alt={name}
-          style={{ width: 38, height: 38, borderRadius: '50%', border: `2px solid ${color}` }}
-        />
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>{name}</div>
-          <div style={{ fontSize: 12, color }}>{elo} ELO</div>
-        </div>
-      </div>
-    </div>
-  );
-}
