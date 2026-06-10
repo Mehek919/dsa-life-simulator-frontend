@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
+
 const DIFFICULTY_COLORS = {
   easy:   { badge: '#00ff88', glow: '0 0 12px #00ff8866', label: '⚡ Easy'   },
   medium: { badge: '#f5a623', glow: '0 0 12px #f5a62366', label: '🔥 Medium' },
@@ -22,52 +23,28 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
   const [completedCount, setCompletedCount] = useState(0);
   const [bonusAwarded,   setBonusAwarded]   = useState(false);
 
-  // ✅ Wrap in useCallback
-const fetchChallenges = useCallback(async () => {
-  setLoading(true);
-  setError(null);
-  try {
-    const userId = user?.uid;
-    const topic  = userData?.topic || 'Array';
-
-    const res = await axios.get(`${API_BASE}/daily-challenges/${userId}`, {
-      params: { topic }
-    });
-
-    setChallenges(res.data.challenges || []);
-    setDateKey(res.data.dateKey || '');
-    setCompletedCount(
-      (res.data.challenges || []).filter(c => c.completed).length
-    );
-  } catch (e) {
-    console.error('❌ Fetch failed:', e.response?.data || e.message);
-    setError("Failed to load today's challenges. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-}, [user?.uid, userData?.topic]);  // ✅ stable dependencies
-
-useEffect(() => {
-  fetchChallenges();
-}, [fetchChallenges]);  // ✅ no eslint warning
-
-
-  // ── ✅ FIXED: Correct URL + query params ──────────────────
-  async function fetchChallenges() {
+  // ✅ FIXED: Wrapped in useCallback with proper dependencies
+  const fetchChallenges = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const userId = user?.uid;
       const topic  = userData?.topic || 'Array';
-      if (!user?.uid) return;
+
+      if (!userId) {
+        setError('User not authenticated');
+        return;
+      }
+
       console.log('📡 Fetching challenges for:', userId, topic);
 
       const res = await axios.get(
-          // ✅ Clean version
-          axios.get(`${API_BASE}/daily-challenges/${userId}`, {
+        `${API_BASE}/daily-challenges/${userId}`,
+        {
           params: { topic }
-        })
+        }
       );
+
       console.log('✅ Challenges received:', res.data);
 
       setChallenges(res.data.challenges || []);
@@ -81,7 +58,12 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user?.uid, userData?.topic]); // ✅ Stable dependencies
+
+  // ✅ useEffect with fetchChallenges as dependency
+  useEffect(() => {
+    fetchChallenges();
+  }, [fetchChallenges]);
 
   // ── ✅ FIXED: Correct submit URL + body ───────────────────
   async function handleSubmit(challengeId) {
