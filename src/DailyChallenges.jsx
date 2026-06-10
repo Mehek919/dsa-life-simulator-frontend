@@ -2,11 +2,9 @@ const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
 const OpenAI = require('openai');
-const logActivity = require('../utils/logActivity');
 const { incrementWeeklyStat } = require('../utils/weeklyStats');
 
 const db = admin.firestore();
-
 const openai = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY,
