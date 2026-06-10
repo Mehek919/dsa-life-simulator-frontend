@@ -1,274 +1,304 @@
-const express = require('express');
-const router = express.Router();
-const admin = require('firebase-admin');
-const OpenAI = require('openai');
-const { incrementWeeklyStat } = require('../utils/weeklyStats');
+import React, { useCallback, useEffect, useState } from 'react';
+import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import API_BASE  from './config';
 
-const db = admin.firestore();
-const openai = new OpenAI({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
-
-const challengeTemplates = {
-  Array: [
-    {
-      id: 'arr_1',
-      title: 'Two Sum',
-      description: 'Find two numbers in an array that add up to a target sum.',
-      difficulty: 'easy',
-      xp: 50,
-      credits: 10,
-      timeLimit: 15,
-      expectedFormat: 'Explain your approach and provide the core logic.',
-    },
-    {
-      id: 'arr_2',
-      title: 'Max Subarray',
-      description: "Find the contiguous subarray with the largest sum using Kadane's Algorithm.",
-      difficulty: 'medium',
-      xp: 100,
-      credits: 20,
-      timeLimit: 20,
-      expectedFormat: 'Describe the idea and why Kadane works.',
-    },
-    {
-      id: 'arr_3',
-      title: 'Rotate Array',
-      description: 'Rotate an array to the right by k steps in-place.',
-      difficulty: 'medium',
-      xp: 100,
-      credits: 20,
-      timeLimit: 20,
-      expectedFormat: 'Explain the in-place rotation method.',
-    },
-  ],
+const LEVEL_NAMES = {
+  1: 'Junior',
+  2: 'Mid',
+  3: 'Senior',
+  4: 'Lead',
+  5: 'Legend',
 };
 
-router.get('/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
+const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
+  const [topic, setTopic] = useState(userData?.topic || 'Array');
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [error, setError] = useState('');
+  const [toast, setToast] = useState('');
+  const [completedCount, setCompletedCount] = useState(0);
+  const [bonusAwarded, setBonusAwarded] = useState(false);
 
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
+  const fetchChallenges = useCallback(async () => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
     }
-
-    const userRef = db.collection('users').doc(userId);
-    const userSnap = await userRef.get();
-
-    if (!userSnap.exists) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const userData = userSnap.data() || {};
-    const topic = userData.topic || req.query.topic || 'Array';
-    const today = new Date().toISOString().split('T')[0];
-
-    const completedToday = userData.completedChallenges?.[today] || [];
-    const templates = challengeTemplates[topic] || challengeTemplates.Array;
-
-    let challenges = [];
 
     try {
-      if (!process.env.GROQ_API_KEY) {
-        throw new Error('GROQ_API_KEY missing');
-      }
-
-      const prompt = `You are a DSA challenge generator for a life simulator game.
-Generate exactly 3 daily coding challenges for topic: ${topic}.
-Return ONLY a valid JSON array of exactly 3 objects with fields:
-"id" (string),
-"title" (string),
-"description" (string),
-"difficulty" ("easy"|"medium"|"hard"),
-"xp" (number),
-"credits" (number),
-"expectedFormat" (string),
-"correctAnswer" (string).
-No markdown. No explanation. Only raw JSON.`;
-
-      const completion = await openai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        temperature: 0.4,
-        messages: [{ role: 'user', content: prompt }],
+      setLoading(true);
+      setError('');
+      const res = await axios.get(`${API_BASE}/daily-challenges/${user.uid}`, {
+        params: { topic },
       });
 
-      const raw = completion?.choices?.[0]?.message?.content?.trim();
-
-      if (!raw) {
-        throw new Error('Empty AI response');
-      }
-
-      const parsed = JSON.parse(raw);
-
-      if (!Array.isArray(parsed)) {
-        throw new Error('AI response is not an array');
-      }
-
-      challenges = parsed.slice(0, 3).map((c, index) => ({
-        id: c.id || `ai_${index + 1}`,
-        title: c.title || `Challenge ${index + 1}`,
-        description: c.description || 'Solve this DSA challenge.',
-        difficulty: c.difficulty || 'medium',
-        xp: Number(c.xp) || 50,
-        credits: Number(c.credits) || 20,
-        expectedFormat: c.expectedFormat || 'Explain your approach clearly.',
-        correctAnswer: c.correctAnswer || 'Provide a clear explanation of your solution.',
-        completed: completedToday.includes(c.id),
-        creditsReward: Number(c.credits) || 20,
-        xpReward: Number(c.xp) || 50,
-      }));
-    } catch (aiErr) {
-      console.warn('AI generation failed, using templates:', aiErr.message);
-
-      challenges = templates.map((c) => ({
-        ...c,
-        expectedFormat: c.expectedFormat || 'Explain your approach clearly.',
-        correctAnswer: c.correctAnswer || 'Provide a clear explanation of your solution.',
-        completed: completedToday.includes(c.id),
-        creditsReward: c.credits || 20,
-        xpReward: c.xp || 50,
-      }));
+      const data = res.data || {};
+      setChallenges(Array.isArray(data.challenges) ? data.challenges : []);
+      setCompletedCount(data.completedCount || 0);
+      setBonusAwarded(Boolean(data.bonusAwarded));
+    } catch (err) {
+      console.error('Failed to fetch daily challenges:', err);
+      setError('⚠️ Failed to load daily challenges.');
+      setChallenges([]);
+    } finally {
+      setLoading(false);
     }
+  }, [user?.uid, topic]);
 
-    return res.json({
-      success: true,
-      dateKey: today,
-      topic,
-      challenges,
-      completedCount: completedToday.length,
-      bonusAwarded: userData.bonusAwarded?.[today] || false,
-    });
-  } catch (error) {
-    console.error('GET /daily-challenges/:userId error:', error);
-    return res.status(500).json({
-      error: 'Failed to fetch daily challenges',
-      details: error.message,
-    });
-  }
-});
+  useEffect(() => {
+    fetchChallenges();
+  }, [fetchChallenges]);
 
-router.post('/:userId/submit/:challengeId', async (req, res) => {
-  try {
-    const { userId, challengeId } = req.params;
-    const { answer, topic, difficulty } = req.body;
+  const handleAnswerChange = (challengeId, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [challengeId]: value,
+    }));
+  };
 
-    if (!userId || !challengeId) {
-      return res.status(400).json({ error: 'Missing userId or challengeId' });
-    }
+  const handleSubmit = async (challenge) => {
+    const answer = (answers[challenge.id] || '').trim();
 
-    if (!answer || answer.trim().length < 10) {
-      return res.status(400).json({ error: 'Answer too short. Minimum 10 characters.' });
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const userRef = db.collection('users').doc(userId);
-    const userSnap = await userRef.get();
-
-    if (!userSnap.exists) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const userData = userSnap.data() || {};
-    const completedToday = userData.completedChallenges?.[today] || [];
-
-    if (completedToday.includes(challengeId)) {
-      return res.status(400).json({ error: 'Challenge already completed today.' });
-    }
-
-    const creditsAwarded = 20;
-    const xpAwarded = 50;
-
-    const newCredits = (userData.credits || 0) + creditsAwarded;
-    const newXp = (userData.xp || 0) + xpAwarded;
-
-    const updatedCompleted = [...completedToday, challengeId];
-    const completedCount = updatedCompleted.length;
-
-    const bonusAwarded = completedCount >= 3 && !(userData.bonusAwarded?.[today]);
-    const bonusCredits = bonusAwarded ? 50 : 0;
-    const bonusXp = bonusAwarded ? 100 : 0;
-
-    const finalCredits = newCredits + bonusCredits;
-    const finalXp = newXp + bonusXp;
-    const finalLevel = Math.min(5, Math.floor(finalXp / 500) + 1);
-    const prevLevel = userData.level || 1;
-
-    const updateData = {
-      [`completedChallenges.${today}`]: admin.firestore.FieldValue.arrayUnion(challengeId),
-      credits: finalCredits,
-      xp: finalXp,
-      level: finalLevel,
-    };
-
-    if (bonusAwarded) {
-      updateData[`bonusAwarded.${today}`] = true;
-    }
-
-    await userRef.set(updateData, { merge: true });
-
-    try {
-      await logActivity({
-        uid: userId,
-        name: userData.name || 'Player',
-        photoURL: userData.photoURL || '',
-        type: 'challenge_solved',
-        message: `🔥 ${userData.name || 'Player'} just solved a ${difficulty || 'Daily'} ${topic || userData.topic || 'DSA'} challenge`,
-        meta: { topic: topic || userData.topic || 'Array', difficulty: difficulty || 'daily' },
-      });
-    } catch (logErr) {
-      console.warn('logActivity failed:', logErr.message);
+    if (answer.length < 10) {
+      setToast('Answer must be at least 10 characters.');
+      setTimeout(() => setToast(''), 2500);
+      return;
     }
 
     try {
-      await incrementWeeklyStat(userId, 'solves');
-      await incrementWeeklyStat(userId, 'creditsEarned', creditsAwarded + bonusCredits);
-      await incrementWeeklyStat(userId, 'xpEarned', xpAwarded + bonusXp);
+      setSubmittingId(challenge.id);
+      setError('');
 
-      if (bonusAwarded) {
-        await incrementWeeklyStat(userId, 'streakDays');
-        await incrementWeeklyStat(userId, 'bonusEarned', bonusCredits);
-        await incrementWeeklyStat(userId, 'bonusXpEarned', bonusXp);
+      const res = await axios.post(
+        `${API_BASE}/daily-challenges/${user.uid}/submit/${challenge.id}`,
+        {
+          userId: user.uid,
+          challengeId: challenge.id,
+          answer,
+          topic,
+          difficulty: challenge.difficulty,
+        }
+      );
+
+      const data = res.data || {};
+
+      setChallenges((prev) =>
+        prev.map((item) =>
+          item.id === challenge.id ? { ...item, completed: true } : item
+        )
+      );
+
+      setCompletedCount(data.completedCount || 0);
+      setBonusAwarded(Boolean(data.bonusAwarded));
+
+      const updatedUserData = {
+        ...(userData || {}),
+        credits: data.newCredits ?? userData?.credits ?? 0,
+        xp: data.newXp ?? userData?.xp ?? 0,
+        level: data.newLevel ?? userData?.level ?? 1,
+      };
+
+      if (typeof setUserData === 'function') {
+        setUserData(updatedUserData);
       }
-    } catch (statsErr) {
-      console.warn('weekly stat update failed:', statsErr.message);
-    }
 
-    if (finalLevel > prevLevel) {
-      try {
-        await logActivity({
-          uid: userId,
-          name: userData.name || 'Player',
-          photoURL: userData.photoURL || '',
-          type: 'level_up',
-          message: `🚀 ${userData.name || 'Player'} just reached Level ${finalLevel} — ${LEVEL_NAMES[finalLevel]}!`,
-          meta: { level: finalLevel },
+      if (typeof onRewardsEarned === 'function') {
+        onRewardsEarned({
+          newCredits: data.newCredits,
+          newXp: data.newXp,
+          newLevel: data.newLevel,
         });
-      } catch (levelErr) {
-        console.warn('level up activity log failed:', levelErr.message);
       }
+
+      const creditsAwarded =
+        data.creditsAwarded ?? challenge.creditsReward ?? challenge.credits ?? 0;
+      const xpAwarded =
+        data.xpAwarded ?? challenge.xpReward ?? challenge.xp ?? 0;
+
+      setToast(`✅ Challenge completed! +${creditsAwarded} credits, +${xpAwarded} XP`);
+      setAnswers((prev) => ({
+        ...prev,
+        [challenge.id]: '',
+      }));
+
+      setTimeout(() => setToast(''), 3000);
+    } catch (err) {
+      console.error('Failed to submit challenge:', err);
+      const message =
+        err.response?.data?.error || '⚠️ Failed to submit challenge.';
+      setError(message);
+      setToast(message);
+      setTimeout(() => setToast(''), 3000);
+    } finally {
+      setSubmittingId(null);
     }
+  };
 
-    return res.json({
-      success: true,
-      completedCount,
-      bonusAwarded,
-      newCredits: finalCredits,
-      newXp: finalXp,
-      newLevel: finalLevel,
-      creditsAwarded: creditsAwarded + bonusCredits,
-      xpAwarded: xpAwarded + bonusXp,
-    });
-  } catch (error) {
-    console.error('POST /daily-challenges/:userId/submit/:challengeId error:', error);
-    return res.status(500).json({
-      error: 'Failed to submit challenge',
-      details: error.message,
-    });
+  if (!user?.uid) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white">
+        Please sign in to access daily challenges.
+      </div>
+    );
   }
-});
 
-module.exports = router;
+  return (
+    <div className="w-full rounded-3xl border border-cyan-400/20 bg-slate-950/70 p-6 text-white shadow-2xl backdrop-blur-md">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-cyan-300">Daily Challenges</h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Solve today&apos;s challenges to earn XP, credits, and level up your journey.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 text-sm">
+            <span className="text-slate-300">Level:</span>{' '}
+            <span className="font-semibold text-cyan-300">
+              {LEVEL_NAMES[userData?.level || 1]}
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-sm">
+            <span className="text-slate-300">Completed:</span>{' '}
+            <span className="font-semibold text-emerald-300">{completedCount}/3</span>
+          </div>
+
+          <select
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="rounded-xl border border-white/10 bg-slate-900 px-4 py-2 text-sm text-white outline-none transition focus:border-cyan-400"
+          >
+            <option value="Array">Array</option>
+            <option value="String">String</option>
+            <option value="Linked List">Linked List</option>
+            <option value="Tree">Tree</option>
+            <option value="Graph">Graph</option>
+            <option value="DP">DP</option>
+          </select>
+
+          <button
+            onClick={fetchChallenges}
+            className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {bonusAwarded && (
+        <div className="mb-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+          🎉 Daily bonus unlocked! You completed 3 challenges today.
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex min-h-[180px] items-center justify-center text-slate-300">
+          Loading daily challenges...
+        </div>
+      ) : challenges.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-slate-300">
+          No challenges available right now.
+        </div>
+      ) : (
+        <div className="grid gap-5">
+          {challenges.map((challenge) => (
+            <motion.div
+              key={challenge.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl border border-white/10 bg-white/5 p-5"
+            >
+              <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">{challenge.title}</h3>
+                  <p className="mt-1 text-sm text-slate-300">{challenge.description}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-cyan-500/15 px-3 py-1 text-cyan-300">
+                    {challenge.difficulty || 'medium'}
+                  </span>
+                  <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-emerald-300">
+                    +{challenge.xpReward ?? challenge.xp ?? 50} XP
+                  </span>
+                  <span className="rounded-full bg-amber-500/15 px-3 py-1 text-amber-300">
+                    +{challenge.creditsReward ?? challenge.credits ?? 20} Credits
+                  </span>
+                  {challenge.timeLimit ? (
+                    <span className="rounded-full bg-fuchsia-500/15 px-3 py-1 text-fuchsia-300">
+                      {challenge.timeLimit} min
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mb-3 rounded-xl border border-white/10 bg-slate-900/60 p-3 text-sm text-slate-300">
+                <span className="font-medium text-slate-200">Expected format:</span>{' '}
+                {challenge.expectedFormat || 'Explain your approach clearly.'}
+              </div>
+
+              <textarea
+                value={answers[challenge.id] || ''}
+                onChange={(e) => handleAnswerChange(challenge.id, e.target.value)}
+                disabled={challenge.completed}
+                rows={5}
+                placeholder="Write your explanation and core logic here..."
+                className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="text-sm text-slate-400">
+                  {(answers[challenge.id] || '').trim().length}/10 minimum characters
+                </div>
+
+                <button
+                  onClick={() => handleSubmit(challenge)}
+                  disabled={challenge.completed || submittingId === challenge.id}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    challenge.completed
+                      ? 'cursor-not-allowed bg-emerald-500/20 text-emerald-300'
+                      : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-70'
+                  }`}
+                >
+                  {challenge.completed
+                    ? 'Completed'
+                    : submittingId === challenge.id
+                    ? 'Submitting...'
+                    : 'Submit'}
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 18 }}
+            className="fixed bottom-6 right-6 z-50 rounded-2xl border border-cyan-400/20 bg-slate-900/95 px-5 py-3 text-sm text-white shadow-2xl"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+export default DailyChallenges;
+
 
