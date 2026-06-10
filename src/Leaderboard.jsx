@@ -144,7 +144,7 @@ export default function Leaderboard({ user, userData }) {
         if (filterCountry)           params.country = filterCountry;
       }
 
-      const { data } = await axios.get(`${API}/leaderboard/${activeTab}`, { params });
+      const { data } = await axios.get(`${API}/${activeTab}`, { params });
       setEntries(data.leaderboard || []);
       if (data.weekStart) setWeekStart(data.weekStart);
     } catch (err) {
@@ -158,7 +158,7 @@ export default function Leaderboard({ user, userData }) {
   const fetchMyRanks = useCallback(async () => {
     if (!user?.uid) return;
     try {
-      const { data } = await axios.get(`${API}/leaderboard/me/${user.uid}`);
+      const { data } = await axios.get(`${API}/me/${user.uid}`);
       setMyRanks(data);
     } catch (_) {}
   }, [user?.uid]);
