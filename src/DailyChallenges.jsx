@@ -32,9 +32,19 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
       const topic  = userData?.topic || 'Array';
 
       if (!userId) {
+        console.error('❌ NO USER ID:', user);
         setError('User not authenticated');
         return;
       }
+
+      console.log('📡 User ID:', userId);  // ✅ ADD THIS
+      console.log('📡 Topic:', topic);      // ✅ ADD THIS
+      console.log('📡 API Base:', API_BASE); // ✅ ADD THIS
+
+      const res = await axios.get(
+        `${API_BASE}/daily-challenges/${userId}`,
+        { params: { topic } }
+      );
 
       console.log('📡 Fetching challenges for:', userId, topic);
 
