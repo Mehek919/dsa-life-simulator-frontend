@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -23,7 +24,6 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
   const [completedCount, setCompletedCount] = useState(0);
   const [bonusAwarded,   setBonusAwarded]   = useState(false);
 
-  // ✅ SINGLE fetchChallenges wrapped in useCallback
   const fetchChallenges = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -37,15 +37,9 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
         return;
       }
 
-      console.log('📡 User ID:', userId);  // ✅ ADD THIS
-      console.log('📡 Topic:', topic);      // ✅ ADD THIS
-      console.log('📡 API Base:', API_BASE); // ✅ ADD THIS
-
-      const res = await axios.get(
-        `${API_BASE}/daily-challenges/${userId}`,
-        { params: { topic } }
-      );
-
+      console.log('📡 User ID:', userId);
+      console.log('📡 Topic:', topic);
+      console.log('📡 API Base:', API_BASE);
       console.log('📡 Fetching challenges for:', userId, topic);
 
       const res = await axios.get(
@@ -68,12 +62,10 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
     }
   }, [user?.uid, userData?.topic]);
 
-  // ✅ useEffect depends on fetchChallenges
   useEffect(() => {
     fetchChallenges();
   }, [fetchChallenges]);
 
-  // ✅ handleSubmit
   const handleSubmit = useCallback(async (challengeId) => {
     if (!answer.trim() || answer.trim().length < 10) {
       showToast('⚠️ Please write at least 10 characters.', 'warn');
@@ -297,7 +289,7 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
                   {/* Completed preview */}
                   {isDone && (
                     <div style={styles.completedPreview}>
-                      ✅ Submitted: "{ch.submittedAnswer?.slice(0, 80)}..."
+                      ✅ Submitted: &quot;{ch.submittedAnswer?.slice(0, 80)}...&quot;
                     </div>
                   )}
                 </motion.div>
