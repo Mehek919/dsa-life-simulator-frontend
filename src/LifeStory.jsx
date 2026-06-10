@@ -9,7 +9,6 @@ const LEVEL_NAMES = {
   4: 'Lead',
   5: 'Legend',
 };
-
 export default function LifeStory({ user, userData }) {
   const navigate = useNavigate();
 

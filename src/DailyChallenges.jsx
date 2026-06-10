@@ -22,10 +22,35 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
   const [completedCount, setCompletedCount] = useState(0);
   const [bonusAwarded,   setBonusAwarded]   = useState(false);
 
-  useEffect(() => {
-    fetchChallenges();
-    // eslint-disable-next-line
-  }, []);
+  // ✅ Wrap in useCallback
+const fetchChallenges = useCallback(async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const userId = user?.uid;
+    const topic  = userData?.topic || 'Array';
+
+    const res = await axios.get(`${API_BASE}/daily-challenges/${userId}`, {
+      params: { topic }
+    });
+
+    setChallenges(res.data.challenges || []);
+    setDateKey(res.data.dateKey || '');
+    setCompletedCount(
+      (res.data.challenges || []).filter(c => c.completed).length
+    );
+  } catch (e) {
+    console.error('❌ Fetch failed:', e.response?.data || e.message);
+    setError("Failed to load today's challenges. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+}, [user?.uid, userData?.topic]);  // ✅ stable dependencies
+
+useEffect(() => {
+  fetchChallenges();
+}, [fetchChallenges]);  // ✅ no eslint warning
+
 
   // ── ✅ FIXED: Correct URL + query params ──────────────────
   async function fetchChallenges() {
@@ -34,14 +59,15 @@ export default function DailyChallenge({ user, userData, onClose, onRewardsEarne
     try {
       const userId = user?.uid;
       const topic  = userData?.topic || 'Array';
-
+      if (!user?.uid) return;
       console.log('📡 Fetching challenges for:', userId, topic);
 
       const res = await axios.get(
-        `${API_BASE}/daily-challenges/${userId}?topic=${topic}`,
-        { params: { userId, topic } }          // ✅ sends as ?userId=...&topic=...
+          // ✅ Clean version
+          axios.get(`${API_BASE}/daily-challenges/${userId}`, {
+          params: { topic }
+        })
       );
-
       console.log('✅ Challenges received:', res.data);
 
       setChallenges(res.data.challenges || []);
