@@ -46,7 +46,7 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid, topic]);
+ }, [user?.uid, topic]);
 
   useEffect(() => {
     fetchChallenges();
@@ -297,7 +297,8 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
       )}
     </AnimatePresence>
   </div>
- );
+    );
+  };
 };
 export default DailyChallenges;
 
