@@ -1,4 +1,3 @@
-
 import { db } from '../firebase';
 import {
   collection,
@@ -10,11 +9,6 @@ import {
   limit,
   onSnapshot,
 } from 'firebase/firestore';
-
-/**
- * Subscribe to real-time notifications for a user.
- * Returns the unsubscribe function.
- */
 export function subscribeToNotifications(uid, callback) {
   if (!uid) return () => {};
 
@@ -44,13 +38,14 @@ export async function markAsRead(uid, notifId) {
 }
 
 /**
- * Mark ALL notifications as read for a user.
+ * Mark ALL unread notifications as read using a batch write.
  */
 export async function markAllAsRead(uid, notifications) {
   if (!uid || !notifications?.length) return;
   try {
-    const batch    = writeBatch(db);
-    const unread   = notifications.filter((n) => !n.read);
+    const batch  = writeBatch(db);
+    const unread = notifications.filter((n) => !n.read);
+    if (unread.length === 0) return;
     unread.forEach((n) => {
       const ref = doc(db, 'users', uid, 'notifications', n.id);
       batch.update(ref, { read: true });
@@ -60,3 +55,4 @@ export async function markAllAsRead(uid, notifications) {
     console.error('[markAllAsRead] error:', err);
   }
 }
+

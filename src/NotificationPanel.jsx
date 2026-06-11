@@ -1,8 +1,6 @@
-// src/NotificationPanel.jsx
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { markAsRead, markAllAsRead } from './utils/notificationHelpers';
-
+import { motion, AnimatePresence } from 'framer-motion';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_META = {
   arena_result:        { icon: '⚔️',  color: 'text-red-400',    bg: 'bg-red-900/20    border-red-800/40'    },
