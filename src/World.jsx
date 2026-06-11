@@ -402,11 +402,6 @@ export default function World({ user, userData }) {
           </span>
           <span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
             🏆 {userData?.elo ?? 1000} ELO
-          </span><span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
-            💰 {userData?.credits ?? 0}
-          </span>
-          <span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
-            🏆 {userData?.elo ?? 1000} ELO
           </span>
 
        {/* 🔔 Notification Bell */}
