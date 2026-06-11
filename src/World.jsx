@@ -1,575 +1,660 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from './firebase';
-import DailyChallenge from './DailyChallenges';
-import ActivityFeed from './ActivityFeed';
-var LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
-var LOCATIONS = [
+import { motion, AnimatePresence } from 'framer-motion';
+import Particles from 'react-tsparticles';
+import { loadFull } from 'tsparticles';
+import axios from 'axios';
+import { API_BASE } from './config';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const LEVEL_NAMES = {
+  1: 'Junior',
+  2: 'Mid',
+  3: 'Senior',
+  4: 'Lead',
+  5: 'Legend'
+};
+
+const LEVEL_COLORS = {
+  1: '#22c55e',
+  2: '#3b82f6',
+  3: '#a855f7',
+  4: '#f97316',
+  5: '#ef4444'
+};
+
+const XP_PER_LEVEL = 500;
+
+// ─── Zone Definitions ─────────────────────────────────────────────────────────
+// position: percent from top-left of the map container
+
+const ZONES = [
   {
-    id: 'home', label: 'Home', emoji: '🏠',
-    description: 'Your personal profile, stats and life history.',
-    color: '#1a73e8', glow: '#1a73e844',
-    route: '/profile', locked: false, isOffice: false,
+    id:          'lab',
+    path:        '/lab',
+    label:       '🧪 Lab',
+    description: 'Create & publish challenges',
+    position:    { top: '20%', left: '15%' },
+    color:       '#a855f7',
+    glow:        'rgba(168,85,247,0.6)',
+    ring:        'rgba(168,85,247,0.2)',
+    badgeKey:    null
   },
   {
-    id: 'office', label: 'Office', emoji: '🏢',
-    description: 'Take on AI-generated daily DSA challenges and earn Credits.',
-    color: '#00c896', glow: '#00c89644',
-    route: '/office', locked: false, isOffice: true,
+    id:          'hub',
+    path:        '/hub',
+    label:       '🏘️ Hub',
+    description: 'Community challenges',
+    position:    { top: '15%', left: '55%' },
+    color:       '#3b82f6',
+    glow:        'rgba(59,130,246,0.6)',
+    ring:        'rgba(59,130,246,0.2)',
+    badgeKey:    'hubChallenges'
   },
   {
-    id: 'arena', label: 'Arena', emoji: '⚔️',
-    description: '1v1 Real-Time Battles. Challenge other engineers live.',
-    color: '#ff6b6b', glow: '#ff6b6b44',
-    route: '/arena', locked: false, isOffice: false,
+    id:          'arena',
+    path:        '/arena',
+    label:       '🏟️ Arena',
+    description: '1v1 real-time battles',
+    position:    { top: '55%', left: '70%' },
+    color:       '#ef4444',
+    glow:        'rgba(239,68,68,0.6)',
+    ring:        'rgba(239,68,68,0.2)',
+    badgeKey:    null
   },
   {
-    id: 'lab', label: 'Lab', emoji: '🧪',
-    description: 'Create your own challenges and publish them for Credits.',
-    color: '#a855f7', glow: '#a855f744',
-    route: '/lab', locked: false, isOffice: false,
+    id:          'office',
+    path:        '/office',
+    label:       '🏢 Office',
+    description: 'Stats, role & activity',
+    position:    { top: '60%', left: '25%' },
+    color:       '#f97316',
+    glow:        'rgba(249,115,22,0.6)',
+    ring:        'rgba(249,115,22,0.2)',
+    badgeKey:    'dailyChallenges'
   },
   {
-    id: 'hub', label: 'Community Hub', emoji: '🏛️',
-    description: 'Browse & attempt challenges from other players.',
-    color: '#00ff9f', glow: '#00ff9f44',
-    route: '/hub', locked: false, isOffice: false,
-  },
-  {
-    id: 'story', label: '📖 Life Story', emoji: '',
-    description: 'Read your AI-written weekly chapter and full archive.',
-    color: '#8b5cf6', glow: 'rgba(139,92,246,0.4)',
-    route: '/story', locked: false, isOffice: false,
-  },
+    id:          'story',
+    path:        '/story',
+    label:       '📖 Story',
+    description: 'Your AI life story',
+    position:    { top: '38%', left: '42%' },
+    color:       '#22c55e',
+    glow:        'rgba(34,197,94,0.6)',
+    ring:        'rgba(34,197,94,0.2)',
+    badgeKey:    'newStory'
+  }
 ];
 
-var ORBS = [
-  { color: '#a855f7', left: '10%', top: '20%', size: 400 },
-  { color: '#1a73e8', left: '80%', top: '60%', size: 300 },
-  { color: '#00c896', left: '50%', top: '80%', size: 220 },
-  { color: '#ff4d4d', left: '70%', top: '10%', size: 180 },
-];
+// ─── Particles Config ─────────────────────────────────────────────────────────
 
-// ── Animated Background ────────────────────────────────────────────────────────
-function AnimatedBackground() {
-  var navigate = useNavigate();
+const PARTICLES_CONFIG = {
+  fullScreen:   { enable: false },
+  background:   { color: { value: 'transparent' } },
+  fpsLimit:     60,
+  particles: {
+    number:  { value: 80, density: { enable: true, area: 900 } },
+    color:   { value: ['#a855f7', '#3b82f6', '#22c55e', '#ef4444', '#f97316'] },
+    shape:   { type: 'circle' },
+    opacity: {
+      value:  0.5,
+      random: true,
+      animation: { enable: true, speed: 0.8, minimumValue: 0.1, sync: false }
+    },
+    size: {
+      value:  { min: 1, max: 3 },
+      random: true,
+      animation: { enable: true, speed: 2, minimumValue: 0.5, sync: false }
+    },
+    links: {
+      enable:   true,
+      distance: 130,
+      color:    '#a855f7',
+      opacity:  0.15,
+      width:    1
+    },
+    move: {
+      enable:    true,
+      speed:     0.6,
+      direction: 'none',
+      random:    true,
+      straight:  false,
+      outModes:  { default: 'bounce' }
+    }
+  },
+  interactivity: {
+    events: {
+      onHover: { enable: true, mode: 'repulse' },
+      onClick: { enable: true, mode: 'push'    }
+    },
+    modes: {
+      repulse: { distance: 100, duration: 0.4 },
+      push:    { quantity: 3 }
+    }
+  },
+  detectRetina: true
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+// Floating animated orb for each zone
+const ZoneOrb = ({ zone, badge, onClick, isHovered, onHover, onLeave }) => {
+  const pulseVariants = {
+    idle: {
+      scale:     [1, 1.06, 1],
+      boxShadow: [
+        `0 0 20px ${zone.glow}`,
+        `0 0 40px ${zone.glow}`,
+        `0 0 20px ${zone.glow}`
+      ],
+      transition: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' }
+    },
+    hover: {
+      scale:     1.18,
+      boxShadow: `0 0 60px ${zone.glow}, 0 0 120px ${zone.ring}`,
+      transition: { duration: 0.25 }
+    }
+  };
+
+  const floatVariants = {
+    float: {
+      y: [0, -10, 0],
+      transition: {
+        duration:   3 + Math.random() * 2,
+        repeat:     Infinity,
+        ease:       'easeInOut',
+        delay:      Math.random() * 2
+      }
+    }
+  };
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 0,
-      background: '#0a0a14', overflow: 'hidden', pointerEvents: 'auto',
-    }}>
-      <button
-        onClick={function () {
-          console.log('🔥 ARENA TEST CLICKED!');
-          navigate('/arena');
+    <motion.div
+      variants={floatVariants}
+      animate="float"
+      style={{ position: 'absolute', ...zone.position, transform: 'translate(-50%, -50%)' }}
+      className="z-10 flex flex-col items-center gap-2 cursor-pointer"
+      onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+    >
+      {/* Ring pulse */}
+      <motion.div
+        animate={{
+          scale:   [1, 1.6, 1],
+          opacity: [0.4, 0, 0.4]
         }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }}
         style={{
-          padding: '10px 20px',
-          background: 'red',
-          color: 'white',
-          border: 'none',
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          zIndex: 9999,
-          pointerEvents: 'auto',
+          position:     'absolute',
+          width:        80,
+          height:       80,
+          borderRadius: '50%',
+          border:       `2px solid ${zone.color}`,
+          pointerEvents:'none'
+        }}
+      />
+
+      {/* Orb */}
+      <motion.div
+        variants={pulseVariants}
+        animate={isHovered ? 'hover' : 'idle'}
+        style={{
+          width:        64,
+          height:       64,
+          borderRadius: '50%',
+          background:   `radial-gradient(circle at 35% 35%,
+                          ${zone.color}cc, ${zone.color}44)`,
+          border:       `2px solid ${zone.color}`,
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent:'center',
+          fontSize:     26,
+          position:     'relative'
         }}
       >
-        TEST ARENA
-      </button>
-      {ORBS.map(function (orb, i) {
-        return (
-          <div key={i} style={{
-            position: 'absolute', borderRadius: '50%',
-            width: orb.size + 'px', height: orb.size + 'px',
-            background: orb.color, left: orb.left, top: orb.top,
-            transform: 'translate(-50%, -50%)',
-            filter: 'blur(100px)', opacity: 0.08,
-            animation: 'orbpulse ' + (5 + i * 1.5) + 's ease-in-out infinite alternate',
-          }} />
-        );
-      })}
-      <style>{`
-        @keyframes orbpulse {
-          from { opacity: 0.05; transform: translate(-50%,-50%) scale(1); }
-          to   { opacity: 0.13; transform: translate(-50%,-50%) scale(1.18); }
-        }
-        @keyframes scanline {
-          0%   { transform: translateY(-100%); }
-          100% { transform: translateY(100vh); }
-        }
-      `}</style>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-        background: 'linear-gradient(90deg, transparent, #1a73e822, transparent)',
-        animation: 'scanline 8s linear infinite',
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage:
-          'linear-gradient(#ffffff04 1px, transparent 1px),' +
-          'linear-gradient(90deg, #ffffff04 1px, transparent 1px)',
-        backgroundSize: '40px 40px', pointerEvents: 'none',
-      }} />
-    </div>
-  );
-}
+        {zone.label.split(' ')[0]}
 
-// ── Location Card ──────────────────────────────────────────────────────────────
-// ✅ Clean — no rank pill here, no navigate, no userData
-function LocationCard(props) {
-  var loc       = props.loc;
-  var hovered   = props.hovered;
-  var onHover   = props.onHover;
-  var onClick   = props.onClick;
-  if (!loc) return null;
-  var isHovered = hovered === loc.id;
+        {/* Notification badge */}
+        {badge > 0 && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            style={{
+              position:        'absolute',
+              top:             -6,
+              right:           -6,
+              background:      '#ef4444',
+              color:           '#fff',
+              borderRadius:    '50%',
+              width:           22,
+              height:          22,
+              fontSize:        11,
+              fontWeight:      700,
+              display:         'flex',
+              alignItems:      'center',
+              justifyContent:  'center',
+              border:          '2px solid #0a0a0f',
+              boxShadow:       '0 0 8px rgba(239,68,68,0.8)'
+            }}
+          >
+            {badge > 9 ? '9+' : badge}
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Label */}
+      <motion.div
+        animate={{ opacity: isHovered ? 1 : 0.7 }}
+        style={{
+          color:      zone.color,
+          fontWeight: 700,
+          fontSize:   13,
+          textShadow: `0 0 12px ${zone.glow}`,
+          whiteSpace: 'nowrap',
+          letterSpacing: 1
+        }}
+      >
+        {zone.label.split(' ').slice(1).join(' ')}
+      </motion.div>
+
+      {/* Tooltip */}
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{   opacity: 0, y: 6, scale: 0.9 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position:     'absolute',
+              top:          '110%',
+              background:   'rgba(10,10,15,0.95)',
+              border:       `1px solid ${zone.color}66`,
+              borderRadius: 10,
+              padding:      '6px 12px',
+              fontSize:     12,
+              color:        '#d1d5db',
+              whiteSpace:   'nowrap',
+              pointerEvents:'none',
+              boxShadow:    `0 4px 20px ${zone.glow}`
+            }}
+          >
+            {zone.description}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+// Top HUD bar
+const HUD = ({ user, userData, onLogout }) => {
+  const level   = userData?.level || 1;
+  const xp      = userData?.xp    || 0;
+  const credits = userData?.credits|| 0;
+  const elo     = userData?.elo    || 1000;
+
+  const currentLevelXp = (level - 1) * XP_PER_LEVEL;
+  const nextLevelXp    = level * XP_PER_LEVEL;
+  const progress       = Math.min(
+    ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100,
+    100
+  );
+
+  return (
+    <motion.div
+      initial={{ y: -60, opacity: 0 }}
+      animate={{ y: 0,   opacity: 1 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+      className="absolute top-0 left-0 right-0 z-20 flex items-center
+                 justify-between px-6 py-3"
+      style={{
+        background:   'linear-gradient(to bottom, rgba(0,0,0,0.85), transparent)',
+        backdropFilter: 'blur(4px)'
+      }}
+    >
+      {/* Left: Avatar + Name */}
+      <div className="flex items-center gap-3">
+        {user?.photoURL ? (
+          <img
+            src={user.photoURL}
+            alt="avatar"
+            className="w-9 h-9 rounded-full border-2"
+            style={{ borderColor: LEVEL_COLORS[level] }}
+          />
+        ) : (
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center
+                       text-white font-bold text-sm border-2"
+            style={{
+              background:   LEVEL_COLORS[level] + '44',
+              borderColor:  LEVEL_COLORS[level]
+            }}
+          >
+            {user?.displayName?.[0] || '?'}
+          </div>
+        )}
+        <div>
+          <p className="text-white text-sm font-bold leading-tight">
+            {user?.displayName || 'Developer'}
+          </p>
+          <p className="text-xs font-semibold" style={{ color: LEVEL_COLORS[level] }}>
+            {LEVEL_NAMES[level]} • Lv {level}
+          </p>
+        </div>
+      </div>
+
+      {/* Center: XP Bar */}
+      <div className="hidden md:flex flex-col items-center gap-1 w-48">
+        <div className="flex justify-between w-full text-xs text-gray-400">
+          <span>{xp} XP</span>
+          <span>{level < 5 ? `${nextLevelXp} XP` : 'MAX'}</span>
+        </div>
+        <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            className="h-full rounded-full"
+            style={{
+              background: `linear-gradient(to right, ${LEVEL_COLORS[level]}, ${LEVEL_COLORS[level]}aa)`
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Right: Stats + Logout */}
+      <div className="flex items-center gap-3">
+        {/* Credits */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                        border border-gray-700 bg-gray-900/80">
+          <span className="text-yellow-400 text-sm">💰</span>
+          <span className="text-white text-sm font-bold">{credits}</span>
+        </div>
+
+        {/* ELO */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                        border border-gray-700 bg-gray-900/80">
+          <span className="text-red-400 text-sm">🏆</span>
+          <span className="text-white text-sm font-bold">{elo}</span>
+        </div>
+
+        {/* Weekly XP */}
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                        border border-gray-700 bg-gray-900/80">
+          <span className="text-purple-400 text-sm">⚡</span>
+          <span className="text-white text-sm font-bold">
+            {userData?.weeklyXp || 0}
+          </span>
+          <span className="text-gray-500 text-xs">wk</span>
+        </div>
+
+        {/* Logout */}
+        <button
+          onClick={onLogout}
+          className="px-3 py-1.5 rounded-xl border border-gray-700 bg-gray-900/80
+                     text-gray-400 hover:text-white hover:border-red-500
+                     transition-all duration-200 text-sm"
+        >
+          ⏻
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// Cyberpunk grid overlay
+const GridOverlay = () => (
+  <div
+    className="absolute inset-0 z-0 pointer-events-none"
+    style={{
+      backgroundImage: `
+        linear-gradient(rgba(168,85,247,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168,85,247,0.04) 1px, transparent 1px)
+      `,
+      backgroundSize: '60px 60px'
+    }}
+  />
+);
+
+// Scanline effect
+const Scanlines = () => (
+  <div
+    className="absolute inset-0 z-0 pointer-events-none opacity-30"
+    style={{
+      backgroundImage:
+        'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)',
+      backgroundSize: '100% 4px'
+    }}
+  />
+);
+
+// Connection lines between zones (SVG)
+const ConnectionLines = () => (
+  <svg
+    className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id="lineGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stopColor="#a855f7" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.3" />
+      </linearGradient>
+      <linearGradient id="lineGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stopColor="#3b82f6" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.3" />
+      </linearGradient>
+      <linearGradient id="lineGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stopColor="#22c55e" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#f97316" stopOpacity="0.3" />
+      </linearGradient>
+    </defs>
+
+    {/* Lab → Story */}
+    <line x1="15%" y1="20%" x2="42%" y2="38%"
+          stroke="url(#lineGrad1)" strokeWidth="1" strokeDasharray="6,4" />
+    {/* Story → Hub */}
+    <line x1="42%" y1="38%" x2="55%" y2="15%"
+          stroke="url(#lineGrad2)" strokeWidth="1" strokeDasharray="6,4" />
+    {/* Hub → Arena */}
+    <line x1="55%" y1="15%" x2="70%" y2="55%"
+          stroke="url(#lineGrad2)" strokeWidth="1" strokeDasharray="6,4" />
+    {/* Story → Office */}
+    <line x1="42%" y1="38%" x2="25%" y2="60%"
+          stroke="url(#lineGrad3)" strokeWidth="1" strokeDasharray="6,4" />
+    {/* Office → Arena */}
+    <line x1="25%" y1="60%" x2="70%" y2="55%"
+          stroke="url(#lineGrad3)" strokeWidth="1" strokeDasharray="6,4" />
+  </svg>
+);
+
+// Bottom info strip when a zone is hovered
+const ZoneInfoStrip = ({ zone }) => (
+  <AnimatePresence>
+    {zone && (
+      <motion.div
+        key={zone.id}
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0,  opacity: 1 }}
+        exit={{   y: 40, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20
+                   px-6 py-3 rounded-2xl flex items-center gap-3"
+        style={{
+          background:  'rgba(10,10,15,0.92)',
+          border:      `1px solid ${zone.color}66`,
+          boxShadow:   `0 4px 30px ${zone.glow}`,
+          backdropFilter: 'blur(8px)'
+        }}
+      >
+        <span className="text-2xl">{zone.label.split(' ')[0]}</span>
+        <div>
+          <p className="text-white font-bold text-sm">{zone.label}</p>
+          <p className="text-gray-400 text-xs">{zone.description}</p>
+        </div>
+        <span
+          className="ml-4 text-xs font-bold px-3 py-1 rounded-full"
+          style={{
+            background: zone.color + '22',
+            color:      zone.color,
+            border:     `1px solid ${zone.color}44`
+          }}
+        >
+          ENTER →
+        </span>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const World = ({ user, userData, onLogout }) => {
+  const navigate            = useNavigate();
+  const particlesInit       = useCallback(async (engine) => {
+    await loadFull(engine);
+  }, []);
+
+  const [hoveredZone,   setHoveredZone]   = useState(null);
+  const [badges,        setBadges]        = useState({});
+  const [loadingBadges, setLoadingBadges] = useState(true);
+
+  // ── Fetch badge counts ──
+  const fetchBadges = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const [challengesRes, dailyRes] = await Promise.all([
+        axios.get(`${API_BASE}/challenges?limit=5`),
+        axios.get(`${API_BASE}/daily-challenges/${user.uid}`)
+      ]);
+
+      // Count hub challenges user hasn't attempted
+      const allChallenges   = challengesRes.data.challenges || [];
+      const hubUnAttempted  = allChallenges.filter(
+        c => !c.attemptedBy?.includes(user.uid) && c.createdBy !== user.uid
+      ).length;
+
+      // Count daily challenges not yet completed today
+      const dailyData        = dailyRes.data;
+      const completedToday   = dailyData.completedCount || 0;
+      const totalDaily       = (dailyData.challenges || []).length;
+      const dailyRemaining   = Math.max(0, totalDaily - completedToday);
+
+      // Check if new story exists this week
+      let newStory = 0;
+      try {
+        const storyRes = await axios.get(`${API_BASE}/story/${user.uid}`);
+        newStory = storyRes.data.story ? 1 : 0;
+      } catch (_) {}
+
+      setBadges({
+        hubChallenges:   hubUnAttempted,
+        dailyChallenges: dailyRemaining,
+        newStory
+      });
+    } catch (err) {
+      console.error('❌ Badge fetch error:', err);
+    } finally {
+      setLoadingBadges(false);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    fetchBadges();
+  }, [fetchBadges]);
+
+  const hoveredZoneObj = ZONES.find(z => z.id === hoveredZone) || null;
 
   return (
     <div
-      onMouseEnter={function () { onHover(loc.id); }}
-      onMouseLeave={function () { onHover(null); }}
-      onClick={function () { onClick(loc); }}
-      style={{
-        position:       'relative',
-        background:     isHovered
-          ? 'linear-gradient(135deg, #0d1117ee, #111827ee)'
-          : '#0d1117cc',
-        border:         '1px solid ' + (isHovered ? loc.color + '88' : '#1e2a3a'),
-        borderRadius:   '16px',
-        padding:        '16px 18px',
-        cursor:         loc.locked ? 'not-allowed' : 'pointer',
-        overflow:       'hidden',
-        transition:     'all 0.3s ease',
-        boxShadow:      isHovered
-          ? '0 0 24px ' + loc.glow + ', 0 8px 24px #00000066'
-          : '0 4px 12px #00000044',
-        backdropFilter: 'blur(12px)',
-        display:        'flex',
-        flexDirection:  'column',
-        justifyContent: 'space-between',
-        transform:      isHovered ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
-      }}
+      className="relative w-full h-screen overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 50% 50%, #0f0a1e 0%, #0a0a0f 100%)' }}
     >
-      {/* Top glow bar */}
-      <div style={{
-        position:   'absolute', top: 0, left: 0, right: 0, height: '2px',
-        background: 'linear-gradient(90deg, transparent, ' + loc.color + ', transparent)',
-        opacity:    isHovered ? 1 : 0.3, transition: 'opacity 0.3s',
-      }} />
 
-      {/* Corner dot */}
-      <div style={{
-        position:     'absolute', top: '12px', right: '12px',
-        width:        '7px', height: '7px', borderRadius: '50%',
-        background:   loc.color, opacity: isHovered ? 1 : 0.3,
-        boxShadow:    isHovered ? ('0 0 8px ' + loc.color) : 'none',
-        transition:   'all 0.3s',
-      }} />
+      {/* ── Particles ── */}
+      <Particles
+        id="world-particles"
+        init={particlesInit}
+        options={PARTICLES_CONFIG}
+        style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+      />
 
-      <div>
-        {/* Icon + Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '22px' }}>{loc.emoji}</span>
-          <span style={{
-            color:      isHovered ? loc.color : '#e8e8e8',
-            fontSize:   '15px', fontWeight: 700, transition: 'color 0.3s',
-          }}>
-            {loc.label}
-          </span>
+      {/* ── Visual overlays ── */}
+      <GridOverlay />
+      <Scanlines />
+
+      {/* ── SVG connection lines ── */}
+      <ConnectionLines />
+
+      {/* ── HUD ── */}
+      <HUD user={user} userData={userData} onLogout={onLogout} />
+
+      {/* ── Zone orbs ── */}
+      {ZONES.map(zone => (
+        <ZoneOrb
+          key={zone.id}
+          zone={zone}
+          badge={zone.badgeKey ? (badges[zone.badgeKey] || 0) : 0}
+          isHovered={hoveredZone === zone.id}
+          onHover={() => setHoveredZone(zone.id)}
+          onLeave={() => setHoveredZone(null)}
+          onClick={() => navigate(zone.path)}
+        />
+      ))}
+
+      {/* ── Zone info strip ── */}
+      <ZoneInfoStrip zone={hoveredZoneObj} />
+
+      {/* ── Center title ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.4, duration: 0.8, ease: 'easeOut' }}
+        className="absolute inset-0 flex flex-col items-center
+                   justify-center pointer-events-none z-5"
+        style={{ top: '5%' }}
+      >
+        <motion.h1
+          animate={{
+            textShadow: [
+              '0 0 20px #a855f7',
+              '0 0 50px #a855f7',
+              '0 0 20px #a855f7'
+            ]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-5xl md:text-7xl font-black tracking-widest uppercase"
+          style={{
+            color:      '#fff',
+            fontFamily: 'monospace',
+            letterSpacing: '0.15em'
+          }}
+        >
+          DSA LIFE
+        </motion.h1>
+        <motion.p
+          animate={{ opacity: [0.4, 0.9, 0.4] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-purple-400 text-sm tracking-[0.4em] uppercase mt-2"
+          style={{ fontFamily: 'monospace' }}
+        >
+          SIMULATOR
+        </motion.p>
+      </motion.div>
+
+      {/* ── Loading badge overlay ── */}
+      {loadingBadges && (
+        <div className="absolute bottom-4 right-4 z-20">
+          <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent
+                          rounded-full animate-spin" />
         </div>
+      )}
 
-        {/* Description */}
-        <p style={{ color: '#666', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>
-          {loc.description}
-        </p>
-      </div>
-
-      {/* Footer */}
-      <div style={{ marginTop: '10px' }}>
-        {loc.locked ? (
-          <span style={{ color: '#555', fontSize: '11px' }}>🔒 Coming Soon</span>
-        ) : (
-          <span style={{
-            color:      loc.color, fontSize: '11px', fontWeight: 600,
-            opacity:    isHovered ? 1 : 0, transition: 'opacity 0.3s',
-          }}>
-            Enter Location →
-          </span>
-        )}
-      </div>
     </div>
   );
-}
-
-// ── Main World Component ───────────────────────────────────────────────────────
-export default function World(props) {
-  var user            = props.user;
-  var initialUserData = props.userData;
-  var syncUserDataUp  = props.setUserData;
-  var onLogout        = props.onLogout;
-  var navigate        = useNavigate();
-
-  var [userData,    setLocalData]   = useState(initialUserData);
-  var [showOffice,  setShowOffice]  = useState(false);
-  var [loggingOut,  setLoggingOut]  = useState(false);
-  var [hoveredId,   setHoveredId]   = useState(null);
-  var [lockedToast, setLockedToast] = useState(null);
-
-  var credits   = userData?.credits           || 0;
-  var xp        = userData?.xp                || 0;
-  var level     = userData?.level             || 1;
-  var topic     = userData?.topic             || 'Array';
-  var lifeRole  = userData?.lifeRole?.primary || 'Explorer';
-  var firstName = user?.displayName?.split(' ')[0] || 'Engineer';
-  var levelName = LEVEL_NAMES[level] || 'Junior';
-  var xpForNext = level * 500;
-  var xpPct     = Math.min(100, Math.round((xp / xpForNext) * 100));
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  async function handleLogout() {
-    setLoggingOut(true);
-    await signOut(auth);
-    if (onLogout) onLogout();
-    navigate('/');
-  }
-
-  function handleLocationClick(loc) {
-    if (!loc) return;
-    if (loc.locked) {
-      setLockedToast('🔒 This location is coming soon!');
-      setTimeout(() => setLockedToast(null), 2500);
-      return;
-    }
-    if (loc.isOffice) { setShowOffice(true); return; }
-    if (loc.route)    { navigate(loc.route); }
-  }
-
-  function handleRewardsEarned(payload) {
-    var updated = {
-      ...userData,
-      credits: payload.newCredits,
-      xp:      payload.newXp,
-      level:   payload.newLevel,
-    };
-    setLocalData(updated);
-    if (syncUserDataUp) syncUserDataUp(updated);
-  }
-
-  var HEADER_H = '72px';
-
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div style={{ height: '100vh', overflow: 'hidden', fontFamily: 'Arial, sans-serif', position: 'relative' }}>
-      <AnimatedBackground />
-
-      <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
-
-        {/* ══ HEADER ═══════════════════════════════════════════════════════════ */}
-        <div style={{
-          display:        'flex',
-          justifyContent: 'space-between',
-          alignItems:     'center',
-          padding:        '0 28px',
-          height:         HEADER_H,
-          flexShrink:     0,
-          borderBottom:   '1px solid #1e2a3a',
-          background:     '#0a0a14cc',
-          backdropFilter: 'blur(16px)',
-        }}>
-
-          {/* Left — avatar + name + badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ position: 'relative' }}>
-              <img
-                src={user?.photoURL || ''}
-                alt="avatar"
-                referrerPolicy="no-referrer"
-                style={{
-                  width: '42px', height: '42px', borderRadius: '50%',
-                  border: '2px solid #1a73e8', objectFit: 'cover',
-                }}
-              />
-              {/* Online dot */}
-              <div style={{
-                position: 'absolute', bottom: 0, right: 0,
-                width: '10px', height: '10px', borderRadius: '50%',
-                background: '#00ff88', border: '2px solid #0a0a14',
-              }} />
-            </div>
-
-            <div>
-              <div style={{ color: '#555', fontSize: '10px' }}>Welcome back,</div>
-              <div style={{ color: '#e8e8e8', fontSize: '16px', fontWeight: 700, lineHeight: 1.2 }}>
-                {firstName}
-              </div>
-              <div style={{ display: 'flex', gap: '6px', marginTop: '3px' }}>
-                <span style={{
-                  background: '#1a73e822', border: '1px solid #1a73e844',
-                  color: '#1a73e8', borderRadius: '20px',
-                  padding: '1px 8px', fontSize: '10px', fontWeight: 600,
-                }}>
-                  {lifeRole}
-                </span>
-                <span style={{
-                  background: '#00c89622', border: '1px solid #00c89644',
-                  color: '#00c896', borderRadius: '20px',
-                  padding: '1px 8px', fontSize: '10px', fontWeight: 600,
-                }}>
-                  {topic}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right — Level + XP + Credits + Rank + Logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-
-            {/* Level */}
-            <div style={{
-              background: '#1a1a2e', border: '1px solid #1a73e844',
-              borderRadius: '10px', padding: '6px 14px',
-              textAlign: 'center', minWidth: '80px',
-            }}>
-              <div style={{ color: '#1a73e8', fontSize: '9px', fontWeight: 700 }}>
-                Level {level}
-              </div>
-              <div style={{ color: '#e8e8e8', fontSize: '14px', fontWeight: 700 }}>
-                {levelName}
-              </div>
-            </div>
-
-            {/* XP */}
-            <div style={{
-              background: '#1a1a2e', border: '1px solid #a855f744',
-              borderRadius: '10px', padding: '6px 14px', minWidth: '72px',
-            }}>
-              <div style={{ color: '#a855f7', fontSize: '9px', fontWeight: 700 }}>XP</div>
-              <div style={{ color: '#e8e8e8', fontSize: '14px', fontWeight: 700 }}>{xp}</div>
-              <div style={{
-                width: '100%', height: '3px', background: '#1e2a3a',
-                borderRadius: '2px', marginTop: '3px', overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%', width: xpPct + '%',
-                  background: 'linear-gradient(90deg,#a855f7,#1a73e8)',
-                  borderRadius: '2px', transition: 'width 0.6s ease',
-                }} />
-              </div>
-            </div>
-
-            {/* Credits */}
-            <div style={{
-              background: '#1a1a2e', border: '1px solid #f5c54244',
-              borderRadius: '10px', padding: '6px 14px',
-              display: 'flex', alignItems: 'center', gap: '6px',
-            }}>
-              <span style={{ fontSize: '16px' }}>💰</span>
-              <div>
-                <div style={{ color: '#f5c542', fontSize: '14px', fontWeight: 700 }}>
-                  {credits}
-                </div>
-                <div style={{ color: '#555', fontSize: '9px' }}>Credits</div>
-              </div>
-            </div>
-
-            {/* ✅ RANK PILL — correctly placed in header, navigates to leaderboard */}
-            <div
-              onClick={() => navigate('/leaderboard')}
-              style={{
-                background:    '#1a1a2e',
-                border:        '1px solid #f5c54244',
-                borderRadius:  '10px',
-                padding:       '6px 14px',
-                textAlign:     'center',
-                minWidth:      '72px',
-                cursor:        'pointer',
-                transition:    'border-color 0.2s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = '#f5c542aa'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = '#f5c54244'}
-            >
-              <div style={{ color: '#f5c542', fontSize: '9px', fontWeight: 700 }}>
-                🌍 RANK
-              </div>
-              <div style={{ color: '#e8e8e8', fontSize: '14px', fontWeight: 700 }}>
-                {userData?.rank ? `#${userData.rank}` : '—'}
-              </div>
-            </div>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              style={{
-                background:   loggingOut ? '#1e2a3a' : '#ff4d4d22',
-                border:       '1px solid #ff4d4d44',
-                borderRadius: '10px',
-                color:        '#ff4d4d',
-                cursor:       loggingOut ? 'not-allowed' : 'pointer',
-                fontSize:     '12px',
-                fontWeight:   600,
-                padding:      '7px 14px',
-                transition:   'all 0.2s',
-              }}
-            >
-              {loggingOut ? 'Logging out...' : 'Logout'}
-            </button>
-          </div>
-        </div>
-
-        {/* ══ BODY ═════════════════════════════════════════════════════════════ */}
-        <div style={{
-          flex:          1,
-          overflow:      'hidden',
-          display:       'flex',
-          flexDirection: 'column',
-          padding:       '16px 28px 12px',
-          gap:           '12px',
-        }}>
-
-          {/* Title strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0  }}
-            style={{ textAlign: 'center', flexShrink: 0 }}
-          >
-            <h1 style={{
-              color: '#e8e8e8', fontSize: '26px',
-              fontWeight: 800, margin: 0, letterSpacing: '-0.5px',
-            }}>
-              The Simulator World
-            </h1>
-            <p style={{ color: '#555', fontSize: '13px', margin: '4px 0 0' }}>
-              Choose your destination. Every location is a new opportunity.
-            </p>
-          </motion.div>
-
-          {/* XP Progress Bar */}
-          <div style={{
-            flexShrink: 0, maxWidth: '360px', margin: '0 auto', width: '100%',
-            background: '#1a1a2e', borderRadius: '10px',
-            padding: '8px 16px', border: '1px solid #1e2a3a',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: '#666', fontSize: '10px' }}>{levelName} Progress</span>
-              <span style={{ color: '#a855f7', fontSize: '10px', fontWeight: 700 }}>
-                {xp} / {xpForNext} XP
-              </span>
-            </div>
-            <div style={{
-              width: '100%', height: '5px', background: '#1e2a3a',
-              borderRadius: '3px', overflow: 'hidden',
-            }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: xpPct + '%' }}
-                transition={{ duration: 1.2, ease: 'easeOut' }}
-                style={{
-                  height: '100%',
-                  background: 'linear-gradient(90deg,#a855f7,#1a73e8)',
-                  borderRadius: '3px',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Grid + Feed */}
-          <div style={{
-            flex: 1, overflow: 'hidden',
-            display: 'flex', gap: '16px',
-          }}>
-
-            {/* Location grid — 3×2 */}
-            <div style={{
-              flex: 1,
-              display:             'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gridTemplateRows:    'repeat(2, 1fr)',
-              gap:                 '12px',
-            }}>
-              {LOCATIONS.map(function (loc) {
-                return (
-                  <LocationCard
-                    key={loc.id}
-                    loc={loc}
-                    hovered={hoveredId}
-                    onHover={setHoveredId}
-                    onClick={handleLocationClick}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Activity Feed */}
-            <div style={{
-              width:          '260px',
-              flexShrink:     0,
-              overflow:       'hidden',
-              borderRadius:   '16px',
-              border:         '1px solid #1e2a3a',
-              background:     '#0d1117cc',
-              backdropFilter: 'blur(12px)',
-            }}>
-              <ActivityFeed
-                currentUser={user}
-                followedUids={userData?.following || []}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ OFFICE MODAL ═════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {showOffice && (
-          <motion.div
-            key="office-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position:       'fixed', inset: 0, zIndex: 200,
-              background:     '#000000bb', backdropFilter: 'blur(6px)',
-              display:        'flex', alignItems: 'center', justifyContent: 'center',
-              padding:        '20px',
-            }}
-          >
-            <DailyChallenge
-              user={user}
-              userData={userData}
-              onClose={function () { setShowOffice(false); }}
-              onRewardsEarned={handleRewardsEarned}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ══ LOCKED TOAST ═════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {lockedToast && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0  }}
-            exit={{ opacity: 0, y: 30   }}
-            style={{
-              position:     'fixed', bottom: '28px', left: '50%',
-              transform:    'translateX(-50%)', zIndex: 999,
-              background:   '#1a1a2e', border: '1px solid #f5c54244',
-              color:        '#f5c542', padding: '10px 24px',
-              borderRadius: '30px', fontSize: '13px', fontWeight: 600,
-              boxShadow:    '0 4px 20px #00000066',
-            }}
-          >
-            {lockedToast}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-
-
+};
+export default World;
