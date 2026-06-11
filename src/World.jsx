@@ -531,7 +531,7 @@ const ZoneInfoStrip = ({ zone }) => (
   </AnimatePresence>
 );
 
-// ─── World Component ──────────────────────────────────────────────────────────
+// ─── World Component ────────────────────────────────────────────────────────
 
 const World = ({ user, userData, onLogout }) => {
   const navigate = useNavigate();
@@ -543,11 +543,12 @@ const World = ({ user, userData, onLogout }) => {
   const fetchBadges = useCallback(async () => {
     if (!user?.uid) return;
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const fetchChallenges = axios.get(`${API_BASE}/challenges?limit=50`);
+      const fetchDaily      = axios.get(`${API_BASE}/daily-challenges/${user.uid}`);
 
       const [challengesRes, dailyRes] = await Promise.all([
-        axios.get(`${API_BASE}/challenges?limit=50`),
-        axios.get(`${API_BASE}/daily-challenges/${user.uid}`)
+        fetchChallenges,
+        fetchDaily
       ]);
 
       const allChallenges  = challengesRes.data.challenges || [];
