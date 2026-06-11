@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import Particles from 'react-tsparticles';
-import { loadFull } from 'tsparticles';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlimPreset } from '@tsparticles/slim';
 import axios from 'axios';
 import API_BASE from './config';
 
