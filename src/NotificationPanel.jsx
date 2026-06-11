@@ -52,17 +52,15 @@ export default function NotificationPanel({ uid, notifications, onClose }) {
       <motion.div
        key="notif-panel"
        initial={{ opacity: 0, y: -12, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0,   scale: 1    }}
-      exit={{   opacity: 0, y: -12, scale: 0.96  }}
-      transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-      className="fixed top-16 right-4 z-[1000] w-80 md:w-96   
-                bg-[#0d0d1f]/96 backdrop-blur-2xl
-                border border-white/10 rounded-2xl shadow-2xl
-                flex flex-col overflow-hidden"
-      style={{ maxHeight: '80vh' }}
-    />
-
-      
+       animate={{ opacity: 1, y: 0,   scale: 1    }}
+       exit={{   opacity: 0, y: -12, scale: 0.96  }}
+       transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+       className="fixed top-16 right-4 z-[1000] w-80 md:w-96   
+                 bg-[#0d0d1f]/96 backdrop-blur-2xl
+                 border border-white/10 rounded-2xl shadow-2xl
+                 flex flex-col overflow-hidden"
+       style={{ maxHeight: '80vh' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
