@@ -15,6 +15,7 @@ const LifeStory   = lazy(() => import('./LifeStory'));
 const Leaderboard = lazy(() => import('./Leaderboard'));
 const Assessment  = lazy(() => import('./Assessment'));
 const Results     = lazy(() => import('./Results'));
+const Office = React.lazy(() => import('./Office'));
 
 // ── Loading Fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
