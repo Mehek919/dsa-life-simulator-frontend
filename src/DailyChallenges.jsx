@@ -348,5 +348,4 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
     </div>
   );
 };
-
 export default DailyChallenges;
