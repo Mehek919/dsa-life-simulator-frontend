@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadFull } from 'tsparticles';
 import axios from 'axios';
-import { API_BASE } from './config';
+import API_BASE from './config';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
