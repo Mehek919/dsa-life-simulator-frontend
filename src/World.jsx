@@ -2,10 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { API_BASE } from './config';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
+import API_BASE from './config';
 const LEVEL_NAMES  = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 const LEVEL_COLORS = {
   1: '#22c55e', 2: '#3b82f6',
