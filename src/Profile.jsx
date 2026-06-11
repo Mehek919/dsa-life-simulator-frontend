@@ -1,4 +1,3 @@
-// src/Profile.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { useNavigate }                              from 'react-router-dom';
@@ -6,7 +5,6 @@ import axios                                        from 'axios';
 import {
   collection, query, where,
   orderBy, limit, getDocs,
-  doc, getDoc,
 }                                                   from 'firebase/firestore';
 import { db }                                       from './firebase';
 import API_BASE                                     from './config';
