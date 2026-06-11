@@ -298,9 +298,7 @@ export default function World({ user, userData }) {
   const [feedLoading,     setFeedLoading]     = useState(true);
 
   // ── particles init ─────────────────────────────────────────────────────────
-  const particlesInit = useCallback(async (engine) => {
-    await loadFull(engine);
-  }, []);
+  const particlesInit = async () => {};
 
   // ── fetch badge counts ─────────────────────────────────────────────────────
   useEffect(() => {
