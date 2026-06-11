@@ -5,10 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import DailyChallenge from './DailyChallenges';
 import ActivityFeed from './ActivityFeed';
-
-// ── Constants ──────────────────────────────────────────────────────────────────
 var LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
-
 var LOCATIONS = [
   {
     id: 'home', label: 'Home', emoji: '🏠',
@@ -20,7 +17,7 @@ var LOCATIONS = [
     id: 'office', label: 'Office', emoji: '🏢',
     description: 'Take on AI-generated daily DSA challenges and earn Credits.',
     color: '#00c896', glow: '#00c89644',
-    route: null, locked: false, isOffice: true,
+    route: '/office', locked: false, isOffice: true,
   },
   {
     id: 'arena', label: 'Arena', emoji: '⚔️',
