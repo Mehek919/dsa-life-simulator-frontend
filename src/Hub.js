@@ -682,6 +682,6 @@ function ChallengeCard({ challenge, userId, onAttempt, onRate }) {
     </motion.div>
   );
 }
-export default Hub;
+
 
 

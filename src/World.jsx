@@ -520,4 +520,4 @@ export default function World({ user, userData }) {
     </div>
   );
 }
-export default World;
+
