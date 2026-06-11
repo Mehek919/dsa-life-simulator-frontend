@@ -139,15 +139,10 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
 
   if (!user?.uid) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white">
-        Please sign in to access daily challenges.
-      </div>
-    );
-  }
-
-  return (
-        <div className="w-full max-h-[80vh] overflow-y-auto rounded-3xl border border-cyan-400/20 bg-slate-950/70 p-6 text-white shadow-2xl backdrop-blur-md">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div className="w-full h-full flex flex-col rounded-3xl border border-cyan-400/20 bg-slate-950/70 text-white shadow-2xl backdrop-blur-md">
+    {/* Fixed header section */}
+    <div className="flex-shrink-0 p-6">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-cyan-300">Daily Challenges</h2>
           <p className="mt-1 text-sm text-slate-300">
@@ -201,7 +196,10 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
           {error}
         </div>
       )}
+    </div>
 
+    {/* Scrollable content area */}
+    <div className="flex-1 overflow-y-auto px-6 pb-6">
       {loading ? (
         <div className="flex min-h-[180px] items-center justify-center text-slate-300">
           Loading daily challenges...
@@ -283,21 +281,23 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
           ))}
         </div>
       )}
-
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 18 }}
-            className="fixed bottom-6 right-6 z-50 rounded-2xl border border-cyan-400/20 bg-slate-900/95 px-5 py-3 text-sm text-white shadow-2xl"
-          >
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
-  );
+
+    {/* Toast notification */}
+    <AnimatePresence>
+      {toast && (
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 18 }}
+          className="fixed bottom-6 right-6 z-50 rounded-2xl border border-cyan-400/20 bg-slate-900/95 px-5 py-3 text-sm text-white shadow-2xl"
+        >
+          {toast}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+ );
 };
 export default DailyChallenges;
 
