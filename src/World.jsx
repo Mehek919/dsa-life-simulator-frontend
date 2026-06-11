@@ -9,14 +9,11 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import Particles from 'react-tsparticles';
-import { loadFull } from 'tsparticles';
+import Particles from '@tsparticles/react';
+import { loadFull } from '@tsparticles/all';
 import axios from 'axios';
 import API_BASE from './config';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
-
 const EVENT_META = {
   challenge_solved:    { icon: '✅', color: 'text-green-400',  label: 'solved a challenge'    },
   challenge_published: { icon: '📢', color: 'text-blue-400',   label: 'published a challenge'  },
