@@ -1,14 +1,14 @@
 // src/NotificationBell.jsx
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { subscribeToNotifications } from './utils/notificationHelpers';
-import NotificationPanel from './NotificationPanel';
+import ReactDOM                        from 'react-dom';
+import { AnimatePresence, motion }     from 'framer-motion';
+import { subscribeToNotifications }    from './utils/notificationHelpers';
+import NotificationPanel               from './NotificationPanel';
 
 export default function NotificationBell({ user }) {
   const [notifications, setNotifications] = useState([]);
   const [open,          setOpen]          = useState(false);
 
-  // ── real-time subscription ─────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.uid) return;
     const unsub = subscribeToNotifications(user.uid, (notifs) => {
@@ -31,19 +31,21 @@ export default function NotificationBell({ user }) {
                    transition-all duration-200"
         aria-label="Notifications"
       >
-        {/* Bell icon */}
         <motion.span
           animate={unreadCount > 0
             ? { rotate: [0, -15, 15, -10, 10, 0] }
             : { rotate: 0 }
           }
-          transition={{ duration: 0.6, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 4 }}
+          transition={{
+            duration: 0.6,
+            repeat: unreadCount > 0 ? Infinity : 0,
+            repeatDelay: 4
+          }}
           className="text-xl block"
         >
           🔔
         </motion.span>
 
-        {/* Badge */}
         <AnimatePresence>
           {unreadCount > 0 && (
             <motion.span
@@ -62,16 +64,19 @@ export default function NotificationBell({ user }) {
         </AnimatePresence>
       </motion.button>
 
-      {/* Panel */}
-      <AnimatePresence>
-        {open && (
-          <NotificationPanel
-            uid={user?.uid}
-            notifications={notifications}
-            onClose={() => setOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {/* ✅ Portal — renders OUTSIDE World DOM tree, always on top */}
+      {ReactDOM.createPortal(
+        <AnimatePresence>
+          {open && (
+            <NotificationPanel
+              uid={user?.uid}
+              notifications={notifications}
+              onClose={() => setOpen(false)}
+            />
+          )}
+        </AnimatePresence>,
+        document.body   // ← attaches directly to <body>
+      )}
     </>
   );
 }

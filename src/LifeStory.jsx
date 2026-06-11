@@ -28,14 +28,41 @@ function getWeekLabel(weekId) {
   if (!match) return weekId;
   return `Week ${parseInt(match[2], 10)}, ${match[1]}`;
 }
-
 function formatDate(ts) {
   if (!ts) return '';
-  const date = ts.toDate ? ts.toDate() : new Date(ts);
+
+  let date;
+
+  // Firestore Timestamp object (from SDK)
+  if (typeof ts?.toDate === 'function') {
+    date = ts.toDate();
+
+  // Firestore Timestamp serialized over HTTP: { _seconds, _nanoseconds }
+  } else if (ts?._seconds !== undefined) {
+    date = new Date(ts._seconds * 1000);
+
+  // Firestore REST API format: { seconds, nanoseconds }
+  } else if (ts?.seconds !== undefined) {
+    date = new Date(ts.seconds * 1000);
+
+  // Already a JS Date
+  } else if (ts instanceof Date) {
+    date = ts;
+
+  // ISO string or timestamp number
+  } else {
+    date = new Date(ts);
+  }
+
+  if (isNaN(date.getTime())) return '';   // ← silently hide if still invalid
+
   return date.toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year:  'numeric',
+    month: 'short',
+    day:   'numeric',
   });
 }
+
 
 // ─── Typewriter Hook ──────────────────────────────────────────────────────────
 function useTypewriter(text, speed = 28, active = false) {
