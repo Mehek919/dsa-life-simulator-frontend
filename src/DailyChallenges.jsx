@@ -146,8 +146,8 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
   }
 
   return (
-    <div className="w-full rounded-3xl border border-cyan-400/20 bg-slate-950/70 p-6 text-white shadow-2xl backdrop-blur-md">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="w-full max-h-[80vh] overflow-y-auto rounded-3xl border border-cyan-400/20 bg-slate-950/70 p-6 text-white shadow-2xl backdrop-blur-md">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-cyan-300">Daily Challenges</h2>
           <p className="mt-1 text-sm text-slate-300">
