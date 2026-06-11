@@ -15,7 +15,7 @@ import {
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import axios from 'axios';
-import { API_BASE } from './config';
+import API_BASE from './config';
 
 // ─── Lazy Imports ─────────────────────────────────────────────────────────────
 const Login      = lazy(() => import('./Login'));
