@@ -11,7 +11,7 @@ const LEVEL_NAMES = {
   5: 'Legend',
 };
 
-const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
+const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose }) => {
   const [topic, setTopic] = useState(userData?.topic || 'Array');
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,6 +158,39 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned }) => {
 
       {/* Fixed header section */}
       <div className="flex-shrink-0 p-6">
+
+        {/* Back button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              display:      'flex',
+              alignItems:   'center',
+              gap:          '6px',
+              background:   'transparent',
+              border:       '1px solid #ffffff22',
+              borderRadius: '10px',
+              color:        '#94a3b8',
+              cursor:       'pointer',
+              fontSize:     '13px',
+              fontWeight:   600,
+              padding:      '6px 14px',
+              marginBottom: '16px',
+              transition:   'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = '#22d3ee66';
+              e.currentTarget.style.color = '#22d3ee';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = '#ffffff22';
+              e.currentTarget.style.color = '#94a3b8';
+            }}
+          >
+            ← Back to World
+          </button>
+        )}
+
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-cyan-300">Daily Challenges</h2>
