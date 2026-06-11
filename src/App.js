@@ -161,9 +161,12 @@ export default function App() {
             <Arena user={user} userData={userData} setUserData={setUserData} />
           </Guard>
           } />
-
+          <Route path="/office" element={
+          <Guard user={user}>
+           <Office user={user} userData={userData} setUserData={setUserData} />
+          </Guard>
+         } />
           <Route path="*" element={<Navigate to="/" replace />} />
-
         </Routes>
       </Suspense>
     </BrowserRouter>
