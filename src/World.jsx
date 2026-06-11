@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import Particles from '@tsparticles/react';
+import NotificationBell from './NotificationBell';
 import axios from 'axios';
 import API_BASE from './config';
 const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
@@ -401,8 +402,20 @@ export default function World({ user, userData }) {
           </span>
           <span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
             🏆 {userData?.elo ?? 1000} ELO
+          </span><span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
+            💰 {userData?.credits ?? 0}
           </span>
+          <span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
+            🏆 {userData?.elo ?? 1000} ELO
+          </span>
+
+       {/* 🔔 Notification Bell */}
+       <NotificationBell user={user} />
+
           <button
+            onClick={() => setShowFeed((p) => !p)}
+            className="relative bg-white/10 hover:bg-cyan-500/20 border border-white/10
+                       hover:border-cyan-500/40 px-3 py-1.5 rounded-lg transition-all"
             onClick={() => setShowFeed((p) => !p)}
             className="relative bg-white/10 hover:bg-cyan-500/20 border border-white/10
                        hover:border-cyan-500/40 px-3 py-1.5 rounded-lg transition-all"
