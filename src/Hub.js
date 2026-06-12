@@ -360,7 +360,7 @@ export default function Hub({ user, userData, setUserData }) {
           TAB: BROWSE
       ════════════════════════════════════════════════ */}
       {activeTab === 'browse' && (
-        <div>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-6">
             <select
@@ -419,6 +419,7 @@ export default function Hub({ user, userData, setUserData }) {
 
           <div className="grid gap-4">
             <AnimatePresence>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {challenges.map((ch) => (
                 <ChallengeCard
                   key={ch.id}
@@ -428,6 +429,7 @@ export default function Hub({ user, userData, setUserData }) {
                   onRate={handleRate}
                 />
               ))}
+             </div>
             </AnimatePresence>
           </div>
         </div>

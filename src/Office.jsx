@@ -587,7 +587,8 @@ export default function Office({ user, userData: propUserData }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* ── Row 1: Stat Cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}
+                 className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatCard
                 label="Total XP"    value={xp.toLocaleString()}
                 icon="✨"           color="#a855f7"

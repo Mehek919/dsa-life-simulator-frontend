@@ -2,42 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <!-- ── Primary SEO ── -->
+    <title>DSA Life Simulator — Level Up Your Coding Life</title>
+    <meta name="description"
+          content="A gamified DSA learning platform with AI-powered daily challenges, real-time 1v1 arena battles, weekly life stories, and a developer leaderboard." />
+    <meta name="keywords"
+          content="DSA, Data Structures, Algorithms, coding challenges, LeetCode alternative, gamified learning, competitive programming" />
+    <meta name="author"  content="DSA Life Simulator" />
+    <meta name="robots"  content="index, follow" />
+    <link rel="canonical" href="https://dsalifesimulator.com" />
+
+    <!-- ── Theme + PWA ── -->
+    <meta name="theme-color"                        content="#06b6d4" />
+    <meta name="mobile-web-app-capable"             content="yes" />
+    <meta name="apple-mobile-web-app-capable"       content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title"         content="DSALife" />
+
+    <!-- ── Icons ── -->
+    <link rel="icon"            type="image/png" sizes="32x32"  href="%PUBLIC_URL%/icons/icon-96x96.png" />
+    <link rel="apple-touch-icon"                sizes="180x180" href="%PUBLIC_URL%/icons/icon-192x192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- ── Open Graph (Facebook / LinkedIn) ── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://dsalifesimulator.com" />
+    <meta property="og:title"       content="DSA Life Simulator — Level Up Your Coding Life" />
+    <meta property="og:description" content="AI-powered DSA challenges, live 1v1 battles, weekly stories. Build your developer legacy." />
+    <meta property="og:image"       content="https://dsalifesimulator.com/og-image.png" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name"   content="DSA Life Simulator" />
+    <meta property="og:locale"      content="en_US" />
+
+    <!-- ── Twitter Card ── -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:url"         content="https://dsalifesimulator.com" />
+    <meta name="twitter:title"       content="DSA Life Simulator" />
+    <meta name="twitter:description" content="Gamified DSA learning with AI challenges, arena battles, and weekly dev stories." />
+    <meta name="twitter:image"       content="https://dsalifesimulator.com/og-image.png" />
+
+    <!-- ── Preconnect ── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://dsa-life-simulator-backend.onrender.com" />
+
+    <!-- ── Structured Data (JSON-LD) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "DSA Life Simulator",
+      "url": "https://dsalifesimulator.com",
+      "description": "Gamified DSA learning with AI challenges, real-time arena battles, and weekly developer life stories.",
+      "applicationCategory": "EducationApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>You need to enable JavaScript to run DSA Life Simulator.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

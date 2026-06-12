@@ -304,6 +304,7 @@ export default function Arena({ user, userData, setUserData }) {
               display: 'flex', justifyContent: 'space-between',
               alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12,
             }}>
+             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <PlayerCard
                 name={user.displayName?.split(' ')[0]}
                 photoURL={user.photoURL}
@@ -338,6 +339,7 @@ export default function Arena({ user, userData, setUserData }) {
                 />
               )}
             </div>
+            </div>
 
             {/* Opponent toast */}
             <AnimatePresence>
@@ -358,7 +360,7 @@ export default function Arena({ user, userData, setUserData }) {
                 </motion.div>
               )}
             </AnimatePresence>
-
+        
             {/* Challenge card */}
             <div style={{
               background: 'rgba(255,255,255,0.04)',
@@ -385,34 +387,36 @@ export default function Arena({ user, userData, setUserData }) {
 
             {/* Options */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {challenge.options.map((opt, i) => {
-                const isSelected = selected === opt;
-                return (
-                  <motion.button
-                    key={i}
-                    whileHover={!submitted ? { scale: 1.01 } : {}}
-                    whileTap={!submitted  ? { scale: 0.99 } : {}}
-                    onClick={() => !submitted && setSelected(opt)}
-                    style={{
-                      padding: '14px 20px',
-                      background:   isSelected ? 'rgba(255,107,107,0.2)' : 'rgba(255,255,255,0.04)',
-                      border:       `2px solid ${isSelected ? '#ff6b6b' : 'rgba(255,255,255,0.1)'}`,
-                      borderRadius: 12,
-                      color:        isSelected ? '#ff6b6b' : '#ccc',
-                      cursor:       submitted ? 'default' : 'pointer',
-                      fontSize:     15,
-                      textAlign:    'left',
-                      boxShadow:    isSelected ? '0 0 15px rgba(255,107,107,0.2)' : 'none',
-                      transition:   'all 0.2s',
-                    }}
-                  >
-                    <span style={{ fontWeight: 700, marginRight: 10, color: '#555' }}>
-                      {String.fromCharCode(65 + i)}.
-                    </span>
-                    {opt}
-                  </motion.button>
-                );
-              })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {challenge.options.map((opt, i) => {
+                  const isSelected = selected === opt;
+                  return (
+                    <motion.button
+                      key={i}
+                      whileHover={!submitted ? { scale: 1.01 } : {}}
+                      whileTap={!submitted  ? { scale: 0.99 } : {}}
+                      onClick={() => !submitted && setSelected(opt)}
+                      style={{
+                        padding: '14px 20px',
+                        background:   isSelected ? 'rgba(255,107,107,0.2)' : 'rgba(255,255,255,0.04)',
+                        border:       `2px solid ${isSelected ? '#ff6b6b' : 'rgba(255,255,255,0.1)'}`,
+                        borderRadius: 12,
+                        color:        isSelected ? '#ff6b6b' : '#ccc',
+                        cursor:       submitted ? 'default' : 'pointer',
+                        fontSize:     15,
+                        textAlign:    'left',
+                        boxShadow:    isSelected ? '0 0 15px rgba(255,107,107,0.2)' : 'none',
+                        transition:   'all 0.2s',
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, marginRight: 10, color: '#555' }}>
+                        {String.fromCharCode(65 + i)}.
+                      </span>
+                      {opt}
+                    </motion.button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Submit */}

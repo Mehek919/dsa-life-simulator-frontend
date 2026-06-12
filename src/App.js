@@ -16,8 +16,8 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import axios from 'axios';
 import API_BASE from './config';
-
-// ─── Lazy Imports ─────────────────────────────────────────────────────────────
+import InstallBanner from './components/InstallBanner';
+import MobileNav    from './components/MobileNav';
 const Login      = lazy(() => import('./Login'));
 const World      = lazy(() => import('./World'));
 const Profile    = lazy(() => import('./Profile'));
@@ -308,6 +308,8 @@ const AppShell = () => {
 const App = () => (
   <Router>
     <AppShell />
+    {user && <MobileNav />}
+    <InstallBanner />
   </Router>
 );
 export default App;

@@ -300,12 +300,21 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
                   value={answers[challenge.id] || ''}
                   onChange={(e) => handleAnswerChange(challenge.id, e.target.value)}
                   disabled={challenge.completed}
-                  rows={5}
                   placeholder="Write your explanation and core logic here..."
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full min-h-[120px] md:min-h-[140px]
+                             p-3
+                            text-sm
+                            text-white
+                            bg-slate-900/60
+                            border border-white/10
+                            rounded-xl
+                            resize-none
+                            outline-none
+                            focus:border-cyan-400
+                            disabled:opacity-60
+                         "
                 />
-
-                <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="text-sm text-slate-400">
                     {(answers[challenge.id] || '').trim().length}/10 minimum characters
                   </div>

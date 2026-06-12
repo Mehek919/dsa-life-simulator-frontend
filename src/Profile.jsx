@@ -8,7 +8,11 @@ import {
 }                                                   from 'firebase/firestore';
 import { db }                                       from './firebase';
 import API_BASE                                     from './config';
-
+import {
+  ProfileSkeleton,
+  StoryCardSkeleton,
+  ListItemSkeleton,
+} from './components/Skeleton';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 

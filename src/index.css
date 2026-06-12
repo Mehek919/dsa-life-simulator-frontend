@@ -10,3 +10,44 @@ html {
 ::-webkit-scrollbar-track { background: #0f0f1a; }
 ::-webkit-scrollbar-thumb { background: #1a73e8; border-radius: 10px; }
 
+/* ── Prevent horizontal overflow on mobile ── */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── Smooth scrolling + tap behavior ── */
+* {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Safe area insets (iPhone notch / home bar) ── */
+.safe-top    { padding-top:    env(safe-area-inset-top);    }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* ── Hide scrollbars but keep scroll ── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Touch-friendly tap targets (min 44px) ── */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width:  44px;
+}
+
+/* ── Prevent text selection on interactive elements ── */
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Word break for long code/text ── */
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break:    break-word;
+}
+

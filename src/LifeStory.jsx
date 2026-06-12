@@ -1,13 +1,9 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence }                          from 'framer-motion';
 import { useNavigate }                                      from 'react-router-dom';
 import axios                                                from 'axios';
 import API_BASE                                             from './config';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
-
 const ROLE_COLORS = {
   Junior:  'from-green-500  to-emerald-700',
   Mid:     'from-blue-500   to-indigo-700',
@@ -15,12 +11,9 @@ const ROLE_COLORS = {
   Lead:    'from-orange-500 to-amber-700',
   Legend:  'from-red-500    to-rose-700',
 };
-
 const ROLE_ICONS = {
   Junior:'🌱', Mid:'💻', Senior:'🔥', Lead:'👑', Legend:'⚡',
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getWeekLabel(weekId) {
   if (!weekId) return 'Unknown Week';
   // weekId format: "YYYY-Www"
@@ -227,7 +220,7 @@ function StoryReveal({ story, userData, onViewArchive, onRegenerate, loading }) 
         <div className={`h-1 w-full bg-gradient-to-r ${gradient}`} />
 
         {/* Role header */}
-        <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 pt-5 pb-4 border-b border-white/10">
           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient}
                           flex items-center justify-center text-xl`}>
             {roleIcon}
@@ -271,7 +264,7 @@ function StoryReveal({ story, userData, onViewArchive, onRegenerate, loading }) 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y:  0  }}
-              className="flex items-center gap-3 px-6 pb-5"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 pb-5"
             >
               {/* Share / Copy */}
               <motion.button
@@ -344,7 +337,7 @@ function ChapterCard({ chapter, index, onClick }) {
     >
       {/* Card header */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30
                           flex items-center justify-center text-sm">
             📖

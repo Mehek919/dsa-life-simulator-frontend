@@ -78,15 +78,18 @@ function LeaderRow({ entry, tab, currentUid, rank }) {
             {entry.topic}
           </span>
           {entry.country && entry.country !== 'Global' && (
-            <span style={{ background: '#a855f718', color: '#a855f7', borderRadius: '10px', padding: '1px 7px', fontSize: '10px' }}>
-              {entry.country}
-            </span>
+          <span
+              className="hidden sm:inline-block"
+              style={{ background: '#a855f718', color: '#a855f7', borderRadius: '10px', padding: '1px 7px',   fontSize: '10px' }}>
+             {entry.country}
+           </span>
           )}
         </div>
       </div>
 
       {/* Score column */}
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+      <div className="hidden sm:block"
+           style={{ textAlign: 'right', flexShrink: 0 }}>
         {tab === 'global' && (
           <>
             <div style={{ color: '#a855f7', fontWeight: 700, fontSize: '15px' }}>{entry.xp.toLocaleString()} XP</div>
@@ -214,7 +217,8 @@ export default function Leaderboard({ user, userData }) {
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 20px' }}>
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto' }}
+             className="flex gap-1.5 overflow-x-auto pb-1 px-4">             
           {TABS.map(tab => (
             <button
               key={tab.id}

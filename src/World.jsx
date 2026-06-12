@@ -22,7 +22,11 @@ const EVENT_META = {
   challenge_attempted: { icon: '🎯', color: 'text-purple-400', label: 'attempted a challenge'  },
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'          },
 };
-
+const orbClass = `
+  w-14 h-14           /* mobile default */
+  sm:w-16 sm:h-16     /* tablet+ */
+  md:w-20 md:h-20     /* desktop */
+`;
 const ZONES = [
   {
     id:       'lab',
@@ -396,7 +400,7 @@ export default function World({ user, userData }) {
         </div>
 
         {/* Right: stats + feed toggle */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
           <span className="bg-white/10 px-2.5 py-1.5 rounded-lg">
             💰 {userData?.credits ?? 0}
           </span>
