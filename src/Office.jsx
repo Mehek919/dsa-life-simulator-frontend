@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
-import DailyChallenge from './DailyChallenge';
+import DailyChallenge from './DailyChallenges';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
