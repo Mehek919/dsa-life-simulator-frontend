@@ -17,20 +17,21 @@ import { auth } from './firebase';
 import axios from 'axios';
 import API_BASE from './config';
 import InstallBanner from './components/InstallBanner';
-import MobileNav    from './components/MobileNav';
-const Login      = lazy(() => import('./Login'));
-const World      = lazy(() => import('./World'));
-const Profile    = lazy(() => import('./Profile'));
-const Home       = lazy(() => import('./Home'));
-const Lab        = lazy(() => import('./Lab'));
-const Hub        = lazy(() => import('./Hub'));
-const LifeStory  = lazy(() => import('./LifeStory'));
-const Leaderboard= lazy(() => import('./Leaderboard'));
-const Assessment = lazy(() => import('./Assessment'));
-const Results    = lazy(() => import('./Results'));
-const Arena      = lazy(() => import('./Arena'));
-const Office     = lazy(() => import('./Office'));
-const Onboarding = lazy(() => import('./Onboarding'));
+import MobileNav     from './components/MobileNav';
+
+const Login       = lazy(() => import('./Login'));
+const World       = lazy(() => import('./World'));
+const Profile     = lazy(() => import('./Profile'));
+const Home        = lazy(() => import('./Home'));
+const Lab         = lazy(() => import('./Lab'));
+const Hub         = lazy(() => import('./Hub'));
+const LifeStory   = lazy(() => import('./LifeStory'));
+const Leaderboard = lazy(() => import('./Leaderboard'));
+const Assessment  = lazy(() => import('./Assessment'));
+const Results     = lazy(() => import('./Results'));
+const Arena       = lazy(() => import('./Arena'));
+const Office      = lazy(() => import('./Office'));
+const Onboarding  = lazy(() => import('./Onboarding'));
 
 // ─── Page Loader ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -43,21 +44,17 @@ const PageLoader = () => (
 );
 
 // ─── Auth Guard ───────────────────────────────────────────────────────────────
-// Redirects unauthenticated users to login
 const Guard = ({ user, children }) => {
   if (!user) return <Navigate to="/" replace />;
   return children;
 };
 
 // ─── Onboarding Guard ─────────────────────────────────────────────────────────
-// Redirects authenticated users who haven't completed onboarding
 const OnboardingGuard = ({ user, userData, children }) => {
   if (!user) return <Navigate to="/" replace />;
-
   if (userData && !userData.onboardingCompleted) {
     return <Navigate to="/onboarding" replace />;
   }
-
   return children;
 };
 
@@ -65,9 +62,9 @@ const OnboardingGuard = ({ user, userData, children }) => {
 const AppShell = () => {
   const navigate = useNavigate();
 
-  const [user,        setUser]        = useState(undefined); // undefined = loading
-  const [userData,    setUserData]    = useState(null);
-  const [authReady,   setAuthReady]   = useState(false);
+  const [user,      setUser]      = useState(undefined); // undefined = loading
+  const [userData,  setUserData]  = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   // ── Fetch or create user doc ──
   const createOrFetchUser = useCallback(async (firebaseUser) => {
@@ -98,7 +95,6 @@ const AppShell = () => {
       }
       setAuthReady(true);
     });
-
     return () => unsubscribe();
   }, [createOrFetchUser]);
 
@@ -108,7 +104,6 @@ const AppShell = () => {
     setUser(firebaseUser);
     setUserData(data);
 
-    // Route based on onboarding status
     if (data && !data.onboardingCompleted) {
       navigate('/onboarding', { replace: true });
     } else {
@@ -125,7 +120,6 @@ const AppShell = () => {
   }, [navigate]);
 
   // ── Onboarding complete handler ──
-  // Called by Onboarding component after role is assigned
   const handleOnboardingComplete = useCallback((updatedUserData) => {
     setUserData(prev => ({
       ...prev,
@@ -136,181 +130,190 @@ const AppShell = () => {
   }, [navigate]);
 
   // ── Auth loading splash ──
-  if (!authReady) {
-    return <PageLoader />;
-  }
+  if (!authReady) return <PageLoader />;
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
+    <>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
 
-        {/* ── Public: Login ── */}
-        <Route
-          path="/"
-          element={
-            user
-              ? <Navigate to={
-                  userData && !userData.onboardingCompleted
-                    ? '/onboarding'
-                    : '/world'
-                } replace />
-              : <Login onLogin={handleLogin} />
-          }
-        />
+          {/* ── Public: Login ── */}
+          <Route
+            path="/"
+            element={
+              user
+                ? <Navigate to={
+                    userData && !userData.onboardingCompleted
+                      ? '/onboarding'
+                      : '/world'
+                  } replace />
+                : <Login onLogin={handleLogin} />
+            }
+          />
 
-        {/* ── Onboarding ── */}
-        {/* Accessible only when logged in and onboarding not completed */}
-        <Route
-          path="/onboarding"
-          element={
-            !user
-              ? <Navigate to="/" replace />
-              : userData?.onboardingCompleted
-                ? <Navigate to="/world" replace />
-                : (
-                  <Onboarding
-                    user={user}
-                    userData={userData}
-                    onComplete={handleOnboardingComplete}
-                  />
-                )
-          }
-        />
+          {/* ── Onboarding ── */}
+          <Route
+            path="/onboarding"
+            element={
+              !user
+                ? <Navigate to="/" replace />
+                : userData?.onboardingCompleted
+                  ? <Navigate to="/world" replace />
+                  : (
+                    <Onboarding
+                      user={user}
+                      userData={userData}
+                      onComplete={handleOnboardingComplete}
+                    />
+                  )
+            }
+          />
 
-        {/* ── Protected: World (requires onboarding) ── */}
-        <Route
-          path="/world"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <World
-                user={user}
-                userData={userData}
-                onLogout={handleLogout}
-              />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: World ── */}
+          <Route
+            path="/world"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <World
+                  user={user}
+                  userData={userData}
+                  onLogout={handleLogout}
+                />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Protected: Office ── */}
-        <Route
-          path="/office"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <Office user={user} userData={userData} />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: Office ── */}
+          <Route
+            path="/office"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <Office user={user} userData={userData} />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Protected: Profile ── */}
-        <Route
-          path="/profile"
-          element={
-            <Guard user={user}>
-              <Profile
-                user={user}
-                userData={userData}
-                onLogout={handleLogout}
-              />
-            </Guard>
-          }
-        />
+          {/* ── Protected: Profile ── */}
+          <Route
+            path="/profile"
+            element={
+              <Guard user={user}>
+                <Profile
+                  user={user}
+                  userData={userData}
+                  onLogout={handleLogout}
+                />
+              </Guard>
+            }
+          />
 
-        {/* ── Protected: Home ── */}
-        <Route
-          path="/home"
-          element={
-            <Guard user={user}>
-              <Home user={user} userData={userData} />
-            </Guard>
-          }
-        />
+          {/* ── Protected: Home ── */}
+          <Route
+            path="/home"
+            element={
+              <Guard user={user}>
+                <Home user={user} userData={userData} />
+              </Guard>
+            }
+          />
 
-        {/* ── Protected: Lab ── */}
-        <Route
-          path="/lab"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <Lab user={user} userData={userData} />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: Lab ── */}
+          <Route
+            path="/lab"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <Lab user={user} userData={userData} />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Protected: Hub ── */}
-        <Route
-          path="/hub"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <Hub user={user} userData={userData} />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: Hub ── */}
+          <Route
+            path="/hub"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <Hub user={user} userData={userData} />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Protected: Life Story ── */}
-        <Route
-          path="/story"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <LifeStory user={user} userData={userData} />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: Life Story ── */}
+          <Route
+            path="/story"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <LifeStory user={user} userData={userData} />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Protected: Leaderboard ── */}
-        <Route
-          path="/leaderboard"
-          element={
-            <Guard user={user}>
-              <Leaderboard user={user} userData={userData} />
-            </Guard>
-          }
-        />
+          {/* ── Protected: Leaderboard ── */}
+          <Route
+            path="/leaderboard"
+            element={
+              <Guard user={user}>
+                <Leaderboard user={user} userData={userData} />
+              </Guard>
+            }
+          />
 
-        {/* ── Protected: Assessment ── */}
-        <Route
-          path="/assessment/:topic"
-          element={
-            <Guard user={user}>
-              <Assessment user={user} userData={userData} />
-            </Guard>
-          }
-        />
+          {/* ── Protected: Assessment ── */}
+          <Route
+            path="/assessment/:topic"
+            element={
+              <Guard user={user}>
+                <Assessment user={user} userData={userData} />
+              </Guard>
+            }
+          />
 
-        {/* ── Protected: Results ── */}
-        <Route
-          path="/results/*"
-          element={
-            <Guard user={user}>
-              <Results user={user} userData={userData} />
-            </Guard>
-          }
-        />
+          {/* ── Protected: Results ── */}
+          <Route
+            path="/results/*"
+            element={
+              <Guard user={user}>
+                <Results user={user} userData={userData} />
+              </Guard>
+            }
+          />
 
-        {/* ── Protected: Arena ── */}
-        <Route
-          path="/arena"
-          element={
-            <OnboardingGuard user={user} userData={userData}>
-              <Arena user={user} userData={userData} setUserData={setUserData} />
-            </OnboardingGuard>
-          }
-        />
+          {/* ── Protected: Arena ── */}
+          <Route
+            path="/arena"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <Arena
+                  user={user}
+                  userData={userData}
+                  setUserData={setUserData}
+                />
+              </OnboardingGuard>
+            }
+          />
 
-        {/* ── Catch-all ── */}
-        <Route
-          path="*"
-          element={<Navigate to={user ? '/world' : '/'} replace />}
-        />
+          {/* ── Catch-all ── */}
+          <Route
+            path="*"
+            element={<Navigate to={user ? '/world' : '/'} replace />}
+          />
 
-      </Routes>
-    </Suspense>
+        </Routes>
+      </Suspense>
+
+      {/* ── Global UI — always rendered inside Router context ── */}
+      {user && <MobileNav />}
+      <InstallBanner />
+    </>
   );
 };
+
+// ─── App Root ─────────────────────────────────────────────────────────────────
 const App = () => (
   <Router>
     <AppShell />
-    {currentUser && <MobileNav />}
-    <InstallBanner />
   </Router>
 );
+
 export default App;
+
 
