@@ -1,4 +1,4 @@
-import { getAnalytics, logEvent } from 'firebase/analytics';
+import { getAnalytics } from 'firebase/analytics';
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";

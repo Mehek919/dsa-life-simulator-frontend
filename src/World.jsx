@@ -22,11 +22,6 @@ const EVENT_META = {
   challenge_attempted: { icon: '🎯', color: 'text-purple-400', label: 'attempted a challenge'  },
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'          },
 };
-const orbClass = `
-  w-14 h-14           /* mobile default */
-  sm:w-16 sm:h-16     /* tablet+ */
-  md:w-20 md:h-20     /* desktop */
-`;
 const ZONES = [
   {
     id:       'lab',
