@@ -308,7 +308,7 @@ const AppShell = () => {
 const App = () => (
   <Router>
     <AppShell />
-    {user && <MobileNav />}
+    {currentUser && <MobileNav />}
     <InstallBanner />
   </Router>
 );
