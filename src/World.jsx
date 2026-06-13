@@ -22,20 +22,22 @@ const EVENT_META = {
 };
 
 const ZONES = [
-  { id: 'lab',    label: '🧪 Lab',    path: '/lab',    desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
-  { id: 'hub',    label: '🏢 Hub',    path: '/hub',    desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
-  { id: 'arena',  label: '⚔️ Arena',  path: '/arena',  desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
-  { id: 'office', label: '🏛️ Office', path: '/office', desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
-  { id: 'story',  label: '📖 Story',  path: '/story',  desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
+  { id: 'lab',     label: '🧪 Lab',     path: '/lab',     desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
+  { id: 'hub',     label: '🏢 Hub',     path: '/hub',     desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
+  { id: 'arena',   label: '⚔️ Arena',   path: '/arena',   desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
+  { id: 'office',  label: '🏛️ Office',  path: '/office',  desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
+  { id: 'story',   label: '📖 Story',   path: '/story',   desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
+  { id: 'profile', label: '👤 Profile', path: '/profile', desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
 ];
 
 // Desktop-only absolute positions
 const DESKTOP_POS = {
-  lab:    'top-[12%] left-[18%]',
-  hub:    'top-[12%] right-[18%]',
-  arena:  'bottom-[22%] left-[12%]',
-  office: 'bottom-[22%] right-[12%]',
-  story:  'bottom-[8%] left-[44%]',
+  lab:     'top-[12%] left-[18%]',
+  hub:     'top-[12%] right-[18%]',
+  arena:   'bottom-[22%] left-[12%]',
+  office:  'bottom-[22%] right-[12%]',
+  story:   'bottom-[8%] left-[44%]',
+  profile: 'top-[50%] left-[3%] -translate-y-1/2',
 };
 
 function timeAgo(ts) {
@@ -165,7 +167,7 @@ function ActivityFeedPanel({ onClose }) {
   );
 }
 
-// ─── ZoneOrb (single component, layout controlled by parent) ─────────────────
+// ─── ZoneOrb ─────────────────────────────────────────────────────────────────
 function ZoneOrb({ zone, badgeCount, onClick }) {
   return (
     <motion.button
@@ -200,7 +202,6 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
 
       <div className="text-center px-1">
         <p className="text-xs sm:text-sm font-bold text-white leading-tight">
-          {/* strip emoji for cleaner label on mobile */}
           {zone.label}
         </p>
         <p className="text-[10px] text-gray-400 group-hover:text-gray-200
@@ -213,7 +214,7 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
 }
 
 // ─── World ────────────────────────────────────────────────────────────────────
-export default function World({ user, userData }) {
+export default function World({ user, userData, handleLogout }) {  // 👈 added handleLogout
   const navigate = useNavigate();
 
   const [showFeed,    setShowFeed]    = useState(false);
@@ -297,10 +298,20 @@ export default function World({ user, userData }) {
               </span>
             )}
           </button>
+
+          {/* 👇 LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="bg-red-500/10 hover:bg-red-500/25 border border-red-500/30
+                       hover:border-red-500/60 text-red-400 hover:text-red-300
+                       px-2.5 py-1.5 rounded-lg transition-all text-xs whitespace-nowrap"
+          >
+            🚪 Logout
+          </button>
         </div>
       </div>
 
-      {/* XP bar — always visible */}
+      {/* XP bar */}
       <div className="relative z-10 px-4 pb-2">
         <div className="flex justify-between text-[10px] text-gray-400 mb-1">
           <span>⚡ XP {xpCurrent}</span><span>{xpPct}%</span>
@@ -315,10 +326,10 @@ export default function World({ user, userData }) {
       </div>
 
       {/* ══════════════════════════════════════════════
-          ZONE MAP — CSS grid on mobile, absolute on md+
+          ZONE MAP
           ══════════════════════════════════════════════ */}
 
-      {/* ── MOBILE layout (hidden on md+) ── */}
+      {/* ── MOBILE layout ── */}
       <div className="md:hidden relative z-10 flex flex-col items-center py-6 px-4 gap-5">
 
         {/* Globe */}
@@ -333,9 +344,9 @@ export default function World({ user, userData }) {
         </motion.div>
         <p className="text-[9px] text-gray-500 tracking-widest uppercase -mt-3">World Map</p>
 
-        {/* Top row: Lab · Hub */}
-        <div className="flex justify-center gap-10 w-full">
-          {['lab', 'hub'].map((id) => {
+        {/* Top row: Lab · Hub · Profile */}
+        <div className="flex justify-center gap-8 w-full">
+          {['lab', 'hub', 'profile'].map((id) => {
             const zone = ZONES.find((z) => z.id === id);
             return (
               <ZoneOrb key={id} zone={zone}
@@ -356,7 +367,7 @@ export default function World({ user, userData }) {
           })}
         </div>
 
-        {/* Bottom: Story centered */}
+        {/* Bottom: Story */}
         <div className="flex justify-center w-full">
           {['story'].map((id) => {
             const zone = ZONES.find((z) => z.id === id);
@@ -368,7 +379,7 @@ export default function World({ user, userData }) {
         </div>
       </div>
 
-      {/* ── DESKTOP layout (hidden below md) ── */}
+      {/* ── DESKTOP layout ── */}
       <div className="hidden md:block relative z-10 w-full"
            style={{ height: 'calc(100vh - 110px)' }}>
         {ZONES.map((zone) => (
@@ -461,5 +472,6 @@ export default function World({ user, userData }) {
     </div>
   );
 }
+
 
 
