@@ -68,11 +68,38 @@ const PARTICLES_OPTIONS = {
 };
 
 // ─── ActivityFeedPanel ────────────────────────────────────────────────────────
-function ActivityFeedPanel({ onClose }) {
+function ActivityFeedPanel({ onClose, user }) {
   const [events,  setEvents]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [newIds,  setNewIds]  = useState(new Set());
+  const [readIds, setReadIds] = useState(new Set());
   const isFirstLoad = useRef(true);
+
+  // ── Load read status from localStorage ──
+  useEffect(() => {
+    if (!user?.uid) return;
+    const stored = localStorage.getItem(`feed_read_${user.uid}`);
+    if (stored) {
+      try {
+        setReadIds(new Set(JSON.parse(stored)));
+      } catch (err) {
+        console.error('Failed to parse read IDs:', err);
+      }
+    }
+  }, [user?.uid]);
+
+  // ── Mark all current messages as read when panel opens ──
+  useEffect(() => {
+    if (!user?.uid || events.length === 0) return;
+    
+    const currentIds = new Set(events.map(ev => ev.id));
+    const updatedReadIds = new Set([...readIds, ...currentIds]);
+    
+    if (updatedReadIds.size !== readIds.size) {
+      setReadIds(updatedReadIds);
+      localStorage.setItem(`feed_read_${user.uid}`, JSON.stringify([...updatedReadIds]));
+    }
+  }, [events, user?.uid, readIds]);
 
   useEffect(() => {
     const q = query(collection(db, 'activityFeed'), orderBy('createdAt', 'desc'), limit(20));
@@ -128,8 +155,10 @@ function ActivityFeedPanel({ onClose }) {
         <ul className="flex flex-col gap-2">
           <AnimatePresence initial={false}>
             {events.map((ev) => {
-              const meta  = getMeta(ev.type);
-              const isNew = newIds.has(ev.id);
+              const meta    = getMeta(ev.type);
+              const isNew   = newIds.has(ev.id);
+              const isUnread = !readIds.has(ev.id);
+              
               return (
                 <motion.li
                   key={ev.id} layout
@@ -138,23 +167,32 @@ function ActivityFeedPanel({ onClose }) {
                   className={`flex items-start gap-2.5 p-3 rounded-xl border text-xs
                     ${isNew
                       ? 'border-cyan-500/50 bg-cyan-900/20'
-                      : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
+                      : isUnread 
+                        ? 'border-yellow-500/30 bg-yellow-900/10'
+                        : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
                 >
                   <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white/10
-                                  flex items-center justify-center overflow-hidden">
+                                  flex items-center justify-center overflow-hidden relative">
                     {ev.photoURL
                       ? <img src={ev.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
                       : <span>{meta.icon}</span>}
+                    {isUnread && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full 
+                                       bg-yellow-400 border border-gray-900" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="leading-snug">
-                      <span className="font-semibold text-white">{ev.name || 'Someone'}</span>{' '}
+                      <span className={`font-semibold ${isUnread ? 'text-yellow-200' : 'text-white'}`}>
+                        {ev.name || 'Someone'}
+                      </span>{' '}
                       <span className={meta.color}>{meta.label}</span>
                       {ev.message && <span className="text-gray-400"> — {ev.message}</span>}
                     </p>
                     <p className="text-gray-500 mt-0.5">
                       {timeAgo(ev.createdAt)}
                       {isNew && <span className="ml-2 text-cyan-400 font-bold animate-pulse">● LIVE</span>}
+                      {isUnread && !isNew && <span className="ml-2 text-yellow-400 text-[10px]">● NEW</span>}
                     </p>
                   </div>
                 </motion.li>
@@ -212,9 +250,9 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
     </motion.button>
   );
 }
-export default function World({ user, userData, onLogout }) {
+
 // ─── World ────────────────────────────────────────────────────────────────────
-  // 👈 added handleLogout
+export default function World({ user, userData, onLogout }) {
   const navigate = useNavigate();
 
   const [showFeed,    setShowFeed]    = useState(false);
@@ -222,8 +260,22 @@ export default function World({ user, userData, onLogout }) {
   const [hubCount,    setHubCount]    = useState(0);
   const [feedPreview, setFeedPreview] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [readIds,     setReadIds]     = useState(new Set());
 
   const particlesInit = async () => {};
+
+  // ── Load read IDs from localStorage ──
+  useEffect(() => {
+    if (!user?.uid) return;
+    const stored = localStorage.getItem(`feed_read_${user.uid}`);
+    if (stored) {
+      try {
+        setReadIds(new Set(JSON.parse(stored)));
+      } catch (err) {
+        console.error('Failed to parse read IDs:', err);
+      }
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -255,6 +307,9 @@ export default function World({ user, userData, onLogout }) {
   const xpCurrent = userData?.xp    ?? 0;
   const xpTarget  = xpLevel * 500;
   const xpPct     = Math.min(100, Math.round((xpCurrent / xpTarget) * 100));
+
+  // ── Calculate unread count ──
+  const unreadCount = feedPreview.filter(ev => !readIds.has(ev.id)).length;
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -291,15 +346,14 @@ export default function World({ user, userData, onLogout }) {
                        whitespace-nowrap"
           >
             📡 Feed
-            {feedPreview.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-cyan-500
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-500
                                text-[9px] text-black font-bold flex items-center justify-center">
-                {feedPreview.length}
+                {unreadCount}
               </span>
             )}
           </button>
 
-          {/* 👇 LOGOUT BUTTON */}
           <button
             onClick={onLogout}
             className="bg-red-500/10 hover:bg-red-500/25 border border-red-500/30
@@ -465,13 +519,14 @@ export default function World({ user, userData, onLogout }) {
             <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               exit={{ opacity: 0 }} onClick={() => setShowFeed(false)}
               className="fixed inset-0 bg-black/50 z-30" />
-            <ActivityFeedPanel key="panel" onClose={() => setShowFeed(false)} />
+            <ActivityFeedPanel key="panel" onClose={() => setShowFeed(false)} user={user} />
           </>
         )}
       </AnimatePresence>
     </div>
   );
 }
+
 
 
 
