@@ -212,9 +212,9 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
     </motion.button>
   );
 }
-
+export default function World({ user, userData, onLogout }) {
 // ─── World ────────────────────────────────────────────────────────────────────
-export default function World({ user, userData, handleLogout }) {  // 👈 added handleLogout
+  // 👈 added handleLogout
   const navigate = useNavigate();
 
   const [showFeed,    setShowFeed]    = useState(false);
