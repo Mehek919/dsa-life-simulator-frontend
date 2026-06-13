@@ -1,6 +1,6 @@
 {
-  "name": "DSA Life Simulator",
-  "short_name": "DSALife",
+  "name": "World Simulator",
+  "short_name": "EvoWorld",
   "description": "Level up your DSA skills through a gamified life simulator with AI-powered challenges, arena battles, and weekly stories.",
   "start_url": "/",
   "display": "standalone",
