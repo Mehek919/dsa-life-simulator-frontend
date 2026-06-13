@@ -301,7 +301,7 @@ export default function World({ user, userData, onLogout }) {
 
           {/* 👇 LOGOUT BUTTON */}
           <button
-            onClick={handleLogout}
+            onClick={onLogout}
             className="bg-red-500/10 hover:bg-red-500/25 border border-red-500/30
                        hover:border-red-500/60 text-red-400 hover:text-red-300
                        px-2.5 py-1.5 rounded-lg transition-all text-xs whitespace-nowrap"
