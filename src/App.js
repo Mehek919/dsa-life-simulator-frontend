@@ -134,6 +134,7 @@ const AppShell = () => {
 
   return (
     <>
+     <FeedbackButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>
 
@@ -311,7 +312,7 @@ const AppShell = () => {
 const App = () => (
   <Router>
     <AppShell />
-    <FeedbackButton />
+    
   </Router>
 );
 
