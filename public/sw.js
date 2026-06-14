@@ -1,111 +1,174 @@
-const CACHE_NAME    = 'dsalife-v1';
-const RUNTIME_CACHE = 'dsalife-runtime-v1';
+/* ─── World Simulator for DSA Mastery — Service Worker ─────────────────────────────────── */
+const CACHE_NAME    = 'EvoWorld-v1';
+const RUNTIME_CACHE = 'EvoWorld-runtime-v1';
+
 // Assets to pre-cache on install
-const PRECACHE_URLS = [
+const PRE_CACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/favicon.ico',
+  '/android-chrome-192x192.png',
+  '/android-chrome-512x512.png',
+  '/og-image.png',
 ];
+
 // ── Install: pre-cache shell ──────────────────────────────────────────────────
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching app shell');
-      return cache.addAll(PRECACHE_URLS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(PRE_CACHE_URLS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// ── Activate: clean up old caches ────────────────────────────────────────────
-self.addEventListener('activate', (event) => {
-  const validCaches = [CACHE_NAME, RUNTIME_CACHE];
+// ── Activate: clean old caches ────────────────────────────────────────────────
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keys) =>
+    caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter((key) => !validCaches.includes(key))
-          .map((key) => {
-            console.log('[SW] Deleting old cache:', key);
-            return caches.delete(key);
-          })
+          .filter(key => key !== CACHE_NAME && key !== RUNTIME_CACHE)
+          .map(key => caches.delete(key))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// ── Fetch: stale-while-revalidate for static, network-first for API ──────────
-self.addEventListener('fetch', (event) => {
+// ── Fetch: network-first for API, cache-first for assets ─────────────────────
+self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip non-GET and browser-extension requests
   if (request.method !== 'GET') return;
-  if (!url.protocol.startsWith('http')) return;
+  if (!request.url.startsWith('http'))  return;
 
-  // Network-first for API calls — never serve stale API data
+  // ── API calls: network-only (never cache backend responses) ──
   if (
-    url.hostname.includes('onrender.com') ||
-    url.hostname.includes('firestore.googleapis.com') ||
-    url.hostname.includes('googleapis.com')
+    url.hostname.includes('render.com') ||
+    url.pathname.startsWith('/api/') ||
+    url.hostname.includes('firestore') ||
+    url.hostname.includes('firebase')
   ) {
-    event.respondWith(
-      fetch(request).catch(() => new Response(
-        JSON.stringify({ error: 'You are offline.' }),
-        { headers: { 'Content-Type': 'application/json' } }
-      ))
-    );
+    event.respondWith(fetch(request));
     return;
   }
 
-  // Stale-while-revalidate for static assets (JS, CSS, images, fonts)
-  if (
-    url.hostname === self.location.hostname ||
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('fonts.gstatic.com')
-  ) {
+  // ── Navigation requests: network-first, fall back to /index.html ──
+  if (request.mode === 'navigate') {
     event.respondWith(
-      caches.open(RUNTIME_CACHE).then((cache) =>
-        cache.match(request).then((cached) => {
-          const networkFetch = fetch(request).then((response) => {
-            if (response.ok) cache.put(request, response.clone());
-            return response;
-          });
-          return cached || networkFetch;
+      fetch(request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
+          return response;
         })
-      )
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
-});
 
-// ── Push notifications ────────────────────────────────────────────────────────
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() ?? {};
-  const title   = data.title   || 'DSA Life Simulator';
-  const options = {
-    body:    data.body    || 'You have a new notification.',
-    icon:    data.icon    || '/icons/icon-192x192.png',
-    badge:   data.badge   || '/icons/icon-72x72.png',
-    tag:     data.tag     || 'dsalife-notif',
-    data:    data.url     ? { url: data.url } : {},
-    actions: data.actions || [],
-    vibrate: [200, 100, 200],
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
-});
+  // ── Static assets: cache-first ──
+  event.respondWith(
+    caches.match(request).then(cached => {
+      if (cached) return cached;
 
-// ── Notification click → open app ────────────────────────────────────────────
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === targetUrl && 'focus' in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return fetch(request).then(response => {
+        // Only cache valid responses
+        if (!response || response.status !== 200 || response.type === 'opaque') {
+          return response;
+        }
+        const clone = response.clone();
+        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
+        return response;
+      });
     })
   );
 });
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+self.addEventListener('push', event => {
+  let data = {
+    title: '⚔️ World Simulator for DSA Mastery',
+    body:  'Your daily challenge is ready! Come solve it now.',
+    icon:  '/android-chrome-192x192.png',
+    badge: '/android-chrome-192x192.png',
+    url:   '/world',
+  };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:    data.body,
+      icon:    data.icon,
+      badge:   data.badge,
+      vibrate: [100, 50, 100],
+      data:    { url: data.url },
+      actions: [
+        { action: 'open',    title: '🚀 Play Now' },
+        { action: 'dismiss', title: '✖ Later'    },
+      ],
+    })
+  );
+});
+
+// ── Notification Click ────────────────────────────────────────────────────────
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const targetUrl = event.notification.data?.url || '/world';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        // Focus existing tab if open
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(targetUrl);
+            return client.focus();
+          }
+        }
+        // Otherwise open a new tab
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+
+// ── Background Sync (offline action queue) ───────────────────────────────────
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-progress') {
+    event.waitUntil(syncOfflineProgress());
+  }
+});
+
+async function syncOfflineProgress() {
+  try {
+    const cache = await caches.open('offline-queue');
+    const keys  = await cache.keys();
+    for (const key of keys) {
+      const response = await cache.match(key);
+      const data     = await response.json();
+      await fetch('/api/sync', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(data),
+      });
+      await cache.delete(key);
+    }
+  } catch (err) {
+    console.error('Background sync failed:', err);
+  }
+}
+

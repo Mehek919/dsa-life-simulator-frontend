@@ -20,7 +20,13 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
+register({
+  onSuccess: () => console.log('[SW] App is cached for offline use.'),
+  onUpdate:  reg => {
+    // Optional: show a "New version available" toast here
+    console.log('[SW] New version available. Refresh to update.');
+  },
+});
 
 
 

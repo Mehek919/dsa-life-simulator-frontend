@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+        import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { useNavigate }                              from 'react-router-dom';
 import axios                                        from 'axios';
@@ -8,6 +9,8 @@ import {
 }                                                   from 'firebase/firestore';
 import { db }                                       from './firebase';
 import API_BASE                                     from './config';
+import usePushNotifications                         from './usePushNotifications';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 
@@ -114,13 +117,10 @@ function ProfileHeader({ user, userData }) {
 
           {/* Level badge */}
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl
-                           bg-gradient-to-r ${colors.gradient}
-                           shadow-lg`}>
+                           bg-gradient-to-r ${colors.gradient} shadow-lg`}>
             <span className="text-xl">{icon}</span>
             <div>
-              <p className="text-white font-black text-sm leading-none">
-                {levelName}
-              </p>
+              <p className="text-white font-black text-sm leading-none">{levelName}</p>
               <p className="text-white/70 text-xs">Level {level}</p>
             </div>
           </div>
@@ -155,49 +155,17 @@ function ProfileHeader({ user, userData }) {
 // ─── Stats Grid ────────────────────────────────────────────────────────────
 function StatsGrid({ userData }) {
   const stats = [
+    { icon:'⭐', label:'Total XP',            value:(userData?.xp ?? 0).toLocaleString(),           color:'text-yellow-400', bg:'bg-yellow-500/10' },
+    { icon:'💰', label:'Credits',             value:(userData?.credits ?? 0).toLocaleString(),       color:'text-cyan-400',   bg:'bg-cyan-500/10'   },
+    { icon:'🏆', label:'ELO Rating',          value:(userData?.elo ?? 1000).toLocaleString(),        color:'text-orange-400', bg:'bg-orange-500/10' },
+    { icon:'📊', label:'Weekly XP',           value:(userData?.weeklyXp ?? 0).toLocaleString(),      color:'text-purple-400', bg:'bg-purple-500/10' },
+    { icon:'🧩', label:'Challenges Created',  value:(userData?.challengesCreated ?? 0).toLocaleString(), color:'text-green-400', bg:'bg-green-500/10' },
     {
-      icon:  '⭐',
-      label: 'Total XP',
-      value: (userData?.xp ?? 0).toLocaleString(),
-      color: 'text-yellow-400',
-      bg:    'bg-yellow-500/10',
-    },
-    {
-      icon:  '💰',
-      label: 'Credits',
-      value: (userData?.credits ?? 0).toLocaleString(),
-      color: 'text-cyan-400',
-      bg:    'bg-cyan-500/10',
-    },
-    {
-      icon:  '🏆',
-      label: 'ELO Rating',
-      value: (userData?.elo ?? 1000).toLocaleString(),
-      color: 'text-orange-400',
-      bg:    'bg-orange-500/10',
-    },
-    {
-      icon:  '📊',
-      label: 'Weekly XP',
-      value: (userData?.weeklyXp ?? 0).toLocaleString(),
-      color: 'text-purple-400',
-      bg:    'bg-purple-500/10',
-    },
-    {
-      icon:  '🧩',
-      label: 'Challenges Created',
-      value: (userData?.challengesCreated ?? 0).toLocaleString(),
-      color: 'text-green-400',
-      bg:    'bg-green-500/10',
-    },
-    {
-      icon:  '⭐',
-      label: 'Avg Challenge Rating',
+      icon:'⭐', label:'Avg Challenge Rating',
       value: userData?.avgChallengeRating
         ? userData.avgChallengeRating.toFixed(1) + ' / 5'
         : '—',
-      color: 'text-pink-400',
-      bg:    'bg-pink-500/10',
+      color:'text-pink-400', bg:'bg-pink-500/10',
     },
   ];
 
@@ -217,9 +185,7 @@ function StatsGrid({ userData }) {
               <span className="text-base">{s.icon}</span>
               <p className="text-gray-400 text-xs">{s.label}</p>
             </div>
-            <p className={`${s.color} font-black text-lg leading-none`}>
-              {s.value}
-            </p>
+            <p className={`${s.color} font-black text-lg leading-none`}>{s.value}</p>
           </motion.div>
         ))}
       </div>
@@ -252,7 +218,6 @@ function LifeRoleCard({ userData }) {
     <Card>
       <SectionTitle icon="🎭" title="Life Role" />
 
-      {/* Role header */}
       <div className={`flex items-center gap-4 p-4 rounded-xl
                        bg-gradient-to-r ${colors.gradient} bg-opacity-10
                        border border-white/10 mb-4`}>
@@ -261,21 +226,14 @@ function LifeRoleCard({ userData }) {
           {LEVEL_ICONS[LEVEL_NAMES[level]] || '🌱'}
         </div>
         <div>
-          <p className="text-white font-black text-lg leading-none">
-            {role.primary}
-          </p>
-          <p className="text-gray-300 text-xs mt-1 max-w-xs">
-            {role.description}
-          </p>
+          <p className="text-white font-black text-lg leading-none">{role.primary}</p>
+          <p className="text-gray-300 text-xs mt-1 max-w-xs">{role.description}</p>
         </div>
       </div>
 
-      {/* Traits */}
       {role.traits?.length > 0 && (
         <div className="mb-4">
-          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">
-            Traits
-          </p>
+          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">Traits</p>
           <div className="flex flex-wrap gap-2">
             {role.traits.map((t, i) => (
               <motion.span
@@ -293,18 +251,15 @@ function LifeRoleCard({ userData }) {
         </div>
       )}
 
-      {/* Strengths */}
       {role.strengths?.length > 0 && (
         <div>
-          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">
-            Strengths
-          </p>
+          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">Strengths</p>
           <ul className="space-y-2">
             {role.strengths.map((s, i) => (
               <motion.li
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x:   0 }}
+                animate={{ opacity: 1, x:   0  }}
                 transition={{ delay: i * 0.07 }}
                 className="flex items-start gap-2 text-sm text-gray-300"
               >
@@ -333,7 +288,6 @@ function ArenaRecord({ userData }) {
   const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
   const elo    = userData?.elo ?? 1000;
 
-  // ELO tier
   const tier =
     elo >= 1800 ? { label:'Grandmaster', color:'text-red-400',    icon:'💎' } :
     elo >= 1500 ? { label:'Master',      color:'text-purple-400', icon:'👑' } :
@@ -345,17 +299,12 @@ function ArenaRecord({ userData }) {
     <Card>
       <SectionTitle icon="⚔️" title="Arena Record" />
 
-      {/* ELO + tier */}
       <div className="flex items-center gap-4 mb-5 p-4 rounded-xl bg-white/5
                       border border-white/10">
         <span className="text-4xl">{tier.icon}</span>
         <div>
-          <p className={`${tier.color} font-black text-2xl leading-none`}>
-            {elo}
-          </p>
-          <p className={`${tier.color} text-xs font-semibold mt-0.5`}>
-            {tier.label}
-          </p>
+          <p className={`${tier.color} font-black text-2xl leading-none`}>{elo}</p>
+          <p className={`${tier.color} text-xs font-semibold mt-0.5`}>{tier.label}</p>
         </div>
         <div className="ml-auto text-right">
           <p className="text-gray-400 text-xs">Total Battles</p>
@@ -363,42 +312,33 @@ function ArenaRecord({ userData }) {
         </div>
       </div>
 
-      {/* Win / Loss bar */}
       <div className="mb-4">
         <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-green-400 font-semibold">
-            🏆 {wins} Wins
-          </span>
+          <span className="text-green-400 font-semibold">🏆 {wins} Wins</span>
           <span className="text-gray-400 font-bold">{winPct}% WR</span>
-          <span className="text-red-400 font-semibold">
-            {losses} Losses 💀
-          </span>
+          <span className="text-red-400 font-semibold">{losses} Losses 💀</span>
         </div>
-        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden
-                        flex">
+        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden flex">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${winPct}%` }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-            className="h-full bg-gradient-to-r from-green-500 to-emerald-400
-                       rounded-l-full"
+            className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-l-full"
           />
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${100 - winPct}%` }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-            className="h-full bg-gradient-to-r from-red-500 to-rose-400
-                       rounded-r-full"
+            className="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-r-full"
           />
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label:'Wins',    value: wins,    color:'text-green-400' },
-          { label:'Losses',  value: losses,  color:'text-red-400'   },
-          { label:'Win Rate',value:`${winPct}%`, color:'text-cyan-400' },
+          { label:'Wins',     value: wins,        color:'text-green-400' },
+          { label:'Losses',   value: losses,      color:'text-red-400'   },
+          { label:'Win Rate', value:`${winPct}%`, color:'text-cyan-400'  },
         ].map((s) => (
           <div key={s.label}
                className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
@@ -407,6 +347,48 @@ function ArenaRecord({ userData }) {
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+// ─── Notifications Card ────────────────────────────────────────────────────
+function NotificationsCard({ user }) {
+  const {
+    isSubscribed,
+    loading: pushLoading,
+    subscribe,
+    unsubscribe,
+    permission,
+  } = usePushNotifications(user);
+
+  return (
+    <Card>
+      <SectionTitle icon="🔔" title="Daily Challenge Reminders" />
+      <p className="text-gray-500 text-sm mb-4">
+        Get notified every day when your challenge resets.
+      </p>
+
+      {permission === 'denied' ? (
+        <p className="text-red-400 text-sm">
+          ❌ Notifications blocked. Enable them in your browser settings.
+        </p>
+      ) : (
+        <button
+          onClick={isSubscribed ? unsubscribe : subscribe}
+          disabled={pushLoading}
+          className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all
+            ${isSubscribed
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              : 'bg-purple-600 text-white hover:bg-purple-500'
+            } disabled:opacity-50`}
+        >
+          {pushLoading
+            ? '⏳ Processing...'
+            : isSubscribed
+            ? '🔕 Disable Reminders'
+            : '🔔 Enable Reminders'}
+        </button>
+      )}
     </Card>
   );
 }
@@ -441,7 +423,6 @@ function StoriesSection({ archive, onReadChapter }) {
                            bg-white/5 hover:bg-white/10 border border-white/5
                            hover:border-cyan-500/30 rounded-xl transition-all group"
               >
-                {/* Chapter number */}
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20
                                 border border-cyan-500/30 flex items-center
                                 justify-center text-cyan-400 font-black text-sm
@@ -513,9 +494,7 @@ function ActivityFeed({ activities }) {
                 {ACTIVITY_ICONS[a.type] || '📌'}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-gray-300 text-sm leading-snug">
-                  {a.message}
-                </p>
+                <p className="text-gray-300 text-sm leading-snug">{a.message}</p>
                 {a.createdAt && (
                   <p className="text-gray-600 text-xs mt-0.5">
                     {formatDate(a.createdAt)}
@@ -580,11 +559,8 @@ function ChapterModal({ chapter, onClose }) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10 flex justify-end">
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(text);
-            }}
-            className="text-xs text-cyan-400 hover:text-cyan-300
-                       transition-colors"
+            onClick={() => navigator.clipboard.writeText(text)}
+            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
           >
             📋 Copy to clipboard
           </button>
@@ -598,15 +574,15 @@ function ChapterModal({ chapter, onClose }) {
 export default function Profile({ user, userData }) {
   const navigate = useNavigate();
 
-  const [archive,        setArchive]        = useState([]);
-  const [activities,     setActivities]     = useState([]);
+  const [archive,         setArchive]         = useState([]);
+  const [activities,      setActivities]      = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const [loading,        setLoading]        = useState(true);
-  const [activeTab,      setActiveTab]      = useState('overview');
+  const [pageLoading,     setPageLoading]     = useState(true); // ✅ renamed
+  const [activeTab,       setActiveTab]       = useState('overview');
 
   const uid = user?.uid;
 
-  // ── Fetch archive ────────────────────────────────────────────────────────
+  // ── Fetch archive ─────────────────────────────────────────────────────────
   const fetchArchive = useCallback(async () => {
     if (!uid) return;
     try {
@@ -617,7 +593,7 @@ export default function Profile({ user, userData }) {
     }
   }, [uid]);
 
-  // ── Fetch activity feed ──────────────────────────────────────────────────
+  // ── Fetch activity feed ───────────────────────────────────────────────────
   const fetchActivities = useCallback(async () => {
     if (!uid) return;
     try {
@@ -634,19 +610,20 @@ export default function Profile({ user, userData }) {
     }
   }, [uid]);
 
-  // ── On mount ─────────────────────────────────────────────────────────────
+  // ── On mount ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!uid) return;
     Promise.all([fetchArchive(), fetchActivities()])
-      .finally(() => setLoading(false));
+      .finally(() => setPageLoading(false)); // ✅ renamed
   }, [uid, fetchArchive, fetchActivities]);
 
   const TABS = [
-    { id:'overview',  label:'Overview',   icon:'📊' },
-    { id:'role',      label:'Life Role',  icon:'🎭' },
-    { id:'arena',     label:'Arena',      icon:'⚔️' },
-    { id:'stories',   label:'Stories',    icon:'📖' },
-    { id:'activity',  label:'Activity',   icon:'📡' },
+    { id:'overview',       label:'Overview',    icon:'📊' },
+    { id:'role',           label:'Life Role',   icon:'🎭' },
+    { id:'arena',          label:'Arena',       icon:'⚔️' },
+    { id:'stories',        label:'Stories',     icon:'📖' },
+    { id:'activity',       label:'Activity',    icon:'📡' },
+    { id:'notifications',  label:'Alerts',      icon:'🔔' },
   ];
 
   return (
@@ -679,12 +656,10 @@ export default function Profile({ user, userData }) {
           Profile
         </span>
 
-        {/* placeholder right */}
         <div className="w-16" />
       </motion.nav>
 
-      {loading ? (
-        /* ── Loading ── */
+      {pageLoading ? ( // ✅ renamed
         <div className="flex items-center justify-center min-h-[70vh]">
           <motion.div
             animate={{ rotate: 360 }}
@@ -763,6 +738,14 @@ export default function Profile({ user, userData }) {
                 initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-10 }}>
                 <ActivityFeed activities={activities} />
+              </motion.div>
+            )}
+
+            {activeTab === 'notifications' && (
+              <motion.div key="notifications"
+                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                exit={{ opacity:0, y:-10 }}>
+                <NotificationsCard user={user} /> {/* ✅ isolated component */}
               </motion.div>
             )}
 
