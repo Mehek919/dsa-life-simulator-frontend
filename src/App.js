@@ -18,7 +18,7 @@ import axios from 'axios';
 import API_BASE from './config';
 import InstallBanner from './components/InstallBanner';
 import MobileNav     from './components/MobileNav';
-
+import FeedbackButton from './FeedbackButton';
 const Login       = lazy(() => import('./Login'));
 const World       = lazy(() => import('./World'));
 const Profile     = lazy(() => import('./Profile'));
@@ -311,6 +311,7 @@ const AppShell = () => {
 const App = () => (
   <Router>
     <AppShell />
+    <FeedbackButton />
   </Router>
 );
 
