@@ -13,9 +13,16 @@ const PHASE = {
   BATTLE:  'BATTLE',
   RESULT:  'RESULT',
 };
-const res = await tracedFetch('fetch_leaderboard', () =>
-  axios.get(`${API_BASE}/leaderboard/arena`)
-);
+useEffect(() => {
+  tracedFetch('fetch_leaderboard', () =>
+    axios.get(`${API_BASE}/leaderboard/arena`)
+  ).then(data => {
+    console.log('Arena leaderboard:', data);
+    // set state here if needed
+  }).catch(err => {
+    console.error('Leaderboard fetch failed:', err);
+  });
+}, []);
 export default function Arena({ user, userData, setUserData }) {
   const navigate  = useNavigate();
   const socketRef = useRef(null);

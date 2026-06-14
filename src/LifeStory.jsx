@@ -3,7 +3,6 @@ import { motion, AnimatePresence }                          from 'framer-motion'
 import { useNavigate }                                      from 'react-router-dom';
 import axios                                                from 'axios';
 import API_BASE                                             from './config';
-import { tracedFetch } from './usePerformance';
 const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 const ROLE_COLORS = {
   Junior:  'from-green-500  to-emerald-700',
@@ -448,9 +447,6 @@ export default function LifeStory({ user, userData }) {
   const [generating,   setGenerating]   = useState(false);
   const [showArchive,  setShowArchive]  = useState(false);
   const uid = user?.uid;
-  const res = tracedFetch('generate_story', () =>
-    axios.post(`${API_BASE}/story/generate`, { userId: uid })
-  );
 
   // ── Fetch current story ────────────────────────────────────────────────────
   const fetchStory = useCallback(async () => {

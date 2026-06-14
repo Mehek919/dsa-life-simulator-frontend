@@ -16,7 +16,6 @@ import {
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, analytics } from './firebase';
 import { logEvent } from 'firebase/analytics';
-import * as Sentry from '@sentry/react';
 import axios from 'axios';
 import API_BASE from './config';
 import InstallBanner from './components/InstallBanner';
@@ -39,14 +38,14 @@ function RouteTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    logEvent(analytics, 'page_view', {
-      page_path: location.pathname,
-      page_title: document.title,
-    });
+    safeLog('page_view', { page_path: location.pathname, page_title: document.title });
   }, [location]);
 
   return null;
 }
+const safeLog = (eventName, params) => {
+  if (analytics) logEvent(analytics, eventName, params);
+};
 // ─── Page Loader ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
   <div className="min-h-screen bg-gray-950 flex flex-col items-center
@@ -117,7 +116,7 @@ const AppShell = () => {
     const data = await createOrFetchUser(firebaseUser);
     setUser(firebaseUser);
     setUserData(data);
-    logEvent(analytics, 'login', { method: 'Google' });
+    safeLog('login', { method: 'Google' });
 
     if (data && !data.onboardingCompleted) {
       navigate('/onboarding', { replace: true });
@@ -133,17 +132,11 @@ const AppShell = () => {
     setUserData(null);
     navigate('/', { replace: true });
   }, [navigate]);
-
-  // ── Onboarding complete handler ──
-  const handleOnboardingComplete = useCallback((updatedUserData) => {
-    setUserData(prev => ({
-      ...prev,
-      ...updatedUserData,
-      onboardingCompleted: true
-    }));
-    logEvent(analytics, 'onboarding_complete', { userId: user.uid });
-    navigate('/world', { replace: true });
-  }, [navigate]);
+const handleOnboardingComplete = useCallback((updatedUserData) => {
+  setUserData(prev => ({ ...prev, ...updatedUserData, onboardingCompleted: true }));
+  safeLog('onboarding_complete', { userId: user?.uid });
+  navigate('/world', { replace: true });
+}, [navigate, user?.uid]);
 
   // ── Auth loading splash ──
   if (!authReady) return <PageLoader />;
@@ -324,15 +317,12 @@ const AppShell = () => {
     </>
   );
 };
-
-// ─── App Root ─────────────────────────────────────────────────────────────────
 const App = () => (
   <Router>
     <AppShell />
     
   </Router>
 );
-
 export default App;
 
 
