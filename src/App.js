@@ -626,9 +626,6 @@ function PlayerCard({ name, photoURL, elo, label, color, flip = false }) {
 }
 const App = () => (
   <ErrorBoundary>
-    <Router>
-      <AppShell />
-    </Router>
   </ErrorBoundary>
 );
 
