@@ -11,9 +11,6 @@ const LEVEL_NAMES = {
   4: 'Lead',
   5: 'Legend',
 };
-const res = await tracedFetch('fetch_daily_challenges', () =>
-  axios.get(`${API_BASE}/daily-challenges/${user.uid}?topic=${topic}`)
-);
 const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose }) => {
   const [topic, setTopic] = useState(userData?.topic || 'Array');
   const [challenges, setChallenges] = useState([]);
@@ -34,9 +31,11 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
     try {
       setLoading(true);
       setError('');
-      const res = await axios.get(`${API_BASE}/daily-challenges/${user.uid}`, {
-        params: { topic },
-      });
+      const res = await tracedFetch('fetch_daily_challenges', () =>
+        axios.get(`${API_BASE}/daily-challenges/${user.uid}`, {
+          params: { topic },
+        })
+      );
 
       const data = res.data || {};
       setChallenges(Array.isArray(data.challenges) ? data.challenges : []);
@@ -77,15 +76,16 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
       setSubmittingId(challenge.id);
       setError('');
 
-      const res = await axios.post(
-        `${API_BASE}/daily-challenges/${user.uid}/submit/${challenge.id}`,
-        {
-          userId: user.uid,
-          challengeId: challenge.id,
-          answer,
-          topic,
-          difficulty: challenge.difficulty,
-        }
+      const res = await tracedFetch('submit_daily_challenge', () =>
+        axios.post(
+          `${API_BASE}/daily-challenges/${user.uid}/submit/${challenge.id}`,
+          {
+            userId: user.uid,
+            challengeId: challenge.id,
+            answer,
+          },
+          { params: { topic, difficulty: challenge.difficulty } }
+        )
       );
 
       const data = res.data || {};

@@ -56,9 +56,14 @@ function formatDate(ts) {
     day:   'numeric',
   });
 }
-const res = await tracedFetch('generate_story', () =>
-  axios.post(`${API_BASE}/story/generate`, { userId: uid })
-);
+
+const LifeStory = ({ user }) => {
+  const { uid } = user;
+
+  const res = tracedFetch('generate_story', () =>
+    axios.post(`${API_BASE}/story/generate`, { userId: uid })
+  );
+}
 // ─── Typewriter Hook ──────────────────────────────────────────────────────────
 function useTypewriter(text, speed = 28, active = false) {
   const [displayed, setDisplayed] = useState('');
