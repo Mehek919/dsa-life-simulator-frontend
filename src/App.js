@@ -624,9 +624,6 @@ function PlayerCard({ name, photoURL, elo, label, color, flip = false }) {
     </div>
   );
 }
-const App = () => (
-  <ErrorBoundary>
-  </ErrorBoundary>
-);
+
 
 
