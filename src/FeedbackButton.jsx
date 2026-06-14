@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 🔁 Replace this with your actual Google Form or Typeform URL
-const FEEDBACK_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScXMQrgXMBA5FikOvo7YY5n_0UE0XPXv9w3CgJ7YYkprVLrFQ/viewform?usp=dialog';
+const FEEDBACK_URL = 'https://forms.gle/bhZ2oU8TUCXjzDS37';
 
 export default function FeedbackButton() {
   const [hovered, setHovered] = useState(false);
