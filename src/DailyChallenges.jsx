@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE from './config';
-import { trackEvent } from './useAnalytics';
+
 const LEVEL_NAMES = {
   1: 'Junior',
   2: 'Mid',
@@ -68,6 +68,8 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
       return;
     }
 
+    trackEvent('daily_challenge_started', { topic, userId: user.uid });
+
     try {
       setSubmittingId(challenge.id);
       setError('');
@@ -117,6 +119,12 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
         data.creditsAwarded ?? challenge.creditsReward ?? challenge.credits ?? 0;
       const xpAwarded =
         data.xpAwarded ?? challenge.xpReward ?? challenge.xp ?? 0;
+
+      trackEvent('daily_challenge_completed', {
+        topic,
+        difficulty: challenge.difficulty,
+        xpEarned:   xpAwarded,
+      });
 
       setToast(`✅ Challenge completed! +${creditsAwarded} credits, +${xpAwarded} XP`);
       setAnswers((prev) => ({
@@ -300,21 +308,12 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
                   value={answers[challenge.id] || ''}
                   onChange={(e) => handleAnswerChange(challenge.id, e.target.value)}
                   disabled={challenge.completed}
+                  rows={5}
                   placeholder="Write your explanation and core logic here..."
-                  className="w-full min-h-[120px] md:min-h-[140px]
-                             p-3
-                            text-sm
-                            text-white
-                            bg-slate-900/60
-                            border border-white/10
-                            rounded-xl
-                            resize-none
-                            outline-none
-                            focus:border-cyan-400
-                            disabled:opacity-60
-                         "
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                 />
-                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+                <div className="mt-4 flex items-center justify-between gap-3">
                   <div className="text-sm text-slate-400">
                     {(answers[challenge.id] || '').trim().length}/10 minimum characters
                   </div>
@@ -357,10 +356,4 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
     </div>
   );
 };
-trackEvent('daily_challenge_started', { topic, userId });
-trackEvent('daily_challenge_completed', {
-  topic,
-  difficulty: challenge.difficulty,
-  xpEarned: rewardXp,
-});
 export default DailyChallenges;
