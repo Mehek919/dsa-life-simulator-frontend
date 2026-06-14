@@ -56,14 +56,6 @@ function formatDate(ts) {
     day:   'numeric',
   });
 }
-
-const LifeStory = ({ user }) => {
-  const { uid } = user;
-
-  const res = tracedFetch('generate_story', () =>
-    axios.post(`${API_BASE}/story/generate`, { userId: uid })
-  );
-}
 // ─── Typewriter Hook ──────────────────────────────────────────────────────────
 function useTypewriter(text, speed = 28, active = false) {
   const [displayed, setDisplayed] = useState('');
@@ -455,8 +447,10 @@ export default function LifeStory({ user, userData }) {
   const [error,        setError]        = useState('');
   const [generating,   setGenerating]   = useState(false);
   const [showArchive,  setShowArchive]  = useState(false);
-
   const uid = user?.uid;
+  const res = tracedFetch('generate_story', () =>
+    axios.post(`${API_BASE}/story/generate`, { userId: uid })
+  );
 
   // ── Fetch current story ────────────────────────────────────────────────────
   const fetchStory = useCallback(async () => {
