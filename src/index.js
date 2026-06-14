@@ -1,32 +1,22 @@
-import React from 'react';
-import * as Sentry from '@sentry/react';
-import ReactDOM from 'react-dom/client';
-import './index.css'; // ✅ ADD THIS LINE
-import App from './App';
-import { initSentry } from './sentry';
-import { inject } from '@vercel/analytics';
-import { injectSpeedInsights } from '@vercel/speed-insights';
-initSentry();
-inject();
-injectSpeedInsights();
-Sentry.init({
-  dsn: 'YOUR_SENTRY_DSN',
-  environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.2,
-});
+import React                        from 'react';
+import ReactDOM                     from 'react-dom/client';
+import './index.css';
+import App                          from './App';
+import { register }                 from './serviceWorkerRegistration'; // ✅ import added
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
+
+// ── Register Service Worker ──
 register({
   onSuccess: () => console.log('[SW] App is cached for offline use.'),
-  onUpdate:  reg => {
-    // Optional: show a "New version available" toast here
-    console.log('[SW] New version available. Refresh to update.');
-  },
+  onUpdate:  () => console.log('[SW] New version available. Refresh to update.'),
 });
+
 
 
 
