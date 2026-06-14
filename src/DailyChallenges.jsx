@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE from './config';
-
+import { trackEvent } from './useAnalytics';
 const LEVEL_NAMES = {
   1: 'Junior',
   2: 'Mid',
@@ -357,4 +357,10 @@ const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose
     </div>
   );
 };
+trackEvent('daily_challenge_started', { topic, userId });
+trackEvent('daily_challenge_completed', {
+  topic,
+  difficulty: challenge.difficulty,
+  xpEarned: rewardXp,
+});
 export default DailyChallenges;

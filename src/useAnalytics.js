@@ -1,4 +1,5 @@
-import { analytics, logEvent } from './firebase';
+import { logEvent } from 'firebase/analytics';
+import { analytics } from './firebase';
 
 /**
  * Tracks a named event with optional params.
@@ -11,3 +12,4 @@ export function trackEvent(eventName, params = {}) {
     console.warn('Analytics error:', err);
   }
 }
+
