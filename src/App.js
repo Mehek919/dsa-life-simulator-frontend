@@ -4,7 +4,28 @@ import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
-
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ color: 'white', padding: 40, background: '#0f0f1a', minHeight: '100vh' }}>
+          <h2>⚠️ Something went wrong</h2>
+          <pre style={{ color: '#ff6b6b', fontSize: 12 }}>
+            {this.state.error?.message}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const TOPICS = ['Array', 'LinkedList', 'Stack', 'Queue', 'Tree', 'Graph', 'DynamicProgramming'];
 const PHASE = {
@@ -603,6 +624,12 @@ function PlayerCard({ name, photoURL, elo, label, color, flip = false }) {
     </div>
   );
 }
-
+const App = () => (
+  <ErrorBoundary>
+    <Router>
+      <AppShell />
+    </Router>
+  </ErrorBoundary>
+);
 
 
