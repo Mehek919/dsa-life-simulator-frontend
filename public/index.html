@@ -1,78 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "DSA Life Simulator",
+  "url": "https://dsalifesimulator.com",
+  "description": "Master Data Structures and Algorithms through a gamified life simulation with 1v1 arena battles, AI story generation, and leaderboards.",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "DSA Life Simulator"
+  }
+}
+</script>
+
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon-96x96.png?v=1" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg?v=1" />
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico?v=1" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png?v=1" />
-    <meta name="apple-mobile-web-app-title" content="World Simulator" />
-    <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest?v=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f0f1a" />
+
     <!-- ── Primary SEO ── -->
-    <title>DSA Life Simulator — Level Up Your Coding Life</title>
+    <title>DSA Life Simulator — Learn Data Structures Through Life</title>
     <meta name="description"
-          content="A gamified DSA learning platform with AI-powered daily challenges, real-time 1v1 arena battles, weekly life stories, and a developer leaderboard." />
+          content="DSA Life Simulator — Master Data Structures & Algorithms through a gamified life simulation. Battle real opponents, solve challenges, climb the leaderboard." />
     <meta name="keywords"
-          content="DSA, Data Structures, Algorithms, coding challenges, LeetCode alternative, gamified learning, competitive programming" />
-    <meta name="author"  content="DSA Life Simulator" />
-    <meta name="robots"  content="index, follow" />
+          content="DSA, Data Structures, Algorithms, LeetCode, Coding, Gamified Learning, Developer, Programming, React" />
+    <meta name="author" content="DSA Life Simulator" />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://dsalifesimulator.com" />
 
-    <!-- ── Theme + PWA ── -->
-    <meta name="theme-color"                        content="#06b6d4" />
-    <meta name="mobile-web-app-capable"             content="yes" />
-    <meta name="apple-mobile-web-app-capable"       content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title"         content="DSALife" />
-
-    <!-- ── Icons ── -->
-    <link rel="icon"            type="image/png" sizes="32x32"  href="%PUBLIC_URL%/icons/icon-96x96.png" />
-    <link rel="apple-touch-icon"                sizes="180x180" href="%PUBLIC_URL%/icons/icon-192x192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-
-    <!-- ── Open Graph (Facebook / LinkedIn) ── -->
+    <!-- ── Open Graph (Facebook / LinkedIn / WhatsApp) ── -->
     <meta property="og:type"        content="website" />
     <meta property="og:url"         content="https://dsalifesimulator.com" />
-    <meta property="og:title"       content="DSA Life Simulator — Level Up Your Coding Life" />
-    <meta property="og:description" content="AI-powered DSA challenges, live 1v1 battles, weekly stories. Build your developer legacy." />
+    <meta property="og:title"       content="DSA Life Simulator — Learn DSA Through Life" />
+    <meta property="og:description" content="Master Data Structures & Algorithms through a gamified life simulation. 1v1 Arena battles, AI story generation, leaderboards & more." />
     <meta property="og:image"       content="https://dsalifesimulator.com/og-image.png" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name"   content="DSA Life Simulator" />
-    <meta property="og:locale"      content="en_US" />
 
     <!-- ── Twitter Card ── -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:url"         content="https://dsalifesimulator.com" />
     <meta name="twitter:title"       content="DSA Life Simulator" />
-    <meta name="twitter:description" content="Gamified DSA learning with AI challenges, arena battles, and weekly dev stories." />
+    <meta name="twitter:description" content="Gamified DSA learning — 1v1 Arena, AI stories, leaderboards. Level up your coding life." />
     <meta name="twitter:image"       content="https://dsalifesimulator.com/og-image.png" />
 
-    <!-- ── Preconnect ── -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://dsa-life-simulator-backend.onrender.com" />
-    <link rel="preload" href="/fonts/your-font.woff2"
-      as="font" type="font/woff2" crossorigin />
-    <!-- ── Structured Data (JSON-LD) ── -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "DSA Life Simulator",
-      "url": "https://dsalifesimulator.com",
-      "description": "Gamified DSA learning with AI challenges, real-time arena battles, and weekly developer life stories.",
-      "applicationCategory": "EducationApplication",
-      "operatingSystem": "Any",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
-    }
-    </script>
+    <!-- ── Favicon ── -->
+    <link rel="icon"             href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest"         href="%PUBLIC_URL%/manifest.json" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run DSA Life Simulator.</noscript>
