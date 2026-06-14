@@ -13,20 +13,9 @@ const PHASE = {
   BATTLE:  'BATTLE',
   RESULT:  'RESULT',
 };
-useEffect(() => {
-  tracedFetch('fetch_leaderboard', () =>
-    axios.get(`${API_BASE}/leaderboard/arena`)
-  ).then(data => {
-    console.log('Arena leaderboard:', data);
-    // set state here if needed
-  }).catch(err => {
-    console.error('Leaderboard fetch failed:', err);
-  });
-}, []);
 export default function Arena({ user, userData, setUserData }) {
   const navigate  = useNavigate();
   const socketRef = useRef(null);
-
   const [phase,       setPhase]       = useState(PHASE.LOBBY);
   const [topic,       setTopic]       = useState('Array');
   const [opponent,    setOpponent]    = useState(null);
@@ -55,6 +44,17 @@ export default function Arena({ user, userData, setUserData }) {
       timeTaken,
     });
   }, [submitted, startTime, battleId, user?.uid, selected]);
+  useEffect(() => {
+  tracedFetch('fetch_leaderboard', () =>
+    axios.get(`${API_BASE}/leaderboard/arena`)
+  ).then(data => {
+    console.log('Arena leaderboard:', data);
+    // set state here if needed
+  }).catch(err => {
+    console.error('Leaderboard fetch failed:', err);
+  });
+  }, []);
+
 
   // ✅ FIX 2: Stable socket setup — deps array has user.uid and setUserData
   useEffect(() => {
