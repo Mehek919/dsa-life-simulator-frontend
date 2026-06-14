@@ -10,10 +10,13 @@ import {
   Routes,
   Route,
   Navigate,
-  useNavigate
+  useNavigate,
+  useLocation
 } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, analytics } from './firebase';
+import { logEvent } from 'firebase/analytics';
+import * as Sentry from '@sentry/react';
 import axios from 'axios';
 import API_BASE from './config';
 import InstallBanner from './components/InstallBanner';
@@ -32,7 +35,18 @@ const Results     = lazy(() => import('./Results'));
 const Arena       = lazy(() => import('./Arena'));
 const Office      = lazy(() => import('./Office'));
 const Onboarding  = lazy(() => import('./Onboarding'));
+function RouteTracker() {
+  const location = useLocation();
 
+  useEffect(() => {
+    logEvent(analytics, 'page_view', {
+      page_path: location.pathname,
+      page_title: document.title,
+    });
+  }, [location]);
+
+  return null;
+}
 // ─── Page Loader ──────────────────────────────────────────────────────────────
 const PageLoader = () => (
   <div className="min-h-screen bg-gray-950 flex flex-col items-center
@@ -103,6 +117,7 @@ const AppShell = () => {
     const data = await createOrFetchUser(firebaseUser);
     setUser(firebaseUser);
     setUserData(data);
+    logEvent(analytics, 'login', { method: 'Google' });
 
     if (data && !data.onboardingCompleted) {
       navigate('/onboarding', { replace: true });
@@ -126,6 +141,7 @@ const AppShell = () => {
       ...updatedUserData,
       onboardingCompleted: true
     }));
+    logEvent(analytics, 'onboarding_complete', { userId: user.uid });
     navigate('/world', { replace: true });
   }, [navigate]);
 
@@ -134,6 +150,7 @@ const AppShell = () => {
 
   return (
     <>
+    <RouteTracker />
      <FeedbackButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>

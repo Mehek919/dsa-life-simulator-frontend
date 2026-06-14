@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tracedFetch } from './usePerformance';
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 const TOPICS = ['Array', 'LinkedList', 'Stack', 'Queue', 'Tree', 'Graph', 'DynamicProgramming'];
 const PHASE = {
@@ -10,7 +11,9 @@ const PHASE = {
   BATTLE:  'BATTLE',
   RESULT:  'RESULT',
 };
-
+const res = await tracedFetch('fetch_leaderboard', () =>
+  axios.get(`${API_BASE}/leaderboard/arena`)
+);
 export default function Arena({ user, userData, setUserData }) {
   const navigate  = useNavigate();
   const socketRef = useRef(null);

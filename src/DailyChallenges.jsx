@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_BASE from './config';
 import { trackEvent } from './useAnalytics';
-
+import { tracedFetch } from './usePerformance';
 const LEVEL_NAMES = {
   1: 'Junior',
   2: 'Mid',
@@ -11,7 +11,9 @@ const LEVEL_NAMES = {
   4: 'Lead',
   5: 'Legend',
 };
-
+const res = await tracedFetch('fetch_daily_challenges', () =>
+  axios.get(`${API_BASE}/daily-challenges/${user.uid}?topic=${topic}`)
+);
 const DailyChallenges = ({ user, userData, setUserData, onRewardsEarned, onClose }) => {
   const [topic, setTopic] = useState(userData?.topic || 'Array');
   const [challenges, setChallenges] = useState([]);

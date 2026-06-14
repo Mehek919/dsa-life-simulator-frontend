@@ -3,6 +3,7 @@ import { motion, AnimatePresence }                          from 'framer-motion'
 import { useNavigate }                                      from 'react-router-dom';
 import axios                                                from 'axios';
 import API_BASE                                             from './config';
+import { tracedFetch } from './usePerformance';
 const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 const ROLE_COLORS = {
   Junior:  'from-green-500  to-emerald-700',
@@ -55,8 +56,9 @@ function formatDate(ts) {
     day:   'numeric',
   });
 }
-
-
+const res = await tracedFetch('generate_story', () =>
+  axios.post(`${API_BASE}/story/generate`, { userId: uid })
+);
 // ─── Typewriter Hook ──────────────────────────────────────────────────────────
 function useTypewriter(text, speed = 28, active = false) {
   const [displayed, setDisplayed] = useState('');
