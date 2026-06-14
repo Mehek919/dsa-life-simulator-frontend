@@ -13,11 +13,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const perf = getPerformance(app);
 export const analytics = getAnalytics(app);
-export const performance = getPerformance(app);
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+export { perf };
 
 
 
