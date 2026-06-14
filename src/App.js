@@ -36,7 +36,7 @@ const Results     = lazy(() => import('./Results'));
 const Arena       = lazy(() => import('./Arena'));
 const Office      = lazy(() => import('./Office'));
 const Onboarding  = lazy(() => import('./Onboarding'));
-
+const Visualizer = React.lazy(() => import('./Visualizer'));
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
   if (analytics) logEvent(analytics, eventName, params);
@@ -342,6 +342,12 @@ const AppShell = () => {
               </OnboardingGuard>
             }
           />
+          <Route path="/visualizer" element={
+             <Guard user={user}>
+              <Visualizer />
+             </Guard>
+           } 
+         />
 
           {/* ── Catch-all ── */}
           <Route

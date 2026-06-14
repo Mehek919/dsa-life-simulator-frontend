@@ -1,5 +1,9 @@
-
-        import React, { useState, useEffect, useCallback } from 'react';
+import useStreak          from './hooks/useStreak';
+import useAchievements    from './hooks/useAchievements';
+import StreakBanner        from './components/StreakBanner';
+import AchievementToast   from './components/AchievementToast';
+import AchievementsGrid   from './components/AchievementsGrid';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { useNavigate }                              from 'react-router-dom';
 import axios                                        from 'axios';
@@ -573,7 +577,8 @@ function ChapterModal({ chapter, onClose }) {
 // ─── Main Profile Component ────────────────────────────────────────────────
 export default function Profile({ user, userData }) {
   const navigate = useNavigate();
-
+  const { streak, bestStreak, claimedToday } = useStreak(user);
+  const { unlocked, newBadges, clearNewBadges } = useAchievements(user, userData);
   const [archive,         setArchive]         = useState([]);
   const [activities,      setActivities]      = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
@@ -618,13 +623,15 @@ export default function Profile({ user, userData }) {
   }, [uid, fetchArchive, fetchActivities]);
 
   const TABS = [
-    { id:'overview',       label:'Overview',    icon:'📊' },
-    { id:'role',           label:'Life Role',   icon:'🎭' },
-    { id:'arena',          label:'Arena',       icon:'⚔️' },
-    { id:'stories',        label:'Stories',     icon:'📖' },
-    { id:'activity',       label:'Activity',    icon:'📡' },
-    { id:'notifications',  label:'Alerts',      icon:'🔔' },
-  ];
+  { id:'overview',      label:'Overview',      icon:'📊' },
+  { id:'role',          label:'Life Role',     icon:'🎭' },
+  { id:'arena',         label:'Arena',         icon:'⚔️' },
+  { id:'achievements',  label:'Badges',        icon:'🏅' }, // ✅ new
+  { id:'stories',       label:'Stories',       icon:'📖' },
+  { id:'activity',      label:'Activity',      icon:'📡' },
+  { id:'notifications', label:'Alerts',        icon:'🔔' },
+ ];
+
 
   return (
     <div className="min-h-screen bg-[#060612] text-white overflow-x-hidden">
@@ -702,9 +709,22 @@ export default function Profile({ user, userData }) {
               <motion.div key="overview"
                 initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-10 }} className="space-y-5">
+                <StreakBanner                          // ✅ add this
+                 streak={streak}
+                 bestStreak={bestStreak}
+                 claimedToday={claimedToday}
+                />
                 <StatsGrid userData={userData} />
               </motion.div>
             )}
+            {activeTab === 'achievements' && (
+             <motion.div key="achievements"
+              initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+              exit={{ opacity:0, y:-10 }}>
+             <AchievementsGrid unlocked={unlocked} />
+            </motion.div>
+           )}
+
 
             {activeTab === 'role' && (
               <motion.div key="role"
@@ -750,6 +770,10 @@ export default function Profile({ user, userData }) {
             )}
 
           </AnimatePresence>
+          <AchievementToast
+           newBadges={newBadges}
+           onDismiss={clearNewBadges}
+         />
         </div>
       )}
 

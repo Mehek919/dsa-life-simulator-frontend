@@ -20,26 +20,24 @@ const EVENT_META = {
   challenge_attempted: { icon: '🎯', color: 'text-purple-400', label: 'attempted a challenge' },
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'         },
 };
-
 const ZONES = [
-  { id: 'lab',     label: '🧪 Lab',     path: '/lab',     desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
-  { id: 'hub',     label: '🏢 Hub',     path: '/hub',     desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
-  { id: 'arena',   label: '⚔️ Arena',   path: '/arena',   desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
-  { id: 'office',  label: '🏛️ Office',  path: '/office',  desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
-  { id: 'story',   label: '📖 Story',   path: '/story',   desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
-  { id: 'profile', label: '👤 Profile', path: '/profile', desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
+  { id: 'lab',        label: '🧪 Lab',          path: '/lab',        desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
+  { id: 'hub',        label: '🏢 Hub',          path: '/hub',        desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
+  { id: 'arena',      label: '⚔️ Arena',        path: '/arena',      desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
+  { id: 'office',     label: '🏛️ Office',       path: '/office',     desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
+  { id: 'story',      label: '📖 Story',        path: '/story',      desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
+  { id: 'profile',    label: '👤 Profile',      path: '/profile',    desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
+  { id: 'visualizer', label: '🔬 Visualizer',   path: '/visualizer', desc: 'Algo animations',    color: 'from-violet-600 to-indigo-500',glow: '#8b5cf6', badge: null            },
 ];
-
-// Desktop-only absolute positions
 const DESKTOP_POS = {
-  lab:     'top-[12%] left-[18%]',
-  hub:     'top-[12%] right-[18%]',
-  arena:   'bottom-[22%] left-[12%]',
-  office:  'bottom-[22%] right-[12%]',
-  story:   'bottom-[8%] left-[44%]',
-  profile: 'top-[50%] left-[3%] -translate-y-1/2',
+  lab:         'top-[12%] left-[18%]',
+  hub:         'top-[12%] right-[18%]',
+  arena:       'bottom-[22%] left-[12%]',
+  office:      'bottom-[22%] right-[12%]',
+  story:       'bottom-[8%] left-[38%]',
+  profile:     'top-[50%] left-[3%] -translate-y-1/2',
+  visualizer:  'bottom-[8%] right-[38%]',   // ← bottom-right, mirrors Story
 };
-
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
