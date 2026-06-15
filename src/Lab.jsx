@@ -70,6 +70,7 @@ export default function Lab(props) {
   var setUserData = props.setUserData;
 
   var navigate = useNavigate();
+  navigate(`/solve/${problemId}`)
 
   // form state
   var questionState      = useState('');

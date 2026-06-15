@@ -21,7 +21,8 @@ import API_BASE from './config';
 import InstallBanner  from './components/InstallBanner';
 import MobileNav      from './components/MobileNav';
 import FeedbackButton from './FeedbackButton';
-
+import CodeEditor from './CodeEditor';
+import ProblemSolver from './ProblemSolver';
 // ─── Lazy Routes ──────────────────────────────────────────────────────────────
 const Login       = lazy(() => import('./Login'));
 const World       = lazy(() => import('./World'));
@@ -220,6 +221,12 @@ const AppShell = () => {
                   )
             }
           />
+          <Route
+            path="/solve/:problemId"
+            element={
+              <ProblemSolver user={user} userData={userData} setUserData={setUserData} />
+            }
+          /> 
 
           {/* ── Protected: World ── */}
           <Route
@@ -318,6 +325,10 @@ const AppShell = () => {
               </Guard>
             }
           />
+          <Route path="/solve/:problemId" element={
+           <ProblemSolver user={user} userData={userData} setUserData={setUserData} />
+          } 
+        />
 
           {/* ── Protected: Results ── */}
           <Route
