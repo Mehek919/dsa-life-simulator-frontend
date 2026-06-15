@@ -297,77 +297,7 @@ end program solution
 };
 
 // ── Syntax highlighting (simple token-based) ──────────────────────────────────
-const KEYWORDS = {
-  python:     ['def','return','if','else','elif','for','while','in','not','and','or','import','from','class','pass','True','False','None','print','range','len'],
-  javascript: ['function','return','if','else','for','while','const','let','var','class','import','export','default','new','this','typeof','console','null','undefined','true','false'],
-  typescript: ['function','return','if','else','for','while','const','let','var','class','interface','type','import','export','default','new','this','null','undefined','true','false','number','string','boolean','void'],
-  java:       ['public','private','static','void','int','String','class','new','return','if','else','for','while','import','System','out','println'],
-  cpp:        ['int','void','return','if','else','for','while','include','using','namespace','std','cout','endl','class','public','private'],
-  c:          ['int','void','return','if','else','for','while','include','printf','scanf','main'],
-  go:         ['func','return','if','else','for','var','package','import','fmt','Println'],
-  rust:       ['fn','let','mut','return','if','else','for','while','use','pub','struct','impl','println','vec'],
-};
-
-function tokenize(code, langId) {
-  const keywords = new Set(KEYWORDS[langId] || []);
-  const tokens = [];
-  const lines = code.split('\n');
-
-  lines.forEach((line, li) => {
-    // Comment detection
-    const commentStart =
-      (langId === 'python' && line.indexOf('#')) ||
-      (['javascript','typescript','java','cpp','c','go','rust'].includes(langId) && line.indexOf('//'));
-
-    const codePart  = commentStart !== false && commentStart !== -1
-      ? line.slice(0, commentStart)
-      : line;
-    const comment   = commentStart !== false && commentStart !== -1
-      ? line.slice(commentStart)
-      : '';
-
-    // Tokenize code part
-    const wordRe = /([a-zA-Z_]\w*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\d+\.?\d*)|([^a-zA-Z_\w\s])/g;
-    let m;
-    let lastIdx = 0;
-    while ((m = wordRe.exec(codePart)) !== null) {
-      if (m.index > lastIdx) {
-        tokens.push({ type: 'plain', text: codePart.slice(lastIdx, m.index) });
-      }
-      if (m[1]) {
-        tokens.push({ type: keywords.has(m[1]) ? 'keyword' : 'identifier', text: m[1] });
-      } else if (m[2]) {
-        tokens.push({ type: 'string', text: m[2] });
-      } else if (m[3]) {
-        tokens.push({ type: 'number', text: m[3] });
-      } else {
-        tokens.push({ type: 'operator', text: m[4] });
-      }
-      lastIdx = m.index + m[0].length;
-    }
-    if (lastIdx < codePart.length) {
-      tokens.push({ type: 'plain', text: codePart.slice(lastIdx) });
-    }
-    if (comment) {
-      tokens.push({ type: 'comment', text: comment });
-    }
-    if (li < lines.length - 1) {
-      tokens.push({ type: 'newline', text: '\n' });
-    }
-  });
-
-  return tokens;
-}
-
-const TOKEN_COLORS = {
-  keyword:    '#c792ea',
-  string:     '#c3e88d',
-  number:     '#f78c6c',
-  comment:    '#546e7a',
-  operator:   '#89ddff',
-  identifier: '#e8e8e8',
-  plain:      '#e8e8e8',
-};
+// ── Syntax highlighting removed — using plain textarea editor ─────────────────
 
 // ── Judge0 execution ──────────────────────────────────────────────────────────
 const JUDGE0_STATUS = {
@@ -520,7 +450,7 @@ function CodeEditorPane({ code, onChange, language }) {
       const lineStart = val.lastIndexOf('\n', start - 1) + 1;
       const currentLine = val.slice(lineStart, start);
       const indent = currentLine.match(/^(\s*)/)[1];
-      const extraIndent = /[{([\:]$/.test(currentLine.trim()) ? '  ' : '';
+      const extraIndent = /[{([:]$/.test(currentLine.trim()) ? '  ' : '';
       e.preventDefault();
       const newVal = val.slice(0, start) + '\n' + indent + extraIndent + val.slice(end);
       onChange(newVal);

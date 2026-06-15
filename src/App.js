@@ -21,7 +21,6 @@ import API_BASE from './config';
 import InstallBanner  from './components/InstallBanner';
 import MobileNav      from './components/MobileNav';
 import FeedbackButton from './FeedbackButton';
-import CodeEditor from './CodeEditor';
 import ProblemSolver from './ProblemSolver';
 // ─── Lazy Routes ──────────────────────────────────────────────────────────────
 const Login       = lazy(() => import('./Login'));
