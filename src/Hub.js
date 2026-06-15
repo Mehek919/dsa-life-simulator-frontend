@@ -10,14 +10,15 @@ import {
 import axios from 'axios';
 import API_BASE from './config';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const TOPICS = ['Array', 'String', 'Tree', 'Graph', 'DP', 'LinkedList', 'Stack', 'Queue'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const SORT_OPTIONS = [
-  { value: 'newest',    label: '🕐 Newest'     },
-  { value: 'popular',  label: '🔥 Popular'    },
-  { value: 'rating',   label: '⭐ Top Rated'  },
+  { value: 'newest',   label: '🕐 Newest'    },
+  { value: 'popular',  label: '🔥 Popular'   },
+  { value: 'rating',   label: '⭐ Top Rated' },
 ];
 
 const EVENT_META = {
@@ -26,6 +27,7 @@ const EVENT_META = {
   level_up:            { icon: '🚀', color: 'text-yellow-400', label: 'leveled up!'            },
   arena_win:           { icon: '⚔️', color: 'text-red-400',    label: 'won an arena battle'   },
   challenge_attempted: { icon: '🎯', color: 'text-purple-400', label: 'attempted a challenge' },
+  problem_solved:      { icon: '💻', color: 'text-cyan-400',   label: 'solved a coding problem'},
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'         },
 };
 
@@ -36,8 +38,8 @@ function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60)   return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 60)    return `${diff}s ago`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
@@ -48,9 +50,9 @@ function getMeta(type) {
 
 // ─── ActivityFeed Sub-component ───────────────────────────────────────────────
 function ActivityFeed() {
-  const [events, setEvents]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [newIds, setNewIds]     = useState(new Set());
+  const [events,  setEvents]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newIds,  setNewIds]  = useState(new Set());
 
   useEffect(() => {
     const q = query(
@@ -62,7 +64,6 @@ function ActivityFeed() {
     const unsub = onSnapshot(q, (snap) => {
       const incoming = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-      // highlight truly new docs (not on first load)
       if (!loading) {
         const freshIds = new Set(
           snap.docChanges()
@@ -105,7 +106,7 @@ function ActivityFeed() {
     <ul className="flex flex-col gap-2 mt-2 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
       <AnimatePresence initial={false}>
         {events.map((ev) => {
-          const meta = getMeta(ev.type);
+          const meta  = getMeta(ev.type);
           const isNew = newIds.has(ev.id);
           return (
             <motion.li
@@ -121,15 +122,12 @@ function ActivityFeed() {
                   : 'border-white/5 bg-white/5 hover:bg-white/10'
                 }`}
             >
-              {/* Avatar or icon */}
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden text-sm">
                 {ev.photoURL
                   ? <img src={ev.photoURL} alt="avatar" className="w-full h-full object-cover rounded-full" />
                   : <span>{meta.icon}</span>
                 }
               </div>
-
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">
                   <span className="font-semibold text-white truncate">
@@ -137,9 +135,7 @@ function ActivityFeed() {
                   </span>{' '}
                   <span className={`${meta.color}`}>{meta.label}</span>
                   {ev.message && (
-                    <span className="text-gray-400">
-                      {' — '}{ev.message}
-                    </span>
+                    <span className="text-gray-400"> — {ev.message}</span>
                   )}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -159,26 +155,47 @@ function ActivityFeed() {
 
 // ─── Main Hub Component ───────────────────────────────────────────────────────
 export default function Hub({ user, userData, setUserData }) {
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [challenges,     setChallenges]     = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [error,          setError]          = useState('');
-  const [toast,          setToast]          = useState(null);
-  const [activeTab,      setActiveTab]      = useState('browse'); // 'browse' | 'create' | 'feed'
-  const [filters,        setFilters]        = useState({ topic: '', difficulty: '', sort: 'newest' });
-  const [submitting,     setSubmitting]     = useState(false);
+  const navigate = useNavigate();
 
-  // create-challenge form
+  const [challenges,  setChallenges]  = useState([]);
+  const [problems,    setProblems]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [probLoading, setProbLoading] = useState(true);
+  const [error,       setError]       = useState('');
+  const [toast,       setToast]       = useState(null);
+  const [activeTab,   setActiveTab]   = useState('problems'); // 'problems' | 'browse' | 'create' | 'feed'
+  const [filters,     setFilters]     = useState({ topic: '', difficulty: '', sort: 'newest' });
+  const [submitting,  setSubmitting]  = useState(false);
+  const [search,      setSearch]      = useState('');
+
   const [form, setForm] = useState({
-    question: '',
-    options:  ['', '', '', ''],
+    question:      '',
+    options:       ['', '', '', ''],
     correctAnswer: '',
-    topic:    'Array',
-    difficulty: 'Easy',
-    creditCost: 10,
+    topic:         'Array',
+    difficulty:    'Easy',
+    creditCost:    10,
   });
 
-  // ── Fetch challenges ───────────────────────────────────────────────────────
+  // ── Fetch coding problems ──────────────────────────────────────────────────
+  const fetchProblems = useCallback(async () => {
+    setProbLoading(true);
+    try {
+      const params = {};
+      if (filters.difficulty && filters.difficulty !== 'All') params.difficulty = filters.difficulty;
+      if (filters.topic      && filters.topic      !== 'All') params.tag        = filters.topic;
+      if (search) params.search = search;
+
+      const res = await axios.get(`${API_BASE}/problems`, { params });
+      setProblems(res.data.problems || []);
+    } catch (err) {
+      console.error('fetchProblems error:', err);
+    } finally {
+      setProbLoading(false);
+    }
+  }, [filters.difficulty, filters.topic, search]);
+
+  // ── Fetch MCQ challenges ───────────────────────────────────────────────────
   const fetchChallenges = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -204,16 +221,19 @@ export default function Hub({ user, userData, setUserData }) {
   }, [filters, user?.uid]);
 
   useEffect(() => {
-    fetchChallenges();
-  }, [fetchChallenges]);
+    fetchProblems();
+  }, [fetchProblems]);
 
-  // ── Toast helper ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'browse') fetchChallenges();
+  }, [activeTab, fetchChallenges]);
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ── Attempt challenge ──────────────────────────────────────────────────────
+  // ── Attempt MCQ challenge ──────────────────────────────────────────────────
   const handleAttempt = async (challenge, answer) => {
     if (!user?.uid) return;
     try {
@@ -241,13 +261,12 @@ export default function Hub({ user, userData, setUserData }) {
     }
   };
 
-  // ── Rate challenge ─────────────────────────────────────────────────────────
+  // ── Rate MCQ challenge ─────────────────────────────────────────────────────
   const handleRate = async (challengeId, rating) => {
     if (!user?.uid) return;
     try {
       await axios.post(`${API_BASE}/challenges/${challengeId}/rate`, {
-        userId: user.uid,
-        rating,
+        userId: user.uid, rating,
       });
       showToast(`⭐ Rated ${rating}/5`);
       fetchChallenges();
@@ -256,7 +275,7 @@ export default function Hub({ user, userData, setUserData }) {
     }
   };
 
-  // ── Publish challenge ──────────────────────────────────────────────────────
+  // ── Publish MCQ challenge ──────────────────────────────────────────────────
   const handlePublish = async () => {
     const { question, options, correctAnswer, topic, difficulty, creditCost } = form;
     if (!question.trim() || options.some((o) => !o.trim()) || !correctAnswer.trim()) {
@@ -270,23 +289,26 @@ export default function Hub({ user, userData, setUserData }) {
     setSubmitting(true);
     try {
       await axios.post(`${API_BASE}/challenges/publish`, {
-        userId:        user.uid,
-        creatorName:   user.displayName || 'Anonymous',
+        userId:      user.uid,
+        creatorName: user.displayName || 'Anonymous',
         question,
         options,
         correctAnswer,
         topic,
         difficulty,
-        creditCost:    Number(creditCost),
+        creditCost:  Number(creditCost),
       });
       showToast('🎉 Challenge published!');
-      setForm({ question: '', options: ['', '', '', ''], correctAnswer: '', topic: 'Array', difficulty: 'Easy', creditCost: 10 });
+      setForm({
+        question: '', options: ['', '', '', ''],
+        correctAnswer: '', topic: 'Array', difficulty: 'Easy', creditCost: 10,
+      });
       setActiveTab('browse');
       fetchChallenges();
       if (setUserData) {
         setUserData((prev) => ({
           ...prev,
-          credits: (prev?.credits || 0) - Number(creditCost),
+          credits:           (prev?.credits           || 0) - Number(creditCost),
           challengesCreated: (prev?.challengesCreated || 0) + 1,
         }));
       }
@@ -295,6 +317,12 @@ export default function Hub({ user, userData, setUserData }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const diffBadge = {
+    Easy:   'text-green-400 border-green-800 bg-green-900/20',
+    Medium: 'text-yellow-400 border-yellow-800 bg-yellow-900/20',
+    Hard:   'text-red-400 border-red-800 bg-red-900/20',
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -320,9 +348,9 @@ export default function Hub({ user, userData, setUserData }) {
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-cyan-400">🏢 Community Hub</h1>
+          <h1 className="text-3xl font-bold text-cyan-400">🏛️ Community Hub</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Create, solve, and compete with the community
+            Solve coding problems, attempt MCQ challenges, compete with the community
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm">
@@ -336,16 +364,17 @@ export default function Hub({ user, userData, setUserData }) {
       </div>
 
       {/* ── Tab Bar ── */}
-      <div className="flex gap-2 mb-6 border-b border-white/10 pb-3">
+      <div className="flex gap-2 mb-6 border-b border-white/10 pb-3 overflow-x-auto">
         {[
-          { key: 'browse', label: '🔍 Browse'  },
-          { key: 'create', label: '✏️ Create'   },
-          { key: 'feed',   label: '📡 Live Feed' },
+          { key: 'problems', label: '💻 Coding Problems' },
+          { key: 'browse',   label: '🔍 MCQ Challenges'  },
+          { key: 'create',   label: '✏️ Create'           },
+          { key: 'feed',     label: '📡 Live Feed'        },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap
               ${activeTab === tab.key
                 ? 'bg-cyan-500 text-black'
                 : 'text-gray-400 hover:text-white hover:bg-white/10'
@@ -357,10 +386,111 @@ export default function Hub({ user, userData, setUserData }) {
       </div>
 
       {/* ════════════════════════════════════════════════
-          TAB: BROWSE
+          TAB: CODING PROBLEMS (new)
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'problems' && (
+        <div>
+          {/* Search + filters */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search problems..."
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 w-48"
+            />
+            <select
+              value={filters.topic}
+              onChange={(e) => setFilters((f) => ({ ...f, topic: e.target.value }))}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+            >
+              <option value="">All Topics</option>
+              {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select
+              value={filters.difficulty}
+              onChange={(e) => setFilters((f) => ({ ...f, difficulty: e.target.value }))}
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+            >
+              <option value="">All Difficulties</option>
+              {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+
+          {/* Problem list */}
+          {probLoading ? (
+            <div className="grid gap-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : problems.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <div className="text-4xl mb-4">💻</div>
+              <p>No problems found.</p>
+              <p className="text-xs mt-2">Try different filters or check back later.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {problems.map((problem, idx) => (
+                <motion.div
+                  key={problem.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="flex items-center justify-between gap-4
+                             bg-white/5 border border-white/10 rounded-xl
+                             px-5 py-4 hover:border-cyan-500/40 transition-all group"
+                >
+                  {/* Left — number + title */}
+                  <div className="flex items-center gap-4 min-w-0">
+                    <span className="text-gray-600 text-sm w-6 text-right flex-shrink-0">
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-semibold truncate group-hover:text-cyan-400 transition-colors">
+                        {problem.title}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {problem.tags?.slice(0, 3).map((tag) => (
+                          <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right — difficulty + stats + solve button */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-xs text-gray-500 hidden sm:block">
+                      {problem.totalSolves ?? 0} solved
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded border ${diffBadge[problem.difficulty] || 'text-gray-400 border-gray-700 bg-gray-800/20'}`}>
+                      {problem.difficulty}
+                    </span>
+
+                    {/* ── THE KEY BUTTON ── */}
+                    <button
+                      onClick={() => navigate(`/solve/${problem.id}`)}
+                      className="text-xs bg-cyan-500 hover:bg-cyan-400 text-black
+                                 font-bold px-4 py-1.5 rounded-lg transition-all
+                                 opacity-0 group-hover:opacity-100"
+                    >
+                      Solve →
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════
+          TAB: MCQ BROWSE
       ════════════════════════════════════════════════ */}
       {activeTab === 'browse' && (
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <div>
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-6">
             <select
@@ -371,7 +501,6 @@ export default function Hub({ user, userData, setUserData }) {
               <option value="">All Topics</option>
               {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-
             <select
               value={filters.difficulty}
               onChange={(e) => setFilters((f) => ({ ...f, difficulty: e.target.value }))}
@@ -380,7 +509,6 @@ export default function Hub({ user, userData, setUserData }) {
               <option value="">All Difficulties</option>
               {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
-
             {SORT_OPTIONS.map((s) => (
               <button
                 key={s.value}
@@ -396,7 +524,6 @@ export default function Hub({ user, userData, setUserData }) {
             ))}
           </div>
 
-          {/* Challenge list */}
           {loading && (
             <div className="grid gap-4">
               {[...Array(4)].map((_, i) => (
@@ -404,22 +531,18 @@ export default function Hub({ user, userData, setUserData }) {
               ))}
             </div>
           )}
-
           {error && (
             <div className="text-red-400 bg-red-900/20 border border-red-800 rounded-xl p-4">
               {error}
             </div>
           )}
-
           {!loading && !error && challenges.length === 0 && (
             <p className="text-gray-500 text-center mt-12">
               No challenges found. Try different filters or create one! 🎯
             </p>
           )}
-
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {challenges.map((ch) => (
                 <ChallengeCard
                   key={ch.id}
@@ -429,7 +552,6 @@ export default function Hub({ user, userData, setUserData }) {
                   onRate={handleRate}
                 />
               ))}
-             </div>
             </AnimatePresence>
           </div>
         </div>
@@ -445,9 +567,7 @@ export default function Hub({ user, userData, setUserData }) {
           className="max-w-2xl mx-auto bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
         >
           <h2 className="text-xl font-bold text-cyan-400 mb-6">✏️ Create a Challenge</h2>
-
           <div className="flex flex-col gap-5">
-            {/* Question */}
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Question *</label>
               <textarea
@@ -458,8 +578,6 @@ export default function Hub({ user, userData, setUserData }) {
                 className="w-full bg-white/10 border border-white/10 rounded-xl p-3 text-sm text-white resize-none focus:outline-none focus:border-cyan-500"
               />
             </div>
-
-            {/* Options */}
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Options (A–D) *</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -478,10 +596,8 @@ export default function Hub({ user, userData, setUserData }) {
                 ))}
               </div>
             </div>
-
-            {/* Correct answer */}
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Correct Answer * (must match one option exactly)</label>
+              <label className="text-xs text-gray-400 mb-1 block">Correct Answer *</label>
               <input
                 value={form.correctAnswer}
                 onChange={(e) => setForm((f) => ({ ...f, correctAnswer: e.target.value }))}
@@ -489,8 +605,6 @@ export default function Hub({ user, userData, setUserData }) {
                 className="w-full bg-white/10 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
-
-            {/* Topic / Difficulty / Cost */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Topic</label>
@@ -515,22 +629,16 @@ export default function Hub({ user, userData, setUserData }) {
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Credit Cost</label>
                 <input
-                  type="number"
-                  min={5}
-                  max={100}
+                  type="number" min={5} max={100}
                   value={form.creditCost}
                   onChange={(e) => setForm((f) => ({ ...f, creditCost: e.target.value }))}
                   className="w-full bg-white/10 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500"
                 />
               </div>
             </div>
-
-            {/* Cost warning */}
             <p className="text-xs text-yellow-400">
               ⚠️ Publishing costs {form.creditCost} credits. You have {userData?.credits ?? 0}.
             </p>
-
-            {/* Submit */}
             <button
               onClick={handlePublish}
               disabled={submitting}
@@ -585,7 +693,6 @@ function ChallengeCard({ challenge, userId, onAttempt, onRate }) {
       exit={{ opacity: 0 }}
       className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-cyan-500/40 transition-all"
     >
-      {/* Top row */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <p className="text-sm text-white font-medium leading-snug flex-1">
           {challenge.question}
@@ -600,7 +707,6 @@ function ChallengeCard({ challenge, userId, onAttempt, onRate }) {
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="flex flex-wrap gap-4 text-xs text-gray-400 mb-3">
         <span>👤 {challenge.creatorName || 'Anonymous'}</span>
         <span>🎯 {challenge.attempts ?? 0} attempts</span>
@@ -609,7 +715,6 @@ function ChallengeCard({ challenge, userId, onAttempt, onRate }) {
         <span>💰 {challenge.creditCost ?? 10} credits</span>
       </div>
 
-      {/* Attempt section */}
       {!challenge.alreadyAttempted && challenge.createdBy !== userId && (
         <div className="mt-3">
           {!showOptions ? (
@@ -658,7 +763,6 @@ function ChallengeCard({ challenge, userId, onAttempt, onRate }) {
         <p className="text-xs text-gray-500 mt-2">✔ Already attempted</p>
       )}
 
-      {/* Rating section */}
       {challenge.alreadyAttempted && !challenge.alreadyRated && challenge.createdBy !== userId && (
         <div className="flex items-center gap-1 mt-3">
           <span className="text-xs text-gray-400 mr-1">Rate:</span>
