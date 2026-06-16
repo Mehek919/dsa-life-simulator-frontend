@@ -19,24 +19,29 @@ const EVENT_META = {
   challenge_attempted: { icon: '🎯', color: 'text-purple-400', label: 'attempted a challenge' },
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'         },
 };
+
 const ZONES = [
-  { id: 'lab',        label: '🧪 Lab',          path: '/lab',        desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
-  { id: 'hub',        label: '🏢 Hub',          path: '/hub',        desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
-  { id: 'arena',      label: '⚔️ Arena',        path: '/arena',      desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
-  { id: 'office',     label: '🏛️ Office',       path: '/office',     desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
-  { id: 'story',      label: '📖 Story',        path: '/story',      desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
-  { id: 'profile',    label: '👤 Profile',      path: '/profile',    desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
-  { id: 'visualizer', label: '🔬 Visualizer',   path: '/visualizer', desc: 'Algo animations',    color: 'from-violet-600 to-indigo-500',glow: '#8b5cf6', badge: null            },
+  { id: 'lab',        label: '🧪 Lab',        path: '/lab',        desc: 'Daily challenges',   color: 'from-blue-600 to-cyan-500',    glow: '#22d3ee', badge: 'dailyChallenges' },
+  { id: 'hub',        label: '🏢 Hub',        path: '/hub',        desc: 'Community',          color: 'from-purple-600 to-pink-500',  glow: '#a855f7', badge: 'hubChallenges'  },
+  { id: 'arena',      label: '⚔️ Arena',      path: '/arena',      desc: 'PvP battles',        color: 'from-red-600 to-orange-500',   glow: '#ef4444', badge: null            },
+  { id: 'office',     label: '🏛️ Office',     path: '/office',     desc: 'Stats & schedule',   color: 'from-green-600 to-teal-500',   glow: '#10b981', badge: null            },
+  { id: 'story',      label: '📖 Story',      path: '/story',      desc: 'Your AI life story', color: 'from-yellow-500 to-amber-400', glow: '#f59e0b', badge: null            },
+  { id: 'profile',    label: '👤 Profile',    path: '/profile',    desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
+  { id: 'visualizer', label: '🔬 Visualizer', path: '/visualizer', desc: 'Algo animations',    color: 'from-violet-600 to-indigo-500',glow: '#8b5cf6', badge: null            },
+  { id: 'game',       label: '🎮 Odyssey',    path: '/game',       desc: '150 FAANG problems', color: 'from-cyan-600 to-blue-500',    glow: '#06b6d4', badge: null            },
 ];
+
 const DESKTOP_POS = {
-  lab:         'top-[12%] left-[18%]',
-  hub:         'top-[12%] right-[18%]',
-  arena:       'bottom-[22%] left-[12%]',
-  office:      'bottom-[22%] right-[12%]',
-  story:       'bottom-[8%] left-[38%]',
-  profile:     'top-[50%] left-[3%] -translate-y-1/2',
-  visualizer:  'bottom-[8%] right-[38%]',   // ← bottom-right, mirrors Story
+  lab:        'top-[12%] left-[18%]',
+  hub:        'top-[12%] right-[18%]',
+  arena:      'bottom-[22%] left-[12%]',
+  office:     'bottom-[22%] right-[12%]',
+  story:      'bottom-[8%] left-[30%]',
+  profile:    'top-[50%] left-[3%] -translate-y-1/2',
+  visualizer: 'bottom-[8%] right-[30%]',
+  game:       'top-[50%] right-[3%] -translate-y-1/2',
 };
+
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
@@ -46,23 +51,46 @@ function timeAgo(ts) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
 function getMeta(type) { return EVENT_META[type] || EVENT_META.default; }
 
-const PARTICLES_OPTIONS = {
-  fullScreen: { enable: false },
-  background: { color: { value: 'transparent' } },
-  fpsLimit: 60,
-  particles: {
-    number:  { value: 50, density: { enable: true, area: 900 } },
-    color:   { value: ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981'] },
-    shape:   { type: 'circle' },
-    opacity: { value: 0.2, random: true },
-    size:    { value: { min: 1, max: 3 }, random: true },
-    move:    { enable: true, speed: 0.5, random: true, outModes: { default: 'out' } },
-    links:   { enable: true, distance: 120, color: '#ffffff', opacity: 0.06, width: 1 },
-  },
-  detectRetina: true,
-};
+// ─── Animated Background (replaces tsparticles) ───────────────────────────────
+function AnimatedBackground() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Orbs */}
+      {[
+        { color: '#06b6d4', left: '10%',  top: '20%',  size: 300, delay: 0   },
+        { color: '#8b5cf6', left: '80%',  top: '60%',  size: 250, delay: 2   },
+        { color: '#f59e0b', left: '50%',  top: '80%',  size: 180, delay: 4   },
+        { color: '#10b981', left: '20%',  top: '70%',  size: 200, delay: 1   },
+      ].map((orb, i) => (
+        <motion.div
+          key={i}
+          animate={{ scale: [1, 1.15, 1], opacity: [0.05, 0.1, 0.05] }}
+          transition={{ duration: 5 + i, repeat: Infinity, ease: 'easeInOut', delay: orb.delay }}
+          style={{
+            position:     'absolute',
+            width:        orb.size,
+            height:       orb.size,
+            background:   orb.color,
+            borderRadius: '50%',
+            left:         orb.left,
+            top:          orb.top,
+            transform:    'translate(-50%, -50%)',
+            filter:       'blur(80px)',
+          }}
+        />
+      ))}
+      {/* Grid */}
+      <div style={{
+        position:        'absolute', inset: 0,
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+        backgroundSize:  '40px 40px',
+      }} />
+    </div>
+  );
+}
 
 // ─── ActivityFeedPanel ────────────────────────────────────────────────────────
 function ActivityFeedPanel({ onClose, user }) {
@@ -72,26 +100,18 @@ function ActivityFeedPanel({ onClose, user }) {
   const [readIds, setReadIds] = useState(new Set());
   const isFirstLoad = useRef(true);
 
-  // ── Load read status from localStorage ──
   useEffect(() => {
     if (!user?.uid) return;
     const stored = localStorage.getItem(`feed_read_${user.uid}`);
     if (stored) {
-      try {
-        setReadIds(new Set(JSON.parse(stored)));
-      } catch (err) {
-        console.error('Failed to parse read IDs:', err);
-      }
+      try { setReadIds(new Set(JSON.parse(stored))); } catch {}
     }
   }, [user?.uid]);
 
-  // ── Mark all current messages as read when panel opens ──
   useEffect(() => {
     if (!user?.uid || events.length === 0) return;
-    
     const currentIds = new Set(events.map(ev => ev.id));
     const updatedReadIds = new Set([...readIds, ...currentIds]);
-    
     if (updatedReadIds.size !== readIds.size) {
       setReadIds(updatedReadIds);
       localStorage.setItem(`feed_read_${user.uid}`, JSON.stringify([...updatedReadIds]));
@@ -152,10 +172,9 @@ function ActivityFeedPanel({ onClose, user }) {
         <ul className="flex flex-col gap-2">
           <AnimatePresence initial={false}>
             {events.map((ev) => {
-              const meta    = getMeta(ev.type);
-              const isNew   = newIds.has(ev.id);
+              const meta     = getMeta(ev.type);
+              const isNew    = newIds.has(ev.id);
               const isUnread = !readIds.has(ev.id);
-              
               return (
                 <motion.li
                   key={ev.id} layout
@@ -164,7 +183,7 @@ function ActivityFeedPanel({ onClose, user }) {
                   className={`flex items-start gap-2.5 p-3 rounded-xl border text-xs
                     ${isNew
                       ? 'border-cyan-500/50 bg-cyan-900/20'
-                      : isUnread 
+                      : isUnread
                         ? 'border-yellow-500/30 bg-yellow-900/10'
                         : 'border-white/5 bg-white/5 hover:bg-white/10'}`}
                 >
@@ -174,7 +193,7 @@ function ActivityFeedPanel({ onClose, user }) {
                       ? <img src={ev.photoURL} alt="" className="w-full h-full object-cover rounded-full" />
                       : <span>{meta.icon}</span>}
                     {isUnread && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full 
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full
                                        bg-yellow-400 border border-gray-900" />
                     )}
                   </div>
@@ -188,7 +207,7 @@ function ActivityFeedPanel({ onClose, user }) {
                     </p>
                     <p className="text-gray-500 mt-0.5">
                       {timeAgo(ev.createdAt)}
-                      {isNew && <span className="ml-2 text-cyan-400 font-bold animate-pulse">● LIVE</span>}
+                      {isNew    && <span className="ml-2 text-cyan-400 font-bold animate-pulse">● LIVE</span>}
                       {isUnread && !isNew && <span className="ml-2 text-yellow-400 text-[10px]">● NEW</span>}
                     </p>
                   </div>
@@ -221,7 +240,6 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
         <span className="text-2xl sm:text-3xl select-none leading-none">
           {zone.label.split(' ')[0]}
         </span>
-
         {badgeCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500
                            text-white text-[10px] font-bold flex items-center justify-center
@@ -229,18 +247,11 @@ function ZoneOrb({ zone, badgeCount, onClick }) {
             {badgeCount}
           </span>
         )}
-        <span
-          className={`absolute inset-0 rounded-full bg-gradient-to-br ${zone.color}
-                      opacity-20 animate-ping`}
-        />
+        <span className={`absolute inset-0 rounded-full bg-gradient-to-br ${zone.color} opacity-20 animate-ping`} />
       </div>
-
       <div className="text-center px-1">
-        <p className="text-xs sm:text-sm font-bold text-white leading-tight">
-          {zone.label}
-        </p>
-        <p className="text-[10px] text-gray-400 group-hover:text-gray-200
-                      transition-colors mt-0.5 leading-tight">
+        <p className="text-xs sm:text-sm font-bold text-white leading-tight">{zone.label}</p>
+        <p className="text-[10px] text-gray-400 group-hover:text-gray-200 transition-colors mt-0.5 leading-tight">
           {zone.desc}
         </p>
       </div>
@@ -259,18 +270,11 @@ export default function World({ user, userData, onLogout }) {
   const [feedLoading, setFeedLoading] = useState(true);
   const [readIds,     setReadIds]     = useState(new Set());
 
-  const particlesInit = async () => {};
-
-  // ── Load read IDs from localStorage ──
   useEffect(() => {
     if (!user?.uid) return;
     const stored = localStorage.getItem(`feed_read_${user.uid}`);
     if (stored) {
-      try {
-        setReadIds(new Set(JSON.parse(stored)));
-      } catch (err) {
-        console.error('Failed to parse read IDs:', err);
-      }
+      try { setReadIds(new Set(JSON.parse(stored))); } catch {}
     }
   }, [user?.uid]);
 
@@ -299,35 +303,27 @@ export default function World({ user, userData, onLogout }) {
     return () => unsub();
   }, []);
 
-  const badgeMap = { dailyChallenges: dailyCount, hubChallenges: hubCount };
+  const badgeMap  = { dailyChallenges: dailyCount, hubChallenges: hubCount };
   const xpLevel   = userData?.level ?? 1;
   const xpCurrent = userData?.xp    ?? 0;
   const xpTarget  = xpLevel * 500;
   const xpPct     = Math.min(100, Math.round((xpCurrent / xpTarget) * 100));
-
-  // ── Calculate unread count ──
   const unreadCount = feedPreview.filter(ev => !readIds.has(ev.id)).length;
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
 
-      <Particles id="world-particles" init={particlesInit}
-        options={PARTICLES_OPTIONS} className="absolute inset-0 pointer-events-none" />
+      {/* Animated background — no tsparticles needed */}
+      <AnimatedBackground />
 
       {/* ── HUD Top Bar ── */}
-      <div className="relative z-10 flex items-center justify-between
-                      px-4 pt-4 pb-2 gap-2 flex-wrap">
-        {/* Left */}
+      <div className="relative z-10 flex items-center justify-between px-4 pt-4 pb-2 gap-2 flex-wrap">
         <div className="min-w-0 flex-1">
-          <h1 className="text-base sm:text-xl font-bold text-cyan-400 tracking-widest">
-            DSA WORLD
-          </h1>
+          <h1 className="text-base sm:text-xl font-bold text-cyan-400 tracking-widest">DSA WORLD</h1>
           <p className="text-[10px] text-gray-400 truncate">
             {user?.displayName || 'Developer'} · Lv.{xpLevel} {LEVEL_NAMES[xpLevel]}
           </p>
         </div>
-
-        {/* Right controls */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="bg-white/10 px-2 py-1 rounded-lg text-xs whitespace-nowrap">
             💰 {userData?.credits ?? 0}
@@ -339,8 +335,7 @@ export default function World({ user, userData, onLogout }) {
           <button
             onClick={() => setShowFeed((p) => !p)}
             className="relative bg-white/10 hover:bg-cyan-500/20 border border-white/10
-                       hover:border-cyan-500/40 px-2.5 py-1.5 rounded-lg transition-all text-xs
-                       whitespace-nowrap"
+                       hover:border-cyan-500/40 px-2.5 py-1.5 rounded-lg transition-all text-xs whitespace-nowrap"
           >
             📡 Feed
             {unreadCount > 0 && (
@@ -350,7 +345,6 @@ export default function World({ user, userData, onLogout }) {
               </span>
             )}
           </button>
-
           <button
             onClick={onLogout}
             className="bg-red-500/10 hover:bg-red-500/25 border border-red-500/30
@@ -376,14 +370,8 @@ export default function World({ user, userData, onLogout }) {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          ZONE MAP
-          ══════════════════════════════════════════════ */}
-
       {/* ── MOBILE layout ── */}
       <div className="md:hidden relative z-10 flex flex-col items-center py-6 px-4 gap-5">
-
-        {/* Globe */}
         <motion.div
           animate={{ scale: [1, 1.04, 1] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -395,7 +383,6 @@ export default function World({ user, userData, onLogout }) {
         </motion.div>
         <p className="text-[9px] text-gray-500 tracking-widest uppercase -mt-3">World Map</p>
 
-        {/* Top row: Lab · Hub · Profile */}
         <div className="flex justify-center gap-8 w-full">
           {['lab', 'hub', 'profile'].map((id) => {
             const zone = ZONES.find((z) => z.id === id);
@@ -407,32 +394,30 @@ export default function World({ user, userData, onLogout }) {
           })}
         </div>
 
-        {/* Middle row: Arena · Office */}
         <div className="flex justify-center gap-10 w-full">
           {['arena', 'office'].map((id) => {
             const zone = ZONES.find((z) => z.id === id);
-            return (
-              <ZoneOrb key={id} zone={zone} badgeCount={0}
-                onClick={() => navigate(zone.path)} />
-            );
+            return <ZoneOrb key={id} zone={zone} badgeCount={0} onClick={() => navigate(zone.path)} />;
           })}
         </div>
 
-        {/* Bottom: Story */}
-        <div className="flex justify-center w-full">
-          {['story'].map((id) => {
+        <div className="flex justify-center gap-10 w-full">
+          {['story', 'game'].map((id) => {
             const zone = ZONES.find((z) => z.id === id);
-            return (
-              <ZoneOrb key={id} zone={zone} badgeCount={0}
-                onClick={() => navigate(zone.path)} />
-            );
+            return <ZoneOrb key={id} zone={zone} badgeCount={0} onClick={() => navigate(zone.path)} />;
+          })}
+        </div>
+
+        <div className="flex justify-center w-full">
+          {['visualizer'].map((id) => {
+            const zone = ZONES.find((z) => z.id === id);
+            return <ZoneOrb key={id} zone={zone} badgeCount={0} onClick={() => navigate(zone.path)} />;
           })}
         </div>
       </div>
 
       {/* ── DESKTOP layout ── */}
-      <div className="hidden md:block relative z-10 w-full"
-           style={{ height: 'calc(100vh - 110px)' }}>
+      <div className="hidden md:block relative z-10 w-full" style={{ height: 'calc(100vh - 110px)' }}>
         {ZONES.map((zone) => (
           <motion.button
             key={zone.id}
@@ -444,8 +429,7 @@ export default function World({ user, userData, onLogout }) {
           >
             <div
               className={`relative w-20 h-20 rounded-full bg-gradient-to-br ${zone.color}
-                          flex items-center justify-center transition-all duration-300
-                          group-hover:scale-110`}
+                          flex items-center justify-center transition-all duration-300 group-hover:scale-110`}
               style={{ boxShadow: `0 0 30px ${zone.glow}66` }}
             >
               <span className="text-3xl select-none">{zone.label.split(' ')[0]}</span>
@@ -456,8 +440,7 @@ export default function World({ user, userData, onLogout }) {
                   {badgeMap[zone.badge]}
                 </span>
               )}
-              <span className={`absolute inset-0 rounded-full bg-gradient-to-br ${zone.color}
-                                opacity-20 animate-ping`} />
+              <span className={`absolute inset-0 rounded-full bg-gradient-to-br ${zone.color} opacity-20 animate-ping`} />
             </div>
             <div className="text-center">
               <p className="text-xs font-bold text-white drop-shadow">{zone.label}</p>
@@ -467,8 +450,7 @@ export default function World({ user, userData, onLogout }) {
         ))}
 
         {/* Centre globe */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                        text-center pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
           <motion.div
             animate={{ scale: [1, 1.04, 1] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -505,8 +487,7 @@ export default function World({ user, userData, onLogout }) {
               })}
             </motion.div>
           </div>
-          <button onClick={() => setShowFeed(true)}
-            className="text-cyan-400 hover:text-cyan-300 flex-shrink-0">→</button>
+          <button onClick={() => setShowFeed(true)} className="text-cyan-400 hover:text-cyan-300 flex-shrink-0">→</button>
         </div>
       )}
 
