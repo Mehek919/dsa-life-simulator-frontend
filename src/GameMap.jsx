@@ -3,14 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
-
 // ── Constants ──────────────────────────────────────────────────────────────────
 const DISTRICTS = {
   1: { name: 'The Valley',   subtitle: 'Origin Stories',     color: '#00c896', glow: '#00c89633', bg: '#00c89611', difficulty: 'Easy',   problems: 15 },
   2: { name: 'The Arena',    subtitle: 'Corporate Wars',      color: '#1a73e8', glow: '#1a73e833', bg: '#1a73e811', difficulty: 'Medium', problems: 60 },
   3: { name: 'The Fortress', subtitle: 'Final Boss Gauntlet', color: '#ff4d4d', glow: '#ff4d4d33', bg: '#ff4d4d11', difficulty: 'Hard',   problems: 75 },
 };
-
 const CHAPTERS = {
   1:  { district: 1, company: 'Google',    title: 'The Search Engine War',              badge: '🔍', color: '#4285f4', problems: 5  },
   2:  { district: 1, company: 'Amazon',    title: 'The Fulfillment Crisis',             badge: '📦', color: '#ff9900', problems: 5  },
@@ -26,7 +24,6 @@ const CHAPTERS = {
   12: { district: 3, company: 'Apple',     title: 'The Hack That Shook the World',      badge: '🔐', color: '#a2aaad', problems: 7  },
   13: { district: 3, company: 'Microsoft', title: 'The Bug in the Machine',             badge: '🐛', color: '#00a4ef', problems: 7  },
 };
-
 const COMPANY_LOGOS = {
   Google:    '🔍',
   Amazon:    '📦',
@@ -34,8 +31,6 @@ const COMPANY_LOGOS = {
   Meta:      '🌐',
   Microsoft: '🪟',
 };
-
-// ── Star Rating Component ──────────────────────────────────────────────────────
 function Stars({ count = 0, max = 3 }) {
   return (
     <div style={{ display: 'flex', gap: 2 }}>
@@ -80,8 +75,6 @@ function ProgressRing({ solved, total, color, size = 40 }) {
     </svg>
   );
 }
-
-// ── Chapter Card ───────────────────────────────────────────────────────────────
 function ChapterCard({ chapterId, chapter, progress, isLocked, isActive, onClick }) {
   const [hovered, setHovered] = useState(false);
   const solved  = progress?.solved  || 0;
@@ -190,8 +183,6 @@ function ChapterCard({ chapterId, chapter, progress, isLocked, isActive, onClick
     </motion.div>
   );
 }
-
-// ── District Section ───────────────────────────────────────────────────────────
 function DistrictSection({ districtId, district, chapters, progress, unlockedChapters, onChapterClick }) {
   const [expanded, setExpanded] = useState(districtId === 1);
   const districtChapters = Object.entries(chapters).filter(([, ch]) => ch.district === Number(districtId));
