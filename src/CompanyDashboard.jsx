@@ -303,7 +303,7 @@ function CandidateResults({ assessmentId, onClose }) {
     })
       .then(res => setResults(res.data.results || []))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {});
   }, [assessmentId]);
 
   return (
