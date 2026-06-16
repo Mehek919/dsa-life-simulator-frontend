@@ -21,22 +21,25 @@ import API_BASE from './config';
 import InstallBanner  from './components/InstallBanner';
 import MobileNav      from './components/MobileNav';
 import FeedbackButton from './FeedbackButton';
-import ProblemSolver from './ProblemSolver';
+
 // ─── Lazy Routes ──────────────────────────────────────────────────────────────
-const Login       = lazy(() => import('./Login'));
-const World       = lazy(() => import('./World'));
-const Profile     = lazy(() => import('./Profile'));
-const Home        = lazy(() => import('./Home'));
-const Lab         = lazy(() => import('./Lab'));
-const Hub         = lazy(() => import('./Hub'));
-const LifeStory   = lazy(() => import('./LifeStory'));
-const Leaderboard = lazy(() => import('./Leaderboard'));
-const Assessment  = lazy(() => import('./Assessment'));
-const Results     = lazy(() => import('./Results'));
-const Arena       = lazy(() => import('./Arena'));
-const Office      = lazy(() => import('./Office'));
-const Onboarding  = lazy(() => import('./Onboarding'));
-const Visualizer = React.lazy(() => import('./Visualizer'));
+const Login                  = lazy(() => import('./Login'));
+const World                  = lazy(() => import('./World'));
+const Profile                = lazy(() => import('./Profile'));
+const Home                   = lazy(() => import('./Home'));
+const Lab                    = lazy(() => import('./Lab'));
+const Hub                    = lazy(() => import('./Hub'));
+const LifeStory              = lazy(() => import('./LifeStory'));
+const Leaderboard            = lazy(() => import('./Leaderboard'));
+const Assessment             = lazy(() => import('./Assessment'));
+const Results                = lazy(() => import('./Results'));
+const Arena                  = lazy(() => import('./Arena'));
+const Office                 = lazy(() => import('./Office'));
+const Onboarding             = lazy(() => import('./Onboarding'));
+const Visualizer             = lazy(() => import('./Visualizer'));
+const GameMap                = lazy(() => import('./GameMap'));
+const CinematicProblemSolver = lazy(() => import('./CinematicProblemSolver'));
+
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
   if (analytics) logEvent(analytics, eventName, params);
@@ -220,12 +223,6 @@ const AppShell = () => {
                   )
             }
           />
-          <Route
-            path="/solve/:problemId"
-            element={
-              <ProblemSolver user={user} userData={userData} setUserData={setUserData} />
-            }
-          /> 
 
           {/* ── Protected: World ── */}
           <Route
@@ -285,13 +282,45 @@ const AppShell = () => {
             }
           />
 
-          {/* ── Protected: Hub ── */}
+          {/* ── Protected: Hub (MCQ challenges) ── */}
           <Route
             path="/hub"
             element={
               <OnboardingGuard user={user} userData={userData}>
-                <Hub user={user} userData={userData} />
+                <Hub
+                  user={user}
+                  userData={userData}
+                  setUserData={setUserData}
+                />
               </OnboardingGuard>
+            }
+          />
+
+          {/* ── Protected: Game Map (Engineer's Odyssey) ── */}
+          <Route
+            path="/game"
+            element={
+              <OnboardingGuard user={user} userData={userData}>
+                <GameMap
+                  user={user}
+                  userData={userData}
+                  setUserData={setUserData}
+                />
+              </OnboardingGuard>
+            }
+          />
+
+          {/* ── Protected: Cinematic Problem Solver ── */}
+          <Route
+            path="/solve/:problemId"
+            element={
+              <Guard user={user}>
+                <CinematicProblemSolver
+                  user={user}
+                  userData={userData}
+                  setUserData={setUserData}
+                />
+              </Guard>
             }
           />
 
@@ -324,10 +353,6 @@ const AppShell = () => {
               </Guard>
             }
           />
-          <Route path="/solve/:problemId" element={
-           <ProblemSolver user={user} userData={userData} setUserData={setUserData} />
-          } 
-        />
 
           {/* ── Protected: Results ── */}
           <Route
@@ -352,12 +377,16 @@ const AppShell = () => {
               </OnboardingGuard>
             }
           />
-          <Route path="/visualizer" element={
-             <Guard user={user}>
-              <Visualizer />
-             </Guard>
-           } 
-         />
+
+          {/* ── Protected: Visualizer ── */}
+          <Route
+            path="/visualizer"
+            element={
+              <Guard user={user}>
+                <Visualizer />
+              </Guard>
+            }
+          />
 
           {/* ── Catch-all ── */}
           <Route
@@ -383,7 +412,6 @@ const App = () => (
     </Router>
   </ErrorBoundary>
 );
-
 export default App;
 
 
