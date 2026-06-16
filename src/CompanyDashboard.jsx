@@ -294,7 +294,7 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
 // ── Candidate Results Modal ────────────────────────────────────────────────────
 function CandidateResults({ assessmentId, onClose }) {
   const [results,  setResults]  = useState([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
