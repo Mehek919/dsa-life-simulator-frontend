@@ -39,7 +39,8 @@ const Onboarding             = lazy(() => import('./Onboarding'));
 const Visualizer             = lazy(() => import('./Visualizer'));
 const GameMap                = lazy(() => import('./GameMap'));
 const CinematicProblemSolver = lazy(() => import('./CinematicProblemSolver'));
-
+const SubmissionHistory = lazy(() => import('../../backend/src/routes/Submissionhistory'));
+const WeeklyContest     = lazy(() => import('./WeeklyContest'));
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
   if (analytics) logEvent(analytics, eventName, params);
@@ -393,6 +394,9 @@ const AppShell = () => {
             path="*"
             element={<Navigate to={user ? '/world' : '/'} replace />}
           />
+          <Route path="/submissions" element={<Guard user={user}><SubmissionHistory user={user} userData={userData} /></Guard>} />
+          <Route path="/contest"     element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
+          <Route path="/contest/:contestId" element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
 
         </Routes>
       </Suspense>
