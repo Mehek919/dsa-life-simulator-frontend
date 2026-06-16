@@ -331,7 +331,7 @@ function CandidateResults({ assessmentId, onClose }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 18 }}>✕</button>
         </div>
 
-        {loading ? (
+        {false ? (
           <div style={{ color: '#333', textAlign: 'center', padding: 40 }}>Loading results...</div>
         ) : results.length === 0 ? (
           <div style={{ color: '#333', textAlign: 'center', padding: 40 }}>
@@ -516,7 +516,6 @@ export default function CompanyDashboard({ user }) {
 
   const [assessments,    setAssessments]    = useState([]);
   const [problems,       setProblems]       = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showCreate,     setShowCreate]     = useState(false);
   const [viewResults,    setViewResults]    = useState(null);
   const [copiedLink,     setCopiedLink]     = useState('');
@@ -527,7 +526,7 @@ export default function CompanyDashboard({ user }) {
       axios.get(`${API_BASE}/problems?limit=200`),
     ]).then(([probRes]) => {
       setProblems(probRes.data.problems || []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => {});
   }, []);
 
   const copyLink = (link) => {
