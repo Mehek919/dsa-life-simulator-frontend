@@ -1,3 +1,4 @@
+import PlagiarismReport from './PlagiarismReport';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -5,7 +6,6 @@ import axios from 'axios';
 import API_BASE from './config';
 
 const ADMIN_KEY = process.env.REACT_APP_ADMIN_KEY || '';
-const [showPlagiarism, setShowPlagiarism] = useState(false);
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
@@ -21,7 +21,7 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
     title:           '',
     description:     '',
     companyName:     '',
-    companyLogo:     '🏢',
+    companyLogo:     '💼',
     problemIds:      [],
     durationMinutes: 60,
     proctored:       true,
@@ -513,7 +513,7 @@ const labelStyle = {
 // ── Main CompanyDashboard ──────────────────────────────────────────────────────
 export default function CompanyDashboard({ user }) {
   const navigate = useNavigate();
-
+  const [showPlagiarism, setShowPlagiarism] = useState(false);
   const [assessments,    setAssessments]    = useState([]);
   const [problems,       setProblems]       = useState([]);
   const [showCreate,     setShowCreate]     = useState(false);
