@@ -34,8 +34,8 @@ const ZONES = [
   { id: 'company',     label: '🏢 HR Portal',    path: '/company',     desc: 'Hire developers',     color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null             },
   { id: 'visualizer',  label: '🔬 Visualizer',   path: '/visualizer',  desc: 'Algo animations',     color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null             },
   { id: 'leaderboard', label: '📊 Rankings',     path: '/leaderboard', desc: 'Global leaderboard',  color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null             },
+  { id: 'roadmap', label: '🗺️ Roadmap', path: '/roadmap', desc: 'Learning paths', color: 'from-emerald-600 to-teal-500', glow: '#10b981', badge: null },
 ];
-
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
