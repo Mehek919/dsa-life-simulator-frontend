@@ -399,7 +399,7 @@ const AppShell = () => {
           <Route path="/submissions" element={<Guard user={user}><SubmissionHistory user={user} userData={userData} /></Guard>} />
           <Route path="/contest"     element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
           <Route path="/contest/:contestId" element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
-          <Route path="/assessment/:assessmentId" element={<AssessmentPortal user={user} userData={userData} setUserData={setUserData} />} />
+          <Route path="/Assessment/:AssessmentId" element={<AssessmentPortal user={user} userData={userData} setUserData={setUserData} />} />
           <Route path="/company" element={<Guard user={user}><CompanyDashboard user={user} /></Guard>} />
         </Routes>
       </Suspense>
