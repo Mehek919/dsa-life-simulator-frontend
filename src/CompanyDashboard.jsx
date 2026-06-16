@@ -516,7 +516,7 @@ export default function CompanyDashboard({ user }) {
 
   const [assessments,    setAssessments]    = useState([]);
   const [problems,       setProblems]       = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [loading, setLoading] = useState(true);
   const [showCreate,     setShowCreate]     = useState(false);
   const [viewResults,    setViewResults]    = useState(null);
   const [copiedLink,     setCopiedLink]     = useState('');
