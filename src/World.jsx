@@ -29,6 +29,7 @@ const ZONES = [
   { id: 'profile',    label: '👤 Profile',    path: '/profile',    desc: 'Your stats & role',  color: 'from-orange-500 to-pink-500',  glow: '#f97316', badge: null            },
   { id: 'visualizer', label: '🔬 Visualizer', path: '/visualizer', desc: 'Algo animations',    color: 'from-violet-600 to-indigo-500',glow: '#8b5cf6', badge: null            },
   { id: 'game',       label: '🎮 Odyssey',    path: '/game',       desc: '150 FAANG problems', color: 'from-cyan-600 to-blue-500',    glow: '#06b6d4', badge: null            },
+  { id: 'contest', label: '🏆 Contest', path: '/contest', desc: 'Weekly competitions', color: 'from-yellow-500 to-orange-500', glow: '#f59e0b', badge: null },
 ];
 
 const DESKTOP_POS = {

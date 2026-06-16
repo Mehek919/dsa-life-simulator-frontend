@@ -39,7 +39,7 @@ const Onboarding             = lazy(() => import('./Onboarding'));
 const Visualizer             = lazy(() => import('./Visualizer'));
 const GameMap                = lazy(() => import('./GameMap'));
 const CinematicProblemSolver = lazy(() => import('./CinematicProblemSolver'));
-const SubmissionHistory = lazy(() => import('../../backend/src/routes/Submissionhistory'));
+const SubmissionHistory = lazy(() => import('./Submissionhistory'));
 const WeeklyContest     = lazy(() => import('./WeeklyContest'));
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
