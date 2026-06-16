@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -204,7 +204,8 @@ function LeaderboardPanel({ contestId, userId }) {
 
 // ── Contest Lobby ──────────────────────────────────────────────────────────────
 function ContestLobby({ contest, user, onJoin, joining }) {
-  const timeUntilStart = contest?.startTime
+  // eslint-disable-next-line no-unused-vars
+    const timeUntilStart = contest?.startTime
     ? Math.max(0, Math.floor((new Date(contest.startTime._seconds * 1000).getTime() - Date.now()) / 1000))
     : 0;
 
@@ -534,6 +535,7 @@ export default function WeeklyContest({ user, userData, setUserData }) {
                 const end   = c.endTime?._seconds   * 1000 || 0;
                 const isLive   = now >= start && now < end;
                 const isEnded  = now >= end;
+                // eslint-disable-next-line no-unused-vars
                 const isUpcoming = now < start;
 
                 return (

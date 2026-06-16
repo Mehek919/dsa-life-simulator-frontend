@@ -514,7 +514,7 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
   };
 
   // ── Proctoring ───────────────────────────────────────────────────────────────
-  const { violations: procViolations } = useProctoring({
+  useProctoring({
     enabled:      phase === 'active' && assessment?.proctored,
     assessmentId,
     userId:       user?.uid,
@@ -557,7 +557,7 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
     const score     = allPassed ? { Easy: 100, Medium: 200, Hard: 300 }[problem.difficulty] || 100 : 0;
 
     try {
-      const res = await axios.post(`${API_BASE}/assessments/${assessmentId}/submit`, {
+      await axios.post(`${API_BASE}/assessments/${assessmentId}/submit`, {
         userId:     user.uid,
         problemId:  problem.id,
         code,
