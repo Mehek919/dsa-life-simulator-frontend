@@ -316,7 +316,7 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '1px solid #1e2a3a', background: '#0d1117', flexShrink: 0, gap: 10, flexWrap: 'wrap' }}>
         {/* Left — company info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>{assessment?.companyLogo || '🏢'}</span>
+          <span style={{ fontSize: 20 }}>{assessment?.companyLogo || '💼'}</span>
           <div>
             <div style={{ color: '#1a73e8', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>{assessment?.companyName} — Technical Assessment</div>
             <div style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 700 }}>{assessment?.title}</div>

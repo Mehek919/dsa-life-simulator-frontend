@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
-
+import ProblemDiscussions from './Problemdiscussions';
 // ── Typewriter effect ──────────────────────────────────────────────────────────
 function Typewriter({ text, speed = 18, onDone }) {
   const [displayed, setDisplayed] = useState('');
@@ -649,6 +649,12 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
             onHintUsed={() => setHintsUsed(h => h + 1)}
             defaultLanguage="python3"
           />
+          <ProblemDiscussions
+           problem={problem}
+           user={user}
+           userData={userData}
+           isSolved={result?.allPassed || false}
+         />
         </motion.div>
       )}
 
