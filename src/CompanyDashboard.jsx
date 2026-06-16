@@ -5,7 +5,7 @@ import axios from 'axios';
 import API_BASE from './config';
 
 const ADMIN_KEY = process.env.REACT_APP_ADMIN_KEY || '';
-
+const [showPlagiarism, setShowPlagiarism] = useState(false);
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
@@ -733,7 +733,7 @@ export default function CompanyDashboard({ user }) {
                     {copiedLink.includes(a.id) ? '✓ Copied!' : '🔗 Copy Link'}
                   </button>
                   <button
-                    onClick={() => setViewResults(a.id)}
+                    onClick={() => setViewResults(a.id), setShowPlagiarism(a.id)}
                     style={{
                       background: '#1a73e811', border: '1px solid #1a73e833',
                       borderRadius: 8, color: '#1a73e8', cursor: 'pointer',
@@ -764,6 +764,12 @@ export default function CompanyDashboard({ user }) {
             onClose={() => setViewResults(null)}
           />
         )}
+        {showPlagiarism && (
+        <PlagiarismReport
+          assessmentId={showPlagiarism}
+          onClose={() => setShowPlagiarism(null)}
+         />
+      )}
       </AnimatePresence>
     </div>
   );
