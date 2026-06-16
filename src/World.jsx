@@ -5,7 +5,6 @@ import {
   collection, query, orderBy, limit, onSnapshot,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import Particles from '@tsparticles/react';
 import NotificationBell from './NotificationBell';
 import axios from 'axios';
 import API_BASE from './config';
