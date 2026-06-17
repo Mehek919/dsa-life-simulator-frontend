@@ -390,6 +390,16 @@ const AppShell = () => {
               </Guard>
             }
           />
+          <Route
+            path="/roadmap/solve/:slug"
+            element={
+           <RoadmapSolve
+             user={user}
+             userData={userData}
+             setUserData={setUserData}
+           />
+          }
+        />
 
           {/* ── Catch-all ── */}
           <Route

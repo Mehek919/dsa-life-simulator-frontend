@@ -301,7 +301,7 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
             return (
               <div
                 key={slug}
-                onClick={() => { navigate(`/solve/${slug}`); onClose(); }}
+                onClick={() => { navigate(`/roadmap/solve/${slug}`); onClose(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: isSolved ? '#00c89608' : '#060910',
@@ -529,7 +529,7 @@ export default function Roadmap({ user, userData }) {
                   const diffColor = { Easy: '#00c896', Medium: '#f5c542', Hard: '#ff4d4d' }[b.difficulty] || '#888';
                   return (
                     <motion.div key={b.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                      onClick={() => navigate(`/solve/${b.problemId}`)}
+                      onClick={() => navigate(`/roadmap/solve/${b.problemId}`)}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 12, padding: '14px 18px', cursor: 'pointer', transition: 'all 0.2s' }}
                     >
                       <span style={{ fontSize: 18 }}>🔖</span>
