@@ -5,22 +5,32 @@ import axios from 'axios';
 import API_BASE from './config';
 
 const TRACKS = [
-  { id: 'arrays', title: 'Arrays & Hashing', icon: '📦', color: '#00c896', tags: ['Array', 'Hash Table'], skills: ['Hash Maps', 'Prefix Sums', 'Two Pointers'] },
-  { id: 'strings', title: 'Strings', icon: '🔤', color: '#38bdf8', tags: ['String'], skills: ['Frequency Map', 'Sliding Window', 'Parsing'] },
+  { id: 'arrays', title: 'Arrays & Hashing', icon: '📦', color: '#00c896', tags: ['Array', 'Hash Table', 'Arrays & Hashing'], skills: ['Hash Maps', 'Prefix Sums', 'Two Pointers'] },
+  { id: 'strings', title: 'Strings', icon: '🔤', color: '#38bdf8', tags: ['String', 'Strings'], skills: ['Frequency Map', 'Sliding Window', 'Parsing'] },
   { id: 'binary-search', title: 'Binary Search', icon: '🔍', color: '#1a73e8', tags: ['Binary Search'], skills: ['Search Space', 'Lower Bound', 'Rotated Array'] },
-  { id: 'linked-list', title: 'Linked List', icon: '🔗', color: '#a855f7', tags: ['Linked List'], skills: ['Fast Slow Pointer', 'Reverse', 'Merge'] },
-  { id: 'stack-queue', title: 'Stack & Queue', icon: '📚', color: '#f97316', tags: ['Stack', 'Queue'], skills: ['Monotonic Stack', 'BFS Queue', 'Parentheses'] },
-  { id: 'trees', title: 'Trees & BST', icon: '🌲', color: '#10b981', tags: ['Tree', 'BST', 'DFS', 'BFS'], skills: ['DFS', 'BFS', 'Tree DP'] },
-  { id: 'graphs', title: 'Graphs', icon: '🕸️', color: '#f59e0b', tags: ['Graph', 'DFS', 'BFS', 'Union Find'], skills: ['DFS/BFS', 'Topo Sort', 'Union Find'] },
+  { id: 'linked-list', title: 'Linked List', icon: '🔗', color: '#a855f7', tags: ['Linked List', 'LinkedList'], skills: ['Fast Slow Pointer', 'Reverse', 'Merge'] },
+  { id: 'stack-queue', title: 'Stack & Queue', icon: '📚', color: '#f97316', tags: ['Stack', 'Queue', 'Stack & Queue'], skills: ['Monotonic Stack', 'BFS Queue', 'Parentheses'] },
+  { id: 'trees', title: 'Trees & BST', icon: '🌲', color: '#10b981', tags: ['Tree', 'BST', 'Trees & BST'], skills: ['DFS', 'BFS', 'Tree DP'] },
+  { id: 'graphs', title: 'Graphs', icon: '🕸️', color: '#f59e0b', tags: ['Graph', 'Graphs', 'Union Find'], skills: ['DFS/BFS', 'Topo Sort', 'Union Find'] },
   { id: 'dp', title: 'Dynamic Programming', icon: '💎', color: '#ff4d4d', tags: ['DP', 'Dynamic Programming'], skills: ['Memoization', 'Tabulation', 'Knapsack'] },
-  { id: 'backtracking', title: 'Backtracking', icon: '🌀', color: '#8b5cf6', tags: ['Backtracking'], skills: ['Recursion', 'Pruning', 'State Search'] },
+  { id: 'backtracking', title: 'Backtracking', icon: '🌀', color: '#8b5cf6', tags: ['Backtracking', 'Recursion'], skills: ['Recursion', 'Pruning', 'State Search'] },
 ];
+
+function isRoadmapProblem(p) {
+  return (
+    p.source === 'roadmap' ||
+    p.isRoadmap === true ||
+    p.roadmap === true ||
+    p.problemType === 'roadmap'
+  );
+}
 
 function isOdysseyProblem(p) {
   return Boolean(
     p.district ||
     p.chapter ||
     p.company ||
+    p.enterpriseOnly ||
     p.odyssey ||
     p.isOdyssey ||
     p.gameProblem ||
@@ -36,6 +46,8 @@ function matchesTrack(problem, track) {
     problem.title,
     problem.pattern,
     problem.topic,
+    problem.roadmapTopic,
+    problem.category,
     ...(problem.tags || []),
   ].join(' ').toLowerCase();
 
@@ -80,7 +92,7 @@ function TrackModal({ track, problems, progress, onClose }) {
         animate={{ scale: 1, y: 0 }}
         style={{
           width: '100%',
-          maxWidth: 720,
+          maxWidth: 760,
           maxHeight: '88vh',
           overflowY: 'auto',
           background: '#0d1117',
@@ -108,7 +120,7 @@ function TrackModal({ track, problems, progress, onClose }) {
         </h2>
 
         <p style={{ color: '#777', fontSize: 13 }}>
-          Roadmap-only practice problems. Odyssey/FAANG game problems are hidden here.
+          Future-ready roadmap problems for 2026–2030 skills. Odyssey/FAANG game problems are hidden here.
         </p>
 
         <div style={{ margin: '16px 0' }}>
@@ -121,7 +133,7 @@ function TrackModal({ track, problems, progress, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {problems.length === 0 ? (
             <div style={{ color: '#777', padding: 20, border: '1px solid #1e2a3a', borderRadius: 12 }}>
-              No roadmap problems found for this track.
+              No roadmap problems found for this track. Run your roadmap seed file first.
             </div>
           ) : (
             problems.map((p, i) => {
@@ -156,7 +168,7 @@ function TrackModal({ track, problems, progress, onClose }) {
                       {p.title}
                     </div>
                     <div style={{ color: '#555', fontSize: 11, marginTop: 3 }}>
-                      {p.pattern || p.topic || p.tags?.slice(0, 3).join(' · ')}
+                      {p.pattern || p.futureSkill || p.topic || p.tags?.slice(0, 3).join(' · ')}
                     </div>
                   </div>
 
@@ -196,8 +208,12 @@ export default function Roadmap({ user, userData }) {
       try {
         const [problemRes, progressRes] = await Promise.all([
           axios.get(`${API_BASE}/problems`, {
-            params: { roadmapOnly: true, limit: 300 },
-          }).catch(() => axios.get(`${API_BASE}/problems`)),
+            params: {
+              roadmapOnly: true,
+              source: 'roadmap',
+              limit: 500,
+            },
+          }).catch(() => axios.get(`${API_BASE}/problems`, { params: { limit: 500 } })),
 
           user?.uid
             ? axios.get(`${API_BASE}/problems/progress/${user.uid}`).catch(() => ({ data: { progress: {} } }))
@@ -208,17 +224,7 @@ export default function Roadmap({ user, userData }) {
 
         const roadmapOnlyProblems = allProblems.filter((p) => {
           if (isOdysseyProblem(p)) return false;
-
-          const hasRoadmapTag =
-            p.source === 'roadmap' ||
-            p.roadmap === true ||
-            p.isRoadmap === true ||
-            p.createdBy ||
-            p.tags ||
-            p.topic ||
-            p.pattern;
-
-          return hasRoadmapTag;
+          return isRoadmapProblem(p);
         });
 
         setProblems(roadmapOnlyProblems);
@@ -252,6 +258,7 @@ export default function Roadmap({ user, userData }) {
   const getProgress = track => {
     const list = trackProblems[track.id] || [];
     const solved = list.filter(p => solvedIds.has(p.id)).length;
+
     return {
       solved,
       total: list.length,
@@ -309,7 +316,7 @@ export default function Roadmap({ user, userData }) {
         </h1>
 
         <p style={{ color: '#666', fontSize: 14 }}>
-          Topic-wise roadmap practice. Odyssey/FAANG game problems are separate and hidden here.
+          Future-skill roadmap practice for Microsoft, Oracle, Salesforce, Adobe, Broadcom and cloud-era interviews.
         </p>
 
         <div style={{
@@ -327,6 +334,22 @@ export default function Roadmap({ user, userData }) {
           </div>
           <ProgressBar value={overallPct} color="#1a73e8" />
         </div>
+
+        {totalProblems === 0 && (
+          <div style={{
+            background: '#111827',
+            border: '1px solid #374151',
+            borderRadius: 14,
+            padding: 18,
+            color: '#9ca3af',
+            marginBottom: 22,
+            fontSize: 13,
+          }}>
+            No roadmap problems found. Run your roadmap seed file, and make sure each roadmap problem has
+            <span style={{ color: '#38bdf8' }}> source: "roadmap"</span> or
+            <span style={{ color: '#38bdf8' }}> isRoadmap: true</span>.
+          </div>
+        )}
 
         <div style={{
           display: 'grid',
