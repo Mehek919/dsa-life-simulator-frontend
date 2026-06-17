@@ -31,7 +31,7 @@ const ZONES = [
   { id: 'office',      label: '🏛️ Office',       path: '/office',      desc: 'Stats & schedule',    color: 'from-green-600 to-teal-500',    glow: '#10b981', badge: null             },
   { id: 'story',       label: '📖 Story',        path: '/story',       desc: 'Your AI life story',  color: 'from-yellow-500 to-amber-400',  glow: '#f59e0b', badge: null             },
   { id: 'profile',     label: '👤 Profile',      path: '/profile',     desc: 'Your stats & role',   color: 'from-orange-500 to-pink-500',   glow: '#f97316', badge: null             },
-  { id: 'company',     label: ' 🔍👤 HR Portal',    path: '/company',     desc: 'Hire developers',     color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null             },
+  { id: 'company',     label: '🔍👤 HR Portal',    path: '/company',     desc: 'Hire developers',     color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null             },
   { id: 'visualizer',  label: '🔬 Visualizer',   path: '/visualizer',  desc: 'Algo animations',     color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null             },
   { id: 'leaderboard', label: '📊 Rankings',     path: '/leaderboard', desc: 'Global leaderboard',  color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null             },
   { id: 'roadmap', label: '🗺️ Roadmap', path: '/roadmap', desc: 'Learning paths', color: 'from-emerald-600 to-teal-500', glow: '#10b981', badge: null },
