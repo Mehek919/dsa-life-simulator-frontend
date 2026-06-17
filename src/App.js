@@ -393,7 +393,7 @@ const AppShell = () => {
           <Route
             path="/roadmap/solve/:slug"
             element={
-           <RoadmapSolve
+           <Roadmap
              user={user}
              userData={userData}
              setUserData={setUserData}
