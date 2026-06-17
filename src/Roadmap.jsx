@@ -16,10 +16,26 @@ const TRACKS = [
   { id: 'backtracking', title: 'Backtracking', icon: '🌀', color: '#8b5cf6', tags: ['Backtracking'], skills: ['Recursion', 'Pruning', 'State Search'] },
 ];
 
+function isOdysseyProblem(p) {
+  return Boolean(
+    p.district ||
+    p.chapter ||
+    p.company ||
+    p.odyssey ||
+    p.isOdyssey ||
+    p.gameProblem ||
+    p.source === 'odyssey' ||
+    p.source === 'faang' ||
+    p.type === 'game' ||
+    p.problemType === 'odyssey'
+  );
+}
+
 function matchesTrack(problem, track) {
   const haystack = [
     problem.title,
     problem.pattern,
+    problem.topic,
     ...(problem.tags || []),
   ].join(' ').toLowerCase();
 
@@ -33,7 +49,7 @@ function ProgressBar({ value, color }) {
         initial={{ width: 0 }}
         animate={{ width: `${value}%` }}
         transition={{ duration: 0.7 }}
-        style={{ height: '100%', width: `${value}%`, background: color }}
+        style={{ height: '100%', background: color }}
       />
     </div>
   );
@@ -92,7 +108,7 @@ function TrackModal({ track, problems, progress, onClose }) {
         </h2>
 
         <p style={{ color: '#777', fontSize: 13 }}>
-          Roadmap practice problems. These are separate from the FAANG/Odyssey company map.
+          Roadmap-only practice problems. Odyssey/FAANG game problems are hidden here.
         </p>
 
         <div style={{ margin: '16px 0' }}>
@@ -105,7 +121,7 @@ function TrackModal({ track, problems, progress, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {problems.length === 0 ? (
             <div style={{ color: '#777', padding: 20, border: '1px solid #1e2a3a', borderRadius: 12 }}>
-              No problems found for this track. Add problems with tags like {track.tags.join(', ')}.
+              No roadmap problems found for this track.
             </div>
           ) : (
             problems.map((p, i) => {
@@ -140,7 +156,7 @@ function TrackModal({ track, problems, progress, onClose }) {
                       {p.title}
                     </div>
                     <div style={{ color: '#555', fontSize: 11, marginTop: 3 }}>
-                      {p.pattern || p.tags?.slice(0, 3).join(' · ')}
+                      {p.pattern || p.topic || p.tags?.slice(0, 3).join(' · ')}
                     </div>
                   </div>
 
@@ -179,13 +195,33 @@ export default function Roadmap({ user, userData }) {
     async function loadRoadmap() {
       try {
         const [problemRes, progressRes] = await Promise.all([
-          axios.get(`${API_BASE}/problems`),
+          axios.get(`${API_BASE}/problems`, {
+            params: { roadmapOnly: true, limit: 300 },
+          }).catch(() => axios.get(`${API_BASE}/problems`)),
+
           user?.uid
             ? axios.get(`${API_BASE}/problems/progress/${user.uid}`).catch(() => ({ data: { progress: {} } }))
             : Promise.resolve({ data: { progress: {} } }),
         ]);
 
-        setProblems(problemRes.data.problems || []);
+        const allProblems = problemRes.data.problems || [];
+
+        const roadmapOnlyProblems = allProblems.filter((p) => {
+          if (isOdysseyProblem(p)) return false;
+
+          const hasRoadmapTag =
+            p.source === 'roadmap' ||
+            p.roadmap === true ||
+            p.isRoadmap === true ||
+            p.createdBy ||
+            p.tags ||
+            p.topic ||
+            p.pattern;
+
+          return hasRoadmapTag;
+        });
+
+        setProblems(roadmapOnlyProblems);
         setProgress(progressRes.data.progress || {});
       } catch (err) {
         console.error('Roadmap load error:', err);
@@ -224,9 +260,9 @@ export default function Roadmap({ user, userData }) {
     };
   };
 
-  const totalSolved = solvedIds.size;
-  const totalProblems = problems.length || 150;
-  const overallPct = Math.min(100, Math.round((totalSolved / totalProblems) * 100));
+  const totalSolved = problems.filter(p => solvedIds.has(p.id)).length;
+  const totalProblems = problems.length;
+  const overallPct = totalProblems ? Math.round((totalSolved / totalProblems) * 100) : 0;
 
   if (loading) {
     return (
@@ -273,7 +309,7 @@ export default function Roadmap({ user, userData }) {
         </h1>
 
         <p style={{ color: '#666', fontSize: 14 }}>
-          Topic-wise practice path. This is separate from the cinematic FAANG/Odyssey map.
+          Topic-wise roadmap practice. Odyssey/FAANG game problems are separate and hidden here.
         </p>
 
         <div style={{
@@ -284,7 +320,7 @@ export default function Roadmap({ user, userData }) {
           margin: '22px 0',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ color: '#777', fontSize: 12 }}>Overall Progress</span>
+            <span style={{ color: '#777', fontSize: 12 }}>Roadmap Progress</span>
             <span style={{ color: '#1a73e8', fontWeight: 800, fontSize: 12 }}>
               {totalSolved}/{totalProblems}
             </span>
@@ -336,7 +372,7 @@ export default function Roadmap({ user, userData }) {
                       {track.title}
                     </h3>
                     <div style={{ color: track.color, fontSize: 11, marginTop: 3 }}>
-                      {p.total} problems
+                      {p.total} roadmap problems
                     </div>
                   </div>
                 </div>
