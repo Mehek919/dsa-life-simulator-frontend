@@ -50,4 +50,39 @@ button {
   overflow-wrap: anywhere;
   word-break:    break-word;
 }
+/* ────────────────────────────────────────── */
+/* Community Hub Select Dropdown Fix */
+/* ────────────────────────────────────────── */
 
+select {
+  background-color: #1a1a2e !important;
+  color: #ffffff !important;
+}
+
+select option {
+  background-color: #1a1a2e !important;
+  color: #ffffff !important;
+}
+
+select optgroup {
+  background-color: #1a1a2e !important;
+  color: #ffffff !important;
+}
+
+/* Firefox */
+select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 #ffffff;
+}
+
+/* Community Hub specific */
+.community-select {
+  background: #1a1a2e !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.community-select option {
+  background: #1a1a2e !important;
+  color: #ffffff !important;
+}

@@ -388,12 +388,12 @@ export default function Hub({ user, userData, setUserData }) {
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-5">
             <select value={filters.topic} onChange={e=>setFilters(f=>({...f,topic:e.target.value}))}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+            className="community-select rounded-lg px-3 py-2 text-sm">
               <option value="">All Topics</option>
               {TOPICS.map(t=><option key={t} value={t}>{t}</option>)}
             </select>
             <select value={filters.difficulty} onChange={e=>setFilters(f=>({...f,difficulty:e.target.value}))}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+              className="community-select rounded-lg px-3 py-2 text-sm">
               <option value="">All Difficulties</option>
               {DIFFICULTIES.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
@@ -446,12 +446,12 @@ export default function Hub({ user, userData, setUserData }) {
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search community problems..."
               className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 w-52"/>
             <select value={filters.topic} onChange={e=>setFilters(f=>({...f,topic:e.target.value}))}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+              className="community-select">
               <option value="">All Topics</option>
               {TOPICS.map(t=><option key={t} value={t}>{t}</option>)}
             </select>
             <select value={filters.difficulty} onChange={e=>setFilters(f=>({...f,difficulty:e.target.value}))}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+              className="community-select">
               <option value="">All Difficulties</option>
               {DIFFICULTIES.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
