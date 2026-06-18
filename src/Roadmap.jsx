@@ -567,32 +567,51 @@ export default function Roadmap({ user, userData }) {
   const [tab, setTab] = useState('tracks');
   const [selected, setSelected] = useState(null);
   const [certificates, setCertificates] = useState([]);
-  const [allCerts] = useState({});
+  const [allCerts, setAllCerts] = useState({});
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
-      const [certRes, bookRes] = await Promise.allSettled([
-        axios.get(`${API_BASE}/certificates/${user.uid}`),
-        axios.get(`${API_BASE}/bookmarks/${user.uid}`)
-      ]);
+      if (!user?.uid) {
+        if (isMounted) setLoading(false);
+        return;
+      }
 
-      const certData = certRes.status === 'fulfilled'
-        ? certRes.value.data
-        : {};
+      try {
+        const [certRes, bookRes] = await Promise.allSettled([
+          axios.get(`${API_BASE}/certificates/${user.uid}`),
+          axios.get(`${API_BASE}/bookmarks/${user.uid}`),
+        ]);
 
-      const bookData = bookRes.status === 'fulfilled'
-        ? bookRes.value.data
-        : {};
+        const certData = certRes.status === 'fulfilled'
+          ? certRes.value.data
+          : {};
 
-      setCertificates(certData.certificates || []);
-      setBookmarks(bookData.bookmarks || []);
-      setLoading(false);
+        const bookData = bookRes.status === 'fulfilled'
+          ? bookRes.value.data
+          : {};
+
+        if (!isMounted) return;
+
+        setCertificates(certData.certificates || []);
+        setAllCerts(certData.allCerts || certData.allCertificates || certData.availableCertificates || {});
+        setBookmarks(bookData.bookmarks || []);
+      } catch (err) {
+        console.error('Roadmap load error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     loadData();
-  }, [user.uid]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid]);
 
   const getTrackProgress = (track) => {
     const solvedMap   = userData?.solvedProblems || {};
@@ -626,7 +645,22 @@ export default function Roadmap({ user, userData }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+        Loading roadmap...
+      </div>
+    );
+  }
+
+  if (!user?.uid) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+        Please login first.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
           <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
             <button
@@ -775,5 +809,4 @@ export default function Roadmap({ user, userData }) {
         </AnimatePresence>
       </div>
   );
- }
 }
