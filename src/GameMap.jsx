@@ -397,12 +397,20 @@ export default function GameMap({ user, userData }) {
 
   // ── Unlock logic ───────────────────────────────────────────────────────────
   // Rules:
-  //   Ch1 and Ch14 always unlocked (first of FAANG + first of Enterprise)
-  //   Within same district: unlock next if ANY problem in prev chapter solved
-  //   Cross-district boundary: always unlock
+  //   Ch1  → always unlocked (FAANG start)
+  //   Ch14 → always unlocked (Enterprise start — separate track)
+  //   Same district next chapter → unlock only if prev chapter has ≥1 SOLVED problem
+  //   Cross-district boundary (e.g. D1→D2, D2→D3) → unlock when FIRST chapter
+  //     of THAT district is reached via the district order rule below
+  //   IMPORTANT: if problems array is still empty, keep locked (don't auto-open everything)
   const getUnlockedChapters = useCallback(() => {
-    const unlocked = [1, 14];
-    const ids = Object.keys(CHAPTERS).map(Number).sort((a,b) => a - b);
+    const unlocked = [1, 14]; // always open — first chapter of each track
+
+    // Only run unlock logic if we actually have problems loaded
+    // This prevents all chapters unlocking while problems are still fetching
+    if (problems.length === 0) return unlocked;
+
+    const ids = Object.keys(CHAPTERS).map(Number).sort((a, b) => a - b);
 
     for (const id of ids) {
       if (unlocked.includes(id)) continue;
@@ -411,22 +419,36 @@ export default function GameMap({ user, userData }) {
       const prevChapter = CHAPTERS[prevId];
       const thisChapter = CHAPTERS[id];
 
-      // No previous chapter or different district → always open
-      if (!prevChapter || prevChapter.district !== thisChapter.district) {
-        unlocked.push(id);
+      // ── Cross-district boundary within same track ──
+      // District 1→2→3 are one track; District 4 is a separate track starting at 14.
+      // If there's no adjacent prev chapter (gap like ch13→ch14 is handled by ch14 being always open),
+      // or the prev chapter is in a different district:
+      // → This chapter is the FIRST of a new district segment.
+      // → Only unlock if ALL problems in the previous district are solved.
+      if (!prevChapter) {
+        // No prev chapter at all → it's an island, keep locked unless in unlocked list
         continue;
       }
 
-      // Same district: unlock if prev chapter has at least 1 solved problem
-      const prevProblems = problems.filter(p => p.chapter === prevId);
-      if (prevProblems.length === 0) {
-        // Problems not seeded yet → don't block navigation
-        unlocked.push(id);
+      if (prevChapter.district !== thisChapter.district) {
+        // First chapter of a new district (e.g. ch4 = first of D2, ch9 = first of D3)
+        // Unlock if at least 50% of prev district problems are solved
+        const prevDistrictProblems = problems.filter(p => p.district === prevChapter.district);
+        if (prevDistrictProblems.length === 0) continue; // no data → keep locked
+        const prevDistrictSolved = prevDistrictProblems.filter(p => userProgress[p.id]?.solved).length;
+        const pct = prevDistrictSolved / prevDistrictProblems.length;
+        if (pct >= 0.5) unlocked.push(id); // unlock when 50% of prev district done
         continue;
       }
+
+      // ── Same district: unlock next chapter when prev chapter has ≥1 solved ──
+      const prevProblems = problems.filter(p => p.chapter === prevId);
+      if (prevProblems.length === 0) continue; // prev chapter has no problems → keep locked
+
       const anySolved = prevProblems.some(p => userProgress[p.id]?.solved);
       if (anySolved) unlocked.push(id);
     }
+
     return unlocked;
   }, [problems, userProgress]);
 
