@@ -463,10 +463,23 @@ export default function Roadmap({ user, userData }) {
     }
 
     Promise.allSettled([
-      axios.get(`${API_BASE}/certificates/${user.uid}`).catch(() => ({ data: {} })),
-      axios.get(`${API_BASE}/bookmarks/${user.uid}`).catch(() => ({ data: {} })),
-    ])
-      .then(([certRes, bookRes]) => {
+      axios.get(`${API_BASE}/certificates/${user.uid}`),
+      axios.get(`${API_BASE}/bookmarks/${user.uid}`)
+    ]).then(([certRes, bookRes]) => {
+    const certData =
+    certRes.status === 'fulfilled'
+      ? certRes.value.data
+      : {};
+
+    const bookData =
+    bookRes.status === 'fulfilled'
+      ? bookRes.value.data
+      : {};
+
+        setCertificates(certData.certificates || []);
+        setBookmarks(bookData.bookmarks || []);
+      });
+      then(([certRes, bookRes]) => {
         const certData = certRes.value?.data || {};
         const bookData = bookRes.value?.data || {};
 
