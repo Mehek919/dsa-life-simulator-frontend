@@ -303,7 +303,7 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
             return (
               <div
                 key={slug}
-                onClick={() => { navigate(`/solve/${id}`); onClose(); }}
+                onClick={() => { navigate(`/solve/${p.id}`); onClose(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: isSolved ? '#00c89608' : '#060910',
