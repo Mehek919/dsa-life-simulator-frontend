@@ -5,8 +5,6 @@ import axios from 'axios';
 import API_BASE from './config';
 
 // ── Real problem slugs mapped to each track ────────────────────────────────
-// Each slug must match a Firestore document ID in the 'problems' collection.
-// Problems marked comingSoon show a lock icon and can't be navigated to yet.
 const p = (slug, title, coming = false) => ({ id: slug, title, comingSoon: coming });
 
 const TRACKS = [
@@ -489,8 +487,8 @@ function TrackDetail({ track, userProgress, onClose }) {
             const isComingSoon = !!p.comingSoon;
 
             const handleClick = () => {
-              if (isComingSoon) return;          // blocked — not in Firestore yet
-              navigate(`/solve/${p.id}`);         // real slug → CinematicProblemSolver
+              if (isComingSoon) return;
+              navigate(`/solve/${p.id}`);
             };
 
             return (
@@ -512,7 +510,6 @@ function TrackDetail({ track, userProgress, onClose }) {
                 onMouseEnter={e => { if (!isComingSoon) e.currentTarget.style.borderColor = track.color + '44'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = isSolved ? '#00c89633' : '#1e2a3a'; }}
               >
-                {/* Status circle */}
                 <div style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                   background: isSolved ? '#00c89622' : '#1e2a3a',
@@ -524,12 +521,10 @@ function TrackDetail({ track, userProgress, onClose }) {
                   {isSolved ? '✓' : isComingSoon ? '🔒' : i + 1}
                 </div>
 
-                {/* Title */}
                 <span style={{ color: isSolved ? '#888' : isComingSoon ? '#444' : '#c8c8c8', fontSize: 13, flex: 1 }}>
                   {p.title}
                 </span>
 
-                {/* Right label */}
                 {isComingSoon
                   ? <span style={{ color: '#333', fontSize: 10 }}>Coming Soon</span>
                   : isSolved
@@ -572,7 +567,7 @@ export default function Roadmap({ user, userData }) {
   const [tab, setTab] = useState('tracks');
   const [selected, setSelected] = useState(null);
   const [certificates, setCertificates] = useState([]);
-  const [allCerts, setAllCerts] = useState({});
+  const [allCerts] = useState({});
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -601,7 +596,6 @@ export default function Roadmap({ user, userData }) {
 
   const getTrackProgress = (track) => {
     const solvedMap   = userData?.solvedProblems || {};
-    // Only count real (non-comingSoon) problems toward progress
     const realProbs   = track.problems.filter(p => !p.comingSoon);
     const solved      = realProbs.filter(p => !!solvedMap[p.id]).length;
     const total       = realProbs.length;
@@ -614,12 +608,9 @@ export default function Roadmap({ user, userData }) {
     const reqTrack = TRACKS.find(t => t.id === track.requires);
     if (!reqTrack) return true;
     const reqProgress = getTrackProgress(reqTrack);
-    // Unlock when at least 1 problem in required track is solved
-    // (not requiring ALL — that's too strict for large tracks)
     return reqProgress.solved >= 1;
   };
 
-  // Only count real problems (exclude comingSoon) toward roadmap progress
   const roadmapSolved = TRACKS
     .flatMap(t => t.problems)
     .filter(p => !p.comingSoon && userData?.solvedProblems?.[p.id])
