@@ -4,11 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 
-const makeProblems = (prefix, count, label) =>
-  Array.from({ length: count }, (_, i) => ({
-    id: `roadmap-${prefix}-${i + 1}`,
-    title: `${label} Protocol ${i + 1}`,
-  }));
+// ── Real problem slugs mapped to each track ────────────────────────────────
+// Each slug must match a Firestore document ID in the 'problems' collection.
+// Problems marked comingSoon show a lock icon and can't be navigated to yet.
+const p = (slug, title, coming = false) => ({ id: slug, title, comingSoon: coming });
 
 const TRACKS = [
   {
@@ -20,7 +19,23 @@ const TRACKS = [
     xpReward: 500,
     desc: 'Cloud telemetry, deduplication, hash maps, prefix scans.',
     level: 1,
-    problems: makeProblems('array', 15, 'Array'),
+    problems: [
+      p('ms-two-sum',              'Two Sum'),
+      p('ms-contains-duplicate',   'Contains Duplicate'),
+      p('ms-missing-number',       'Missing Number'),
+      p('ms-product-except-self',  'Product of Array Except Self'),
+      p('ms-maximum-subarray',     'Maximum Subarray — Kadane's'),
+      p('ms-subarray-sum-k',       'Subarray Sum Equals K'),
+      p('sf-subarray-sum',         'Chatter Feed Engagement Analyzer'),
+      p('ms-find-anagrams',        'Find All Anagrams in String'),
+      p('ora-merge-sorted-array',  'Merge Sorted Array'),
+      p('ora-rotate-array',        'Rotate Array'),
+      p('sf-best-time-stock',      'Best Time to Buy and Sell Stock'),
+      p('ms-meeting-rooms',        'Meeting Rooms'),
+      p('ms-meeting-rooms-ii',     'Meeting Rooms II — Min Rooms'),
+      p('adobe-merge-intervals',   'Merge Intervals'),
+      p('adobe-non-overlapping-intervals', 'Non-Overlapping Intervals'),
+    ],
     skills: ['Hash Maps', 'Prefix Sums', 'Two Pointers', 'Sliding Window'],
   },
   {
@@ -32,8 +47,24 @@ const TRACKS = [
     xpReward: 500,
     desc: 'AI logs, parsing, autocomplete, natural language systems.',
     level: 1,
-    problems: makeProblems('string', 15, 'String'),
-    skills: ['Parsing', 'Frequency Map', 'Sliding Window'],
+    problems: [
+      p('ms-valid-parentheses',    'Valid Parentheses'),
+      p('ms-reverse-words',        'Reverse Words in a String'),
+      p('ms-valid-palindrome-skip','Valid Palindrome II'),
+      p('ora-longest-common-prefix','Longest Common Prefix'),
+      p('ora-valid-anagram',       'Valid Anagram'),
+      p('ms-longest-substring',    'Longest Substring Without Repeating'),
+      p('ms-find-anagrams',        'Find All Anagrams in String'),
+      p('adobe-string-compression','String Compression'),
+      p('ms-minimum-window',       'Minimum Window Substring'),
+      p('sf-minimum-window',       'Einstein GPT RAG Retriever'),
+      p('adobe-word-break',        'Word Break — InDesign Text Reflow'),
+      p('sf-word-break',           'Salesforce Marketing Template Validator'),
+      p('ora-missing-ranges',      'Missing Ranges'),
+      p('ms-decode-ways',          'Decode Ways — Azure Incident Decoder'),
+      p('ms-edit-distance',        'Edit Distance — GitHub Merge Conflict'),
+    ],
+    skills: ['Parsing', 'Frequency Map', 'Sliding Window', 'DP on Strings'],
   },
   {
     id: 'binary-search',
@@ -45,8 +76,19 @@ const TRACKS = [
     desc: 'Search space reduction for cloud-scale optimization.',
     level: 2,
     requires: 'arrays',
-    problems: makeProblems('binary-search', 15, 'Binary Search'),
-    skills: ['Binary Search', 'Search Space', 'Lower Bound'],
+    problems: [
+      p('ms-binary-search',        'Binary Search — The O(log n) God'),
+      p('ora-search-insert-position','Search Insert Position'),
+      p('ora-first-bad-version',   'First Bad Version'),
+      p('ora-kth-largest',         'Kth Largest Element in Array'),
+      p('ora-k-closest-points',    'K Closest Points to Origin'),
+      p('adobe-top-k-frequent-words','Top K Frequent Words'),
+      p('ms-decode-ways',          'Decode Ways'),
+      p('ora-container-most-water','Container With Most Water'),
+      p('ms-word-ladder',          'Word Ladder — BFS on Implicit Graph'),
+      p('ora-merge-k-sorted-intervals','Merge K Sorted Lists'),
+    ],
+    skills: ['Binary Search', 'Search Space', 'Lower Bound', 'Heap / QuickSelect'],
   },
   {
     id: 'linked-lists',
@@ -58,8 +100,15 @@ const TRACKS = [
     desc: 'Streaming systems, memory pipelines, pointer rewiring.',
     level: 2,
     requires: 'arrays',
-    problems: makeProblems('linked-list', 15, 'Linked List'),
-    skills: ['Pointers', 'Fast & Slow', 'Reversal'],
+    problems: [
+      p('ms-reverse-linked-list',  'Reverse Linked List'),
+      p('ms-linked-list-cycle',    'Linked List Cycle — Floyd's'),
+      p('sf-reverse-linked-list-sf','Salesforce Timeline Reversal'),
+      p('ms-lru-cache',            'LRU Cache — Azure Cache Design'),
+      p('ora-merge-k-sorted-intervals','Merge K Sorted Lists'),
+      p('ora-merge-sorted-array',  'Merge Sorted Arrays'),
+    ],
+    skills: ['Pointers', 'Fast & Slow', 'Reversal', 'LRU Design'],
   },
   {
     id: 'stack-queue',
@@ -71,8 +120,17 @@ const TRACKS = [
     desc: 'Event processing, compiler safety, queues, stacks.',
     level: 2,
     requires: 'arrays',
-    problems: makeProblems('stack', 15, 'Stack & Queue'),
-    skills: ['Stack', 'Queue', 'Monotonic Stack'],
+    problems: [
+      p('ms-valid-parentheses',    'Valid Parentheses'),
+      p('ms-circular-queue',       'Design Circular Queue'),
+      p('ms-minimum-window',       'Minimum Window Substring'),
+      p('ora-basic-calculator',    'Basic Calculator — SQL Expression Engine'),
+      p('ora-remove-invalid-parens','Remove Invalid Parentheses'),
+      p('adobe-largest-rectangle', 'Largest Rectangle in Histogram'),
+      p('sf-mulesoft-rate-limiter','MuleSoft API Rate Limiter'),
+      p('ora-browser-history',     'Design Browser History'),
+    ],
+    skills: ['Stack', 'Queue', 'Monotonic Stack', 'Design'],
   },
   {
     id: 'trees',
@@ -84,8 +142,22 @@ const TRACKS = [
     desc: 'Cloud hierarchy, decision trees, DFS, BFS.',
     level: 3,
     requires: 'linked-lists',
-    problems: makeProblems('tree', 20, 'Tree'),
-    skills: ['DFS', 'BFS', 'BST', 'Tree DP'],
+    problems: [
+      p('ms-max-depth-tree',       'Maximum Depth of Binary Tree'),
+      p('ms-invert-binary-tree',   'Invert Binary Tree — The Tweet'),
+      p('ms-serialize-deserialize-tree','Serialize / Deserialize Binary Tree'),
+      p('adobe-serialize-tree',    'XD Component Library Sync Protocol'),
+      p('bcm-serialize-bst',       'Serialize / Deserialize BST'),
+      p('sf-level-order-traversal','Level Order Traversal — Org Chart'),
+      p('ms-course-schedule',      'Course Schedule — Cycle Detection'),
+      p('sf-course-schedule-ii',   'Course Schedule II — Topological Sort'),
+      p('ms-clone-graph',          'Clone Graph — Azure Sandbox'),
+      p('sf-clone-graph',          'Salesforce Sandbox Deep Clone'),
+      p('sf-all-paths-dag',        'All Paths in DAG — Flow Validator'),
+      p('bcm-implement-trie',      'Implement Trie — BGP Routing Table'),
+      p('ms-design-add-search-words','Design Add and Search Words'),
+    ],
+    skills: ['DFS', 'BFS', 'BST', 'Trie', 'Level Order'],
   },
   {
     id: 'graphs',
@@ -97,8 +169,22 @@ const TRACKS = [
     desc: 'Networks, routing, distributed systems, dependencies.',
     level: 3,
     requires: 'trees',
-    problems: makeProblems('graph', 20, 'Graph'),
-    skills: ['DFS/BFS', 'Union Find', 'Topological Sort'],
+    problems: [
+      p('ms-number-of-islands',    'Number of Islands — The Immortal'),
+      p('sf-number-of-islands-sf', 'Salesforce Region Cluster Counter'),
+      p('ms-pacific-atlantic',     'Pacific Atlantic Water Flow'),
+      p('ora-max-area-island',     'Max Area of Island'),
+      p('ms-pacific-atlantic',     'Power BI Dual-Sink Lineage'),
+      p('sf-accounts-merge',       'Accounts Merge — CRM Deduplication'),
+      p('ora-redundant-connection','Redundant Connection — RAC Cluster'),
+      p('sf-network-delay',        'Network Delay Time — Dijkstra's'),
+      p('bcm-network-delay',       'Broadcom Packet Latency Calculator'),
+      p('ms-word-ladder',          'Word Ladder — BFS Graph'),
+      p('ora-word-search-ii',      'Word Search II — Oracle Text Engine'),
+      p('bcm-word-search-ii-broadcom','Broadcom EDA Multi-Signal Router'),
+      p('ms-alien-dictionary',     'Alien Dictionary — Topological Sort'),
+    ],
+    skills: ['DFS/BFS', 'Union Find', 'Topological Sort', 'Dijkstra'],
   },
   {
     id: 'dynamic-programming',
@@ -110,8 +196,24 @@ const TRACKS = [
     desc: 'AI planning, cost optimization, state transitions.',
     level: 4,
     requires: 'graphs',
-    problems: makeProblems('dynamic-programming', 20, 'DP'),
-    skills: ['Memoization', 'Tabulation', 'Knapsack'],
+    problems: [
+      p('ms-climbing-stairs',      'Climbing Stairs — Fibonacci'),
+      p('bcm-climbing-stairs-broadcom','ASIC Pipeline Traversal Counter'),
+      p('ms-house-robber',         'House Robber — Azure Budget Optimizer'),
+      p('bcm-house-robber',        'Broadcom IP Block Power Maximizer'),
+      p('ms-coin-change',          'Coin Change — Vending Machine'),
+      p('bcm-coin-change',         'Broadcom PCIe Lane Allocator'),
+      p('ms-maximum-subarray',     'Maximum Subarray — Kadane's'),
+      p('ms-decode-ways',          'Decode Ways'),
+      p('ora-unique-paths',        'Unique Paths — Navigation Flow'),
+      p('ora-partition-equal-subset','Partition Equal Subset Sum'),
+      p('adobe-max-product-subarray','Maximum Product Subarray'),
+      p('adobe-word-break',        'Word Break'),
+      p('adobe-stock-buy-sell-cooldown', 'Stock Buy Sell With Cooldown', true),
+      p('bcm-lcs',                 'Longest Common Subsequence'),
+      p('ms-edit-distance',        'Edit Distance — Levenshtein'),
+    ],
+    skills: ['Memoization', 'Tabulation', 'Knapsack', '1D/2D DP'],
   },
   {
     id: 'backtracking',
@@ -123,8 +225,15 @@ const TRACKS = [
     desc: 'Constraint solving, AI agents, search-space pruning.',
     level: 4,
     requires: 'dynamic-programming',
-    problems: makeProblems('backtracking', 10, 'Backtracking'),
-    skills: ['Recursion', 'Pruning', 'State Search'],
+    problems: [
+      p('bcm-generate-parentheses','Generate Parentheses — VHDL Generator'),
+      p('bcm-combination-sum',     'Combination Sum — Power Budget'),
+      p('bcm-word-search',         'Word Search — ASIC Trace Finder'),
+      p('adobe-word-search-ii',    'Word Search II — Firefly Prompt Matcher'),
+      p('ora-word-search-ii',      'Word Search II — Oracle Text Search'),
+      p('sf-all-paths-dag',        'All Paths in DAG'),
+    ],
+    skills: ['Recursion', 'Pruning', 'State Search', 'Trie + DFS'],
   },
 ];
 
@@ -376,46 +485,57 @@ function TrackDetail({ track, userProgress, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {track.problems.map((p, i) => {
             const solvedMap = userProgress?.solvedProblems || {};
-            const isSolved = !!solvedMap[p.id];
+            const isSolved  = !!solvedMap[p.id];
+            const isComingSoon = !!p.comingSoon;
+
+            const handleClick = () => {
+              if (isComingSoon) return;          // blocked — not in Firestore yet
+              navigate(`/solve/${p.id}`);         // real slug → CinematicProblemSolver
+            };
 
             return (
               <div
                 key={p.id}
-                onClick={() => navigate(`/solve/${p.id}`)}
+                onClick={handleClick}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  background: isSolved ? '#00c89608' : '#060910',
-                  border: `1px solid ${isSolved ? '#00c89633' : '#1e2a3a'}`,
+                  background: isSolved ? '#00c89608' : isComingSoon ? '#0a0a14' : '#060910',
+                  border: `1px solid ${isSolved ? '#00c89633' : isComingSoon ? '#1e2a3a' : '#1e2a3a'}`,
                   borderRadius: 10,
                   padding: '10px 14px',
-                  cursor: 'pointer',
+                  cursor: isComingSoon ? 'not-allowed' : 'pointer',
+                  opacity: isComingSoon ? 0.5 : 1,
                   transition: 'all 0.2s',
                 }}
+                onMouseEnter={e => { if (!isComingSoon) e.currentTarget.style.borderColor = track.color + '44'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = isSolved ? '#00c89633' : '#1e2a3a'; }}
               >
+                {/* Status circle */}
                 <div style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  flexShrink: 0,
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                   background: isSolved ? '#00c89622' : '#1e2a3a',
                   border: `1px solid ${isSolved ? '#00c89644' : '#333'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: isSolved ? '#00c896' : '#555',
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 11, fontWeight: 700,
                 }}>
-                  {isSolved ? '✓' : i + 1}
+                  {isSolved ? '✓' : isComingSoon ? '🔒' : i + 1}
                 </div>
 
-                <span style={{ color: isSolved ? '#888' : '#c8c8c8', fontSize: 13, flex: 1 }}>
+                {/* Title */}
+                <span style={{ color: isSolved ? '#888' : isComingSoon ? '#444' : '#c8c8c8', fontSize: 13, flex: 1 }}>
                   {p.title}
                 </span>
 
-                <span style={{ color: '#1a73e8', fontSize: 11 }}>Solve →</span>
+                {/* Right label */}
+                {isComingSoon
+                  ? <span style={{ color: '#333', fontSize: 10 }}>Coming Soon</span>
+                  : isSolved
+                    ? <span style={{ color: '#00c896', fontSize: 11 }}>✓ Solved</span>
+                    : <span style={{ color: '#1a73e8', fontSize: 11 }}>Solve →</span>
+                }
               </div>
             );
           })}
@@ -480,22 +600,31 @@ export default function Roadmap({ user, userData }) {
   }, [user.uid]);
 
   const getTrackProgress = (track) => {
-    const solvedMap = userData?.solvedProblems || {};
-    const solved = track.problems.filter(p => solvedMap[p.id]).length;
-    const pct = Math.round((solved / track.problems.length) * 100) || 0;
-    return { solved, pct };
+    const solvedMap   = userData?.solvedProblems || {};
+    // Only count real (non-comingSoon) problems toward progress
+    const realProbs   = track.problems.filter(p => !p.comingSoon);
+    const solved      = realProbs.filter(p => !!solvedMap[p.id]).length;
+    const total       = realProbs.length;
+    const pct         = total > 0 ? Math.round((solved / total) * 100) : 0;
+    return { solved, pct, total };
   };
 
   const isUnlocked = (track) => {
     if (!track.requires) return true;
     const reqTrack = TRACKS.find(t => t.id === track.requires);
     if (!reqTrack) return true;
-
     const reqProgress = getTrackProgress(reqTrack);
-    return reqProgress.solved >= reqTrack.problems.length;
+    // Unlock when at least 1 problem in required track is solved
+    // (not requiring ALL — that's too strict for large tracks)
+    return reqProgress.solved >= 1;
   };
 
-  const roadmapSolved = TRACKS.flatMap(t => t.problems).filter(p => userData?.solvedProblems?.[p.id]).length;
+  // Only count real problems (exclude comingSoon) toward roadmap progress
+  const roadmapSolved = TRACKS
+    .flatMap(t => t.problems)
+    .filter(p => !p.comingSoon && userData?.solvedProblems?.[p.id])
+    .length;
+  const ROADMAP_REAL_TOTAL = TRACKS.flatMap(t => t.problems).filter(p => !p.comingSoon).length;
   const earnedIds = new Set(certificates.map(c => c.certId));
 
   const TABS = [
@@ -504,19 +633,8 @@ export default function Roadmap({ user, userData }) {
     { key: 'bookmarks', label: '🔖 Bookmarks' },
   ];
 
-  // ── Loading spinner shown inline while data fetches ──────────────────────
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'Arial, sans-serif' }}>
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-          style={{ width: 36, height: 36, border: '3px solid #1e2a3a', borderTop: '3px solid #1a73e8', borderRadius: '50%' }} />
-        <div style={{ color: '#555', fontSize: 13 }}>Loading your roadmap...</div>
-      </div>
-    );
-  }
-
-  // ── Main render (always shown once data is loaded) ──────────────────────────
-  return (
       <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
           <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
@@ -551,14 +669,14 @@ export default function Roadmap({ user, userData }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ color: '#555', fontSize: 11 }}>Overall Progress</span>
                   <span style={{ color: '#1a73e8', fontSize: 11, fontWeight: 700 }}>
-                    {roadmapSolved}/{ROADMAP_TOTAL} problems
+                    {roadmapSolved}/{ROADMAP_REAL_TOTAL} problems
                   </span>
                 </div>
 
                 <div style={{ width: '100%', height: 6, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(roadmapSolved / ROADMAP_TOTAL) * 100}%` }}
+                    animate={{ width: `${ROADMAP_REAL_TOTAL > 0 ? (roadmapSolved / ROADMAP_REAL_TOTAL) * 100 : 0}%` }}
                     transition={{ duration: 1.2 }}
                     style={{
                       height: '100%',
