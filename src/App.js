@@ -42,6 +42,8 @@ const SubmissionHistory = lazy(() => import('./Submissionhistory'));
 const WeeklyContest     = lazy(() => import('./WeeklyContest'));
 const AssessmentPortal  = lazy(() => import('./AssessmentPortal'));
 const CompanyDashboard  = lazy(() => import('./CompanyDashboard'));
+const MockInterview = lazy(() => import('./Mockinterview'));
+const WebcamMonitor = lazy(() => import('./WebcamMonitor'));
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
   if (analytics) logEvent(analytics, eventName, params);
@@ -391,7 +393,7 @@ const AppShell = () => {
             }
           />
           <Route
-            path="/roadmap/solve/:slug"
+            path="/roadmap/solve/:id"
             element={
            <Roadmap
              user={user}

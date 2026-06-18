@@ -4,19 +4,24 @@ import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage'
 import { initializeApp, getApps } from 'firebase/app';
 import axios from 'axios';
 import API_BASE from './config';
+// at top of file (replace with your project's config or use env vars)
+const FIREBASE_CONFIG = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'dsa-life-simulator.appspot.com',
+};
 
-// ── Firebase Storage init ─────────────────────────────────────────────────────
-const STORAGE_BUCKET = 'dsa-life-simulator.firebasestorage.app';
-
+// Reuse existing Firebase app or initialize one
 function getStorageInstance() {
-  // Reuse existing Firebase app
   const apps = getApps();
-  if (apps.length > 0) {
-    return getStorage(apps[0]);
+  let app = apps[0];
+  if (!app) {
+    // initialize with your config
+    app = initializeApp(FIREBASE_CONFIG);
   }
-  return null;
+  return getStorage(app);
 }
-
 // ══════════════════════════════════════════════════════════════════════════════
 // WebcamMonitor
 // Takes snapshots every 60 seconds during proctored assessments
