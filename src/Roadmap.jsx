@@ -447,11 +447,11 @@ export default function Roadmap({ user, userData }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ color: '#555', fontSize: 11 }}>Overall Progress</span>
                 <span style={{ color: '#1a73e8', fontSize: 11, fontWeight: 700 }}>
-                  {userData?.problemsSolved || 0}/150 problems
+                  {userData?.problemsSolved || 0}/145 problems
                 </span>
               </div>
               <div style={{ width: '100%', height: 6, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
-                <motion.div initial={{ width: 0 }} animate={{ width: `${((userData?.problemsSolved || 0) / 150) * 100}%` }} transition={{ duration: 1.2 }}
+                <motion.div initial={{ width: 0 }} animate={{ width: `${((userData?.problemsSolved || 0) / 145) * 100}%` }} transition={{ duration: 1.2 }}
                   style={{ height: '100%', background: 'linear-gradient(90deg, #00c896, #1a73e8, #f59e0b)', borderRadius: 3 }} />
               </div>
             </div>
