@@ -1,28 +1,30 @@
 {
-  "short_name": "EvoWorld",
-  "name": "World Simulator for DSA Mastery",
-  "description": "Master DSA through gamified life simulation",
+  "short_name": "DSALife",
+  "name": "DSA Life Simulator",
+  "description": "Level up your coding life. Gamified DSA learning with AI challenges, arena battles, and real company problems.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a14",
+  "theme_color": "#06b6d4",
+  "orientation": "portrait-primary",
+  "categories": ["education", "games", "productivity"],
   "icons": [
     {
-      "src": "android-chrome-192x192.png",
-      "sizes": "192x192",
+      "src": "/logo192.png",
       "type": "image/png",
+      "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "android-chrome-512x512.png",
-      "sizes": "512x512",
+      "src": "/logo512.png",
       "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#0f0f1a",
-  "background_color": "#0f0f1a",
-  "categories": ["education", "games", "productivity"]
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
 
 
