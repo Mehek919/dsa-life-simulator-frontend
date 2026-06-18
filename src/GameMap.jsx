@@ -486,7 +486,7 @@ export default function GameMap({ user, userData, setUserData }) {
       if (!prevChapter || prevChapter.district !== CHAPTERS[id]?.district) {
         unlocked.push(id); continue;
       }
-      const prevProblems = problems.filter(p => p.chapter === prevId);
+      const prevProblems = problems.filter(p => Number(p.chapter) === Number(prevId));
       // If prev chapter has no problems loaded yet, don't block
       if (prevProblems.length === 0) { unlocked.push(id); continue; }
       const anySolved = prevProblems.some(p => userProgress[p.id]?.solved);
@@ -524,7 +524,7 @@ export default function GameMap({ user, userData, setUserData }) {
 
   // Chapter progress summary
   const getChapterProgress = useCallback((chapterId) => {
-    const chProblems = problems.filter(p => p.chapter === chapterId);
+    const chProblems = problems.filter(p => Number(p.chapter) === Number(chapterId));
     const solved     = chProblems.filter(p => userProgress[p.id]?.solved).length;
     const stars      = chProblems.reduce((s, p) => s + (userProgress[p.id]?.stars || 0), 0);
     return { solved, total: chProblems.length, stars };
@@ -533,7 +533,7 @@ export default function GameMap({ user, userData, setUserData }) {
   const unlockedChapters = getUnlockedChapters();
   const selectedChapterData = selectedChapter ? CHAPTERS[selectedChapter] : null;
   const selectedProblems = selectedChapter
-    ? problems.filter(p => p.chapter === selectedChapter).sort((a, b) => a.orderInChapter - b.orderInChapter)
+    ? problems.filter(p => Number(p.chapter) === Number(selectedChapter)).sort((a, b) => (a.orderInChapter||0) - (b.orderInChapter||0))
     : [];
 
   if (loading) {
