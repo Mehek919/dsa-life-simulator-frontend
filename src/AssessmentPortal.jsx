@@ -76,10 +76,10 @@ function AssessmentTimer({ totalSeconds, onExpire }) {
 
 function ViolationBanner({ violation, onDismiss }) {
   useEffect(() => { const t = setTimeout(onDismiss, 4000); return () => clearTimeout(t); }, [violation, onDismiss]);
-  const messages = { tab_switch: '⚠️ Tab switch detected — logged.', copy: '⚠️ Copy detected — proctored.', paste: '⚠️ Paste detected — proctored.', right_click: '⚠️ Right-click disabled.', devtools_attempt: '⚠️ DevTools disabled.' };
+  const messages = { tab_switch: '⚠️ Tab switch detected — logged.', copy: '⚠️ Copy detected — proctored.', paste: '⚠️ Paste detected — proctored.', right_click: '⚠️ Right click blocked — proctored.', devtools_attempt: '⚠️ DevTools attempt blocked — proctored.' };
   return (
     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-      style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#ff4d4d22', border: '1px solid #ff4d4d66', borderRadius: 10, padding: '10px 20px', color: '#ff6b6b', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(8px)' }}>
+      style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#ff4d4d22', border: '1px solid #ff4d4d66', borderRadius: 10, padding: '10px 20px', color: '#ff6b6b', fontWeight: 700 }}>
       {messages[violation?.type] || '⚠️ Activity detected and logged.'}
     </motion.div>
   );
@@ -96,8 +96,8 @@ function ProblemNav({ problems, current, solved, scores, onSelect }) {
         const isCurrent = i === current;
         const diffColor = { Easy: '#00c896', Medium: '#f5c542', Hard: '#ff4d4d' }[p.difficulty] || '#888';
         return (
-          <button key={p.id} onClick={() => onSelect(i)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: isCurrent ? '#1a73e811' : isSolved ? '#00c89608' : 'transparent', border: `1px solid ${isCurrent ? '#1a73e844' : isSolved ? '#00c89633' : '#1e2a3a'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', color: '#e8e8e8' }}>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: isSolved ? '#00c89622' : '#1e2a3a', border: `1px solid ${isSolved ? '#00c89644' : '#333'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: isSolved ? '#00c896' : '#555' }}>
+          <button key={p.id} onClick={() => onSelect(i)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: isCurrent ? '#1a73e811' : isSolved ? '#00c89608' : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, background: isSolved ? '#00c89622' : '#1e2a3a', border: `1px solid ${isSolved ? '#00c89644' : '#333'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>
               {isSolved ? '✓' : i + 1}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -118,7 +118,7 @@ function AssessmentIntro({ assessment, onStart }) {
   const [agreed, setAgreed] = useState(false);
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Arial, sans-serif' }}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ background: '#0d1117', border: '1px solid #1a73e844', borderRadius: 20, padding: '36px', maxWidth: 560, width: '100%', position: 'relative', overflow: 'hidden' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ background: '#0d1117', border: '1px solid #1a73e844', borderRadius: 20, padding: '36px', maxWidth: 560, width: '100%', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, transparent, #1a73e8, transparent)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1a73e822', border: '1px solid #1a73e844', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
@@ -159,7 +159,7 @@ function AssessmentIntro({ assessment, onStart }) {
           I agree to the assessment rules including webcam monitoring. My activity will be logged and shared with {assessment.companyName || 'the company'}.
         </label>
         <motion.button whileHover={{ scale: agreed ? 1.02 : 1 }} whileTap={{ scale: agreed ? 0.98 : 1 }} onClick={() => agreed && onStart()}
-          style={{ width: '100%', background: agreed ? 'linear-gradient(135deg, #1a73e8, #0d47a1)' : '#1e2a3a', border: 'none', borderRadius: 12, color: agreed ? '#fff' : '#444', cursor: agreed ? 'pointer' : 'not-allowed', fontSize: 15, fontWeight: 800, padding: '14px 0', boxShadow: agreed ? '0 0 24px #1a73e833' : 'none', transition: 'all 0.3s' }}>
+          style={{ width: '100%', background: agreed ? 'linear-gradient(135deg, #1a73e8, #0d47a1)' : '#1e2a3a', border: 'none', borderRadius: 12, color: agreed ? '#fff' : '#444', cursor: agreed ? 'pointer' : 'not-allowed', padding: '12px 16px', fontWeight: 800 }}>
           {agreed ? '🚀 Start Assessment' : 'Please agree to the rules first'}
         </motion.button>
       </motion.div>
@@ -175,14 +175,14 @@ function AssessmentComplete({ assessment, solved, scores, totalTime, violations 
   const timeUsed   = (assessment.durationMinutes * 60) - totalTime;
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Arial, sans-serif', color: '#e8e8e8' }}>
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ background: '#0d1117', border: '1px solid #00c89644', borderRadius: 20, padding: '40px', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 0 40px #00c89622' }}>
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ background: '#0d1117', border: '1px solid #00c89644', borderRadius: 20, padding: '40px', maxWidth: 480, width: '100%' }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>{pct >= 70 ? '🎉' : pct >= 40 ? '💪' : '📝'}</div>
         <h2 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 900 }}>Assessment Complete!</h2>
         <p style={{ color: '#666', margin: '0 0 28px', fontSize: 14 }}>Your results have been submitted to {assessment.companyName || 'the company'}.</p>
         <div style={{ marginBottom: 28, position: 'relative', display: 'inline-block' }}>
           <svg width={120} height={120} style={{ transform: 'rotate(-90deg)' }}>
             <circle cx={60} cy={60} r={50} fill="none" stroke="#1e2a3a" strokeWidth={8} />
-            <motion.circle cx={60} cy={60} r={50} fill="none" stroke={pct >= 70 ? '#00c896' : pct >= 40 ? '#f5c542' : '#ff4d4d'} strokeWidth={8} strokeLinecap="round" strokeDasharray={314} initial={{ strokeDashoffset: 314 }} animate={{ strokeDashoffset: 314 * (1 - pct / 100) }} transition={{ duration: 1.2, ease: 'easeOut' }} />
+            <motion.circle cx={60} cy={60} r={50} fill="none" stroke={pct >= 70 ? '#00c896' : pct >= 40 ? '#f5c542' : '#ff4d4d'} strokeWidth={8} strokeLinecap="round" strokeDasharray={314} initial={{ strokeDashoffset: 314 }} animate={{ strokeDashoffset: 314 - (pct / 100) * 314 }} transition={{ duration: 0.8 }} />
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ color: '#e8e8e8', fontSize: 22, fontWeight: 900 }}>{pct}%</div>
@@ -208,7 +208,7 @@ function AssessmentComplete({ assessment, solved, scores, totalTime, violations 
           </div>
         )}
         <p style={{ color: '#555', fontSize: 13, margin: '0 0 24px' }}>The hiring team will review your submission within 3-5 business days.</p>
-        <button onClick={() => navigate('/world')} style={{ width: '100%', background: 'linear-gradient(135deg, #1a73e8, #0d47a1)', border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, padding: '12px 0' }}>
+        <button onClick={() => navigate('/world')} style={{ width: '100%', background: 'linear-gradient(135deg, #1a73e8, #0d47a1)', border: 'none', borderRadius: 12, color: '#fff', cursor: 'pointer', padding: '12px 16px', fontWeight: 800 }}>
           Back to World →
         </button>
       </motion.div>
@@ -297,6 +297,12 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
     setPhase('complete');
   };
 
+  // show a short toast when storage snapshot metadata saved via backend
+  const handleSnapshot = useCallback((snapshot) => {
+    if (!snapshot) return;
+    showToast(`Snapshot #${snapshot.index} captured`);
+  }, []);
+
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'Arial, sans-serif' }}>
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} style={{ width: 36, height: 36, border: '3px solid #1e2a3a', borderTop: '3px solid #1a73e8', borderRadius: '50%' }} />
@@ -330,18 +336,6 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
             <div style={{ color: '#555', fontSize: 9, textTransform: 'uppercase' }}>Score</div>
             <div style={{ color: '#a855f7', fontSize: 16, fontWeight: 900 }}>{Object.values(scores).reduce((a, b) => a + b, 0)}</div>
           </div>
-
-          {/* Webcam monitor (replaces proctoring badge) */}
-          {assessment?.proctored && (
-            <WebcamMonitor
-              assessmentId={assessmentId}
-              userId={user?.uid}
-              enabled={phase === 'active'}
-              snapshotInterval={60}
-              onViolation={handleViolation}
-              onError={handleViolation}
-            />
-          )}
 
           {/* Violation count */}
           {violations.length > 0 && (
@@ -379,11 +373,26 @@ export default function AssessmentPortal({ user, userData, setUserData }) {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-            style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'error' ? '#ff4d4d22' : '#00c89622', border: `1px solid ${toast.type === 'error' ? '#ff4d4d44' : '#00c89644'}`, borderRadius: 30, padding: '10px 24px', color: toast.type === 'error' ? '#ff6b6b' : '#00c896', fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px #00000066', zIndex: 999, whiteSpace: 'nowrap' }}>
+            style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: toast.type === 'error' ? '#ff4d4d22' : '#00c89622', border: `1px solid ${toast.type === 'error' ? '#ff4d4d44' : '#00c89644'}`, padding: '10px 16px', borderRadius: 8, color: toast.type === 'error' ? '#ff6b6b' : '#00c896', fontWeight: 700 }}>
             {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Webcam Monitor for proctored assessments */}
+      {assessment?.proctored && (
+        <div style={{ position: 'fixed', right: 18, bottom: 18, zIndex: 1200 }}>
+          <WebcamMonitor
+            assessmentId={assessmentId}
+            userId={user?.uid}
+            enabled={phase === 'active'}
+            snapshotInterval={60}
+            onViolation={handleViolation}
+            onError={handleViolation}
+            onSnapshot={handleSnapshot}
+          />
+        </div>
+      )}
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     </div>
