@@ -299,10 +299,10 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
           {track.problems.map((p, i) => {
             // solvedProblems is a map not array — check by key
             const solvedMap = userProgress?.solvedProblems || {};
-            const isSolved  = !!(solvedMap[slug]);
+            const isSolved  = !!(solvedMap[p.id]);
             return (
               <div
-                key={slug}
+                key={p.id}
                 onClick={() => { navigate(`/solve/${p.id}`)}}
                 >
                   {p.title}
@@ -323,7 +323,7 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
                   {isSolved ? '✓' : i + 1}
                 </div>
                 <span style={{ color: isSolved ? '#888' : '#c8c8c8', fontSize: 13, flex: 1 }}>
-                  {slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
+                  {p.title}
                 </span>
                 <span style={{ color: '#1a73e8', fontSize: 11 }}>Solve →</span>
               </div>
