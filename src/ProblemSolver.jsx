@@ -4,104 +4,147 @@ import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
 
-// ── ProblemSolver ─────────────────────────────────────────────────────────────
-// Loads a problem from Firestore via backend, renders CodeEditor,
-// and handles submission → XP/credits award back to the user.
-
 export default function ProblemSolver({ user, userData, setUserData }) {
   const { problemId } = useParams();
-  const navigate      = useNavigate();
+  const navigate = useNavigate();
 
-  const [problem,  setProblem]  = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState('');
+  const [problem, setProblem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // ── Load problem ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!problemId) return;
-    setLoading(true);
-    axios
-      .get(`${API_BASE}/problems/${problemId}`)
-      .then(res => {
-        if (res.data?.problem) setProblem(res.data.problem);
-        else setError('Problem not found.');
-      })
-      .catch(() => setError('Failed to load problem.'))
-      .finally(() => setLoading(false));
+    async function loadProblem() {
+      if (!problemId) {
+        setError('Missing problem id.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      setProblem(null);
+
+      try {
+        const safeId = encodeURIComponent(problemId);
+        const res = await axios.get(`${API_BASE}/problems/${safeId}`);
+
+        if (res.data?.problem) {
+          setProblem(res.data.problem);
+        } else {
+          setError(`Problem not found: ${problemId}`);
+        }
+      } catch (err) {
+        console.error('Problem load error:', {
+          problemId,
+          url: `${API_BASE}/problems/${problemId}`,
+          status: err.response?.status,
+          data: err.response?.data,
+          message: err.message,
+        });
+
+        const status = err.response?.status;
+        const backendMsg = err.response?.data?.error;
+
+        if (status === 404) {
+          setError(`Problem not found in backend: ${problemId}`);
+        } else if (backendMsg) {
+          setError(`Backend error: ${backendMsg}`);
+        } else {
+          setError(`Failed to load problem: ${problemId}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProblem();
   }, [problemId]);
 
-  // ── Handle submission ───────────────────────────────────────────────────────
   const handleSubmit = async (code, langId, testResults) => {
     if (!user?.uid) return { passed: false };
 
-    const passed      = testResults.filter(r => r.passed).length;
-    const total       = testResults.length;
-    const allPassed   = passed === total && total > 0;
+    const passed = testResults.filter(r => r.passed).length;
+    const total = testResults.length;
+    const allPassed = passed === total && total > 0;
 
     try {
-      const res = await axios.post(`${API_BASE}/problems/${problemId}/submit`, {
-        userId:      user.uid,
+      const safeId = encodeURIComponent(problemId);
+
+      const res = await axios.post(`${API_BASE}/problems/${safeId}/submit`, {
+        userId: user.uid,
         code,
-        language:    langId,
+        language: langId,
         passed,
         total,
         allPassed,
         testResults: testResults.map(r => ({
-          label:   r.label || '',
-          passed:  r.passed,
-          time:    r.time   || null,
-          memory:  r.memory || null,
+          label: r.label || '',
+          passed: r.passed,
+          time: r.time || null,
+          memory: r.memory || null,
         })),
       });
 
       const data = res.data || {};
 
-      // Update local userData with new XP/credits
       if (data.newXp !== undefined && typeof setUserData === 'function') {
         setUserData(prev => ({
           ...prev,
-          xp:      data.newXp,
+          xp: data.newXp,
           credits: data.newCredits,
-          level:   data.newLevel,
+          level: data.newLevel,
         }));
       }
 
       return {
-        passed:       allPassed,
-        passedCount:  passed,
+        passed: allPassed,
+        passedCount: passed,
         total,
-        xp:           data.xpAwarded      || 0,
-        credits:      data.creditsAwarded  || 0,
-        newXp:        data.newXp,
-        newLevel:     data.newLevel,
+        xp: data.xpAwarded || 0,
+        credits: data.creditsAwarded || 0,
+        newXp: data.newXp,
+        newLevel: data.newLevel,
       };
     } catch (err) {
-      console.error('Submit error:', err);
-      // Still return local result even if backend fails
-      return { passed: allPassed, passedCount: passed, total, xp: 0, credits: 0 };
+      console.error('Submit error:', err.response?.data || err.message);
+      return {
+        passed: allPassed,
+        passedCount: passed,
+        total,
+        xp: 0,
+        credits: 0,
+      };
     }
   };
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  const goBack = () => {
+    if (problemId?.startsWith('roadmap-')) {
+      navigate('/roadmap');
+    } else {
+      navigate('/odyssey');
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
-        minHeight:      '100vh',
-        background:     '#0a0a14',
-        display:        'flex',
-        alignItems:     'center',
+        minHeight: '100vh',
+        background: '#0a0a14',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        color:          '#555',
-        fontFamily:     'Arial, sans-serif',
-        flexDirection:  'column',
-        gap:            16,
+        color: '#555',
+        fontFamily: 'Arial, sans-serif',
+        flexDirection: 'column',
+        gap: 16,
       }}>
         <div style={{
-          width:        32, height: 32,
-          border:       '3px solid #1e2a3a',
-          borderTop:    '3px solid #22d3ee',
+          width: 32,
+          height: 32,
+          border: '3px solid #1e2a3a',
+          borderTop: '3px solid #22d3ee',
           borderRadius: '50%',
-          animation:    'spin 0.8s linear infinite',
+          animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <span style={{ fontSize: 14 }}>Loading problem...</span>
@@ -109,42 +152,50 @@ export default function ProblemSolver({ user, userData, setUserData }) {
     );
   }
 
-  // ── Error ───────────────────────────────────────────────────────────────────
   if (error || !problem) {
     return (
       <div style={{
-        minHeight:      '100vh',
-        background:     '#0a0a14',
-        display:        'flex',
-        alignItems:     'center',
+        minHeight: '100vh',
+        background: '#0a0a14',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        color:          '#ff6b6b',
-        fontFamily:     'Arial, sans-serif',
-        flexDirection:  'column',
-        gap:            16,
+        color: '#ff6b6b',
+        fontFamily: 'Arial, sans-serif',
+        flexDirection: 'column',
+        gap: 16,
+        padding: 24,
+        textAlign: 'center',
       }}>
-        <div style={{ fontSize: 32 }}>⚠️</div>
-        <div style={{ fontSize: 15 }}>{error || 'Problem not found.'}</div>
+        <div style={{ fontSize: 36 }}>⚠️</div>
+
+        <div style={{ fontSize: 16, fontWeight: 700 }}>
+          {error || 'Problem not found.'}
+        </div>
+
+        <div style={{ color: '#777', fontSize: 12, maxWidth: 520 }}>
+          Open DevTools → Console. This updated file now prints the exact backend status and response.
+        </div>
+
         <button
-          onClick={() => navigate('/hub')}
+          onClick={goBack}
           style={{
-            background:   'transparent',
-            border:       '1px solid #ff4d4d44',
+            background: 'transparent',
+            border: '1px solid #ff4d4d44',
             borderRadius: 10,
-            color:        '#ff6b6b',
-            cursor:       'pointer',
-            fontSize:     13,
-            padding:      '8px 20px',
-            marginTop:    8,
+            color: '#ff6b6b',
+            cursor: 'pointer',
+            fontSize: 13,
+            padding: '8px 20px',
+            marginTop: 8,
           }}
         >
-          ← Back to Hub
+          ← Go Back
         </button>
       </div>
     );
   }
 
-  // ── Render editor ───────────────────────────────────────────────────────────
   return (
     <CodeEditor
       problem={problem}
