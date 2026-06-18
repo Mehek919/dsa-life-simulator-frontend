@@ -504,8 +504,19 @@ export default function Roadmap({ user, userData }) {
     { key: 'bookmarks', label: '🔖 Bookmarks' },
   ];
 
+  // ── Loading spinner shown inline while data fetches ──────────────────────
   if (loading) {
     return (
+      <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'Arial, sans-serif' }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+          style={{ width: 36, height: 36, border: '3px solid #1e2a3a', borderTop: '3px solid #1a73e8', borderRadius: '50%' }} />
+        <div style={{ color: '#555', fontSize: 13 }}>Loading your roadmap...</div>
+      </div>
+    );
+  }
+
+  // ── Main render (always shown once data is loaded) ──────────────────────────
+  return (
       <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
           <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
@@ -654,9 +665,5 @@ export default function Roadmap({ user, userData }) {
           )}
         </AnimatePresence>
       </div>
-    );
-  }
-
-  // Fallback render when not loading. Implement the main roadmap UI here as needed.
-  return null;
+  );
 }
