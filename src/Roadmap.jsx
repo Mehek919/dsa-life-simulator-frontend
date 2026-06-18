@@ -296,21 +296,23 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
           Problems ({track.problems.length})
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {track.problems.map((slug, i) => {
+          {track.problems.map((p, i) => {
             // solvedProblems is a map not array — check by key
             const solvedMap = userProgress?.solvedProblems || {};
             const isSolved  = !!(solvedMap[slug]);
             return (
               <div
                 key={slug}
-                onClick={() => { navigate(`/solve/${p.id}`); onClose(); }}
+                onClick={() => { navigate(`/solve/${p.id}`)}}
+                >
+                  {p.title}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: isSolved ? '#00c89608' : '#060910',
                   border: `1px solid ${isSolved ? '#00c89633' : '#1e2a3a'}`,
                   borderRadius: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.2s',
                 }}
-              >
+              
                 <div style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                   background: isSolved ? '#00c89622' : '#1e2a3a',
