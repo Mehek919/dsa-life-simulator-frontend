@@ -808,5 +808,5 @@ export default function Roadmap({ user, userData }) {
           )}
         </AnimatePresence>
       </div>
-  )
+ )
 }
