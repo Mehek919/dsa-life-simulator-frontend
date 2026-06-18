@@ -22,19 +22,26 @@ const EVENT_META = {
 };
 
 const ZONES = [
-  { id: 'game',        label: '🎮 Odyssey',     path: '/game',        desc: '150 FAANG problems',  color: 'from-cyan-600 to-blue-600',     glow: '#06b6d4', badge: null             },
-  { id: 'arena',       label: '⚔️ Arena',        path: '/arena',       desc: '1v1 PvP battles',     color: 'from-red-600 to-orange-500',    glow: '#ef4444', badge: null             },
-  { id: 'contest',     label: '🏆 Contest',      path: '/contest',     desc: 'Weekly competitions', color: 'from-yellow-500 to-amber-500',  glow: '#f59e0b', badge: null             },
-  { id: 'lab',         label: '🧪 Lab',          path: '/lab',         desc: 'Daily challenges',    color: 'from-blue-600 to-cyan-500',     glow: '#22d3ee', badge: 'dailyChallenges' },
-  { id: 'hub',         label: '🏢 Hub',          path: '/hub',         desc: 'Community',           color: 'from-purple-600 to-pink-500',   glow: '#a855f7', badge: 'hubChallenges'  },
-  { id: 'submissions', label: '📋 Submissions',  path: '/submissions', desc: 'Your history',        color: 'from-slate-600 to-slate-500',   glow: '#64748b', badge: null             },
-  { id: 'office',      label: '🏛️ Office',       path: '/office',      desc: 'Stats & schedule',    color: 'from-green-600 to-teal-500',    glow: '#10b981', badge: null             },
-  { id: 'story',       label: '📖 Story',        path: '/story',       desc: 'Your AI life story',  color: 'from-yellow-500 to-amber-400',  glow: '#f59e0b', badge: null             },
-  { id: 'profile',     label: '👤 Profile',      path: '/profile',     desc: 'Your stats & role',   color: 'from-orange-500 to-pink-500',   glow: '#f97316', badge: null             },
-  { id: 'company',     label: '🔍👤 HR Portal',    path: '/company',     desc: 'Hire developers',     color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null             },
-  { id: 'visualizer',  label: '🔬 Visualizer',   path: '/visualizer',  desc: 'Algo animations',     color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null             },
-  { id: 'leaderboard', label: '📊 Rankings',     path: '/leaderboard', desc: 'Global leaderboard',  color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null             },
-  { id: 'roadmap', label: '🗺️ Roadmap', path: '/roadmap', desc: 'Learning paths', color: 'from-emerald-600 to-teal-500', glow: '#10b981', badge: null },
+  // Row 1 — Core gameplay
+  { id: 'game',          label: '🎮 Odyssey',      path: '/game',             desc: 'FAANG + Enterprise problems', color: 'from-cyan-600 to-blue-600',     glow: '#06b6d4', badge: null              },
+  { id: 'arena',         label: '⚔️ Arena',          path: '/arena',            desc: '1v1 PvP battles',             color: 'from-red-600 to-orange-500',    glow: '#ef4444', badge: null              },
+  { id: 'contest',       label: '🏆 Contest',        path: '/contest',          desc: 'Weekly competitions',         color: 'from-yellow-500 to-amber-500',  glow: '#f59e0b', badge: null              },
+  { id: 'lab',           label: '🧪 Lab',            path: '/lab',              desc: 'Daily challenges',            color: 'from-blue-600 to-cyan-500',     glow: '#22d3ee', badge: 'dailyChallenges'  },
+  // Row 2 — Community + Tools
+  { id: 'hub',           label: '🏢 Hub',            path: '/hub',              desc: 'Community problems',          color: 'from-purple-600 to-pink-500',   glow: '#a855f7', badge: 'hubChallenges'   },
+  { id: 'roadmap',       label: '🗺️ Roadmap',        path: '/roadmap',          desc: 'Learning paths',              color: 'from-emerald-600 to-teal-500',  glow: '#10b981', badge: null              },
+  { id: 'mock-interview',label: '🎤 Mock Interview', path: '/mock-interview',   desc: 'AI interviews',               color: 'from-indigo-600 to-violet-500', glow: '#6366f1', badge: null              },
+  { id: 'submissions',   label: '📋 Submissions',    path: '/submissions',      desc: 'Your history',                color: 'from-slate-600 to-slate-500',   glow: '#64748b', badge: null              },
+  // Row 3 — Profile + Career
+  { id: 'office',        label: '🏛️ Office',         path: '/office',           desc: 'Stats & schedule',            color: 'from-green-600 to-teal-500',    glow: '#10b981', badge: null              },
+  { id: 'story',         label: '📖 Story',          path: '/story',            desc: 'Your AI life story',          color: 'from-yellow-500 to-amber-400',  glow: '#f59e0b', badge: null              },
+  { id: 'profile',       label: '👤 Profile',        path: '/profile',          desc: 'Your stats & role',           color: 'from-orange-500 to-pink-500',   glow: '#f97316', badge: null              },
+  { id: 'leaderboard',   label: '📊 Rankings',       path: '/leaderboard',      desc: 'Global leaderboard',          color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null              },
+  // Row 4 — Enterprise
+  { id: 'company',       label: '🏢 HR Portal',      path: '/company',          desc: 'Hire developers',             color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null              },
+  { id: 'visualizer',    label: '🔬 Visualizer',     path: '/visualizer',       desc: 'Algo animations',             color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null              },
+  { id: 'enterprise',    label: '🏢 Enterprise',     path: '/game',             desc: 'MS·Oracle·SF·Adobe·Broadcom', color: 'from-purple-700 to-violet-600', glow: '#a855f7', badge: null,  extra: { district: 4 } },
+  { id: 'assessment',    label: '📝 Assessment',     path: '/Assessment/demo',  desc: 'Proctored company tests',     color: 'from-rose-600 to-red-500',      glow: '#f43f5e', badge: null              },
 ];
 function timeAgo(ts) {
   if (!ts) return '';
@@ -308,9 +315,10 @@ export default function World({ user, userData, onLogout }) {
   const unreadCount = feedPreview.filter(ev => !readIds.has(ev.id)).length;
 
   // Responsive grid — split zones into rows
-  const topZones    = ZONES.slice(0, 4);   // Odyssey, Arena, Contest, Lab
-  const middleZones = ZONES.slice(4, 8);   // Hub, Submissions, Office, Story
-  const bottomZones = ZONES.slice(8);      // Profile, HR Portal, Visualizer, Rankings
+  const topZones        = ZONES.slice(0,  4);   // Row 1: Odyssey, Arena, Contest, Lab
+  const middleZones     = ZONES.slice(4,  8);   // Row 2: Hub, Roadmap, Mock Interview, Submissions
+  const bottomZones     = ZONES.slice(8,  12);  // Row 3: Office, Story, Profile, Rankings
+  const enterpriseZones = ZONES.slice(12, 16);  // Row 4: HR Portal, Visualizer, Enterprise, Assessment
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -415,8 +423,20 @@ export default function World({ user, userData, onLogout }) {
         </div>
 
         {/* Row 3 — 4 zones */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-4">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
           {bottomZones.map(zone => (
+            <ZoneCard
+              key={zone.id}
+              zone={zone}
+              badgeCount={zone.badge ? (badgeMap[zone.badge] ?? 0) : 0}
+              onClick={() => navigate(zone.path)}
+            />
+          ))}
+        </div>
+
+        {/* Row 4 — Enterprise + Assessment zones */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-4">
+          {enterpriseZones.map(zone => (
             <ZoneCard
               key={zone.id}
               zone={zone}
@@ -491,6 +511,5 @@ export default function World({ user, userData, onLogout }) {
     </div>
   );
 }
-
 
 

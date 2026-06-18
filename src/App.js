@@ -43,11 +43,22 @@ const WeeklyContest     = lazy(() => import('./WeeklyContest'));
 const AssessmentPortal  = lazy(() => import('./AssessmentPortal'));
 const CompanyDashboard  = lazy(() => import('./CompanyDashboard'));
 const MockInterview = lazy(() => import('./Mockinterview'));
-const WebcamMonitor = lazy(() => import('./WebcamMonitor'));
+const WebcamMonitor   = lazy(() => import('./WebcamMonitor'));
+const SkillsProfile   = lazy(() => import('./SkillsProfile').catch(() => ({ default: () => <ComingSoon name="Skills Profile" /> })));
+const LazySkillsProfile = SkillsProfile;
 // ─── Safe Analytics Logger ────────────────────────────────────────────────────
 const safeLog = (eventName, params) => {
   if (analytics) logEvent(analytics, eventName, params);
 };
+
+// ─── Coming Soon Placeholder ─────────────────────────────────────────────────────
+const ComingSoon = ({ name = 'Feature' }) => (
+  <div style={{ minHeight: '100vh', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'Arial, sans-serif', color: '#e8e8e8' }}>
+    <div style={{ fontSize: 48 }}>🚧</div>
+    <h2 style={{ margin: 0, color: '#a855f7' }}>{name}</h2>
+    <p style={{ color: '#555', margin: 0 }}>Coming soon — check back soon!</p>
+  </div>
+);
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
 class ErrorBoundary extends React.Component {
@@ -422,6 +433,9 @@ const AppShell = () => {
           />
         
 
+          {/* ── Protected: Skills Profile ── */}
+          <Route path="/skills" element={<Guard user={user}><LazySkillsProfile user={user} userData={userData} /></Guard>} />
+
           {/* ── Catch-all ── */}
           <Route
             path="*"
@@ -430,7 +444,9 @@ const AppShell = () => {
           <Route path="/submissions" element={<Guard user={user}><SubmissionHistory user={user} userData={userData} /></Guard>} />
           <Route path="/contest"     element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
           <Route path="/contest/:contestId" element={<Guard user={user}><WeeklyContest user={user} userData={userData} setUserData={setUserData} /></Guard>} />
-          <Route path="/Assessment/:AssessmentId" element={<AssessmentPortal user={user} userData={userData} setUserData={setUserData} />} />
+          {/* Assessment Portal — both cases for URL safety */}
+          <Route path="/Assessment/:assessmentId" element={<Guard user={user}><AssessmentPortal user={user} userData={userData} setUserData={setUserData} /></Guard>} />
+          <Route path="/assessment-portal/:assessmentId" element={<Guard user={user}><AssessmentPortal user={user} userData={userData} setUserData={setUserData} /></Guard>} />
           <Route path="/company" element={<Guard user={user}><CompanyDashboard user={user} /></Guard>} />
         </Routes>
       </Suspense>
