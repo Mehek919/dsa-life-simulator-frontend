@@ -209,7 +209,15 @@ const AppShell = () => {
                 : <Login onLogin={handleLogin} />
             }
           />
-
+          <Route
+           path="/mock-interview"
+           element={
+            <Guard user={user}>
+             <MockInterview user={user} userData={userData} setUserData={setUserData} />
+            </Guard>
+           }
+         />
+         
           {/* ── Onboarding ── */}
           <Route
             path="/onboarding"
@@ -250,6 +258,16 @@ const AppShell = () => {
                 <Office user={user} userData={userData} />
               </OnboardingGuard>
             }
+          />
+          <Route
+           path="/webcam-test"
+           element={
+            <Guard user={user}>
+             <Suspense fallback={<PageLoader />}>
+              <WebcamMonitor assessmentId="test-assessment" userId={user?.uid} enabled={true} />
+             </Suspense>
+            </Guard>
+           }
           />
 
           {/* ── Protected: Profile ── */}
@@ -395,13 +413,14 @@ const AppShell = () => {
           <Route
             path="/roadmap/solve/:id"
             element={
-           <Roadmap
-             user={user}
-             userData={userData}
-             setUserData={setUserData}
-           />
-          }
-        />
+              <Roadmap
+                user={user}
+                userData={userData}
+                setUserData={setUserData}
+              />
+            }
+          />
+        
 
           {/* ── Catch-all ── */}
           <Route
