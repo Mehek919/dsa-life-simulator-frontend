@@ -585,16 +585,42 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
 
   // ── Load problem + previous attempt count ────────────────────────────────
   useEffect(() => {
-    if (!problemId || !user?.uid) return;
-    setLoading(true);
+  if (!problemId) {
+    setError('Problem ID missing.');
+    setLoading(false);
+    return;
+  }
 
-    Promise.all([
-      axios.get(`${API_BASE}/problems/${problemId}`),
-      getDoc(doc(db, 'userProblemAttempts', `${user.uid}_${problemId}`)),
-    ])
-      .then(([probRes, attDoc]) => {
-        if (probRes.data?.problem) setProblem(probRes.data.problem);
-        else setError('Problem not found.');
+  if (!user?.uid) {
+    setError('Please login first.');
+    setLoading(false);
+    return;
+  }
+
+  let alive = true;
+
+  const loadProblem = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const probRes = await axios.get(`${API_BASE}/problems/${problemId}`);
+
+      if (!alive) return;
+
+      if (probRes.data?.problem) {
+        setProblem(probRes.data.problem);
+      } else {
+        setError('Problem not found.');
+        setProblem(null);
+      }
+
+      try {
+        const attDoc = await getDoc(
+          doc(db, 'userProblemAttempts', `${user.uid}_${problemId}`)
+        );
+
+        if (!alive) return;
 
         if (attDoc.exists()) {
           const data = attDoc.data();
@@ -604,9 +630,30 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
           setAttemptNumber(1);
           setAllAttempts([]);
         }
-      })
-      .catch(() => setError('Failed to load problem.'))
-      .finally(() => setLoading(false));
+      } catch (attemptErr) {
+        console.warn('Attempt fetch failed:', attemptErr);
+        setAttemptNumber(1);
+        setAllAttempts([]);
+      }
+    } catch (err) {
+      console.error('Problem fetch failed:', err);
+      if (!alive) return;
+      setProblem(null);
+      setError(
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to load problem.'
+      );
+    } finally {
+      if (alive) setLoading(false);
+    }
+  };
+
+  loadProblem();
+
+   return () => {
+    alive = false;
+   };
   }, [problemId, user?.uid]);
 
   // ── Submit handler ────────────────────────────────────────────────────────
