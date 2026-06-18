@@ -298,7 +298,7 @@ function TrackDetail({ track, userProgress, onClose, onSolveProblem }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {track.problems.map((slug, i) => {
             // solvedProblems is a map not array — check by key
-            const solvedMap = userData?.solvedProblems || {};
+            const solvedMap = userProgress?.solvedProblems || {};
             const isSolved  = !!(solvedMap[slug]);
             return (
               <div
