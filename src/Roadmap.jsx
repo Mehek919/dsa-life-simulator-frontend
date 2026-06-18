@@ -457,43 +457,32 @@ export default function Roadmap({ user, userData }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.uid) {
+    const loadData = async () => {
+      const [certRes, bookRes] = await Promise.allSettled([
+        axios.get(`${API_BASE}/certificates/${user.uid}`),
+        axios.get(`${API_BASE}/bookmarks/${user.uid}`)
+      ]);
+
+      const certData = certRes.status === 'fulfilled'
+        ? certRes.value.data
+        : {};
+
+      const bookData = bookRes.status === 'fulfilled'
+        ? bookRes.value.data
+        : {};
+
+      setCertificates(certData.certificates || []);
+      setBookmarks(bookData.bookmarks || []);
       setLoading(false);
-      return;
-    }
+    };
 
-    Promise.allSettled([
-      axios.get(`${API_BASE}/certificates/${user.uid}`),
-      axios.get(`${API_BASE}/bookmarks/${user.uid}`)
-    ]).then(([certRes, bookRes]) => {
-    const certData =
-    certRes.status === 'fulfilled'
-      ? certRes.value.data
-      : {};
-
-    const bookData =
-    bookRes.status === 'fulfilled'
-      ? bookRes.value.data
-      : {};
-
-        setCertificates(certData.certificates || []);
-        setBookmarks(bookData.bookmarks || []);
-      });
-      then(([certRes, bookRes]) => {
-        const certData = certRes.value?.data || {};
-        const bookData = bookRes.value?.data || {};
-
-        setCertificates(certData.certificates || []);
-        setAllCerts(certData.all || {});
-        setBookmarks(bookData.bookmarks || []);
-      })
-      .finally(() => setLoading(false));
-  }, [user?.uid]);
+    loadData();
+  }, [user.uid]);
 
   const getTrackProgress = (track) => {
     const solvedMap = userData?.solvedProblems || {};
     const solved = track.problems.filter(p => solvedMap[p.id]).length;
-    const pct = Math.round((solved / track.problems.length) * 100);
+    const pct = Math.round((solved / track.problems.length) * 100) || 0;
     return { solved, pct };
   };
 
@@ -517,170 +506,157 @@ export default function Roadmap({ user, userData }) {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0a0a14',
-        color: '#777',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        Loading roadmap...
+      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
+          <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
+            <button
+              onClick={() => navigate('/world')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #1e2a3a',
+                borderRadius: 8,
+                color: '#555',
+                cursor: 'pointer',
+                fontSize: 12,
+                padding: '6px 14px',
+                marginBottom: 16,
+              }}
+            >
+              ← World
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+              <div style={{ fontSize: 40 }}>🗺️</div>
+              <div>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>Learning Roadmap</h1>
+                <p style={{ margin: '4px 0 0', color: '#555', fontSize: 13 }}>
+                  Master future-ready DSA in the right order.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: '#555', fontSize: 11 }}>Overall Progress</span>
+                  <span style={{ color: '#1a73e8', fontSize: 11, fontWeight: 700 }}>
+                    {roadmapSolved}/{ROADMAP_TOTAL} problems
+                  </span>
+                </div>
+
+                <div style={{ width: '100%', height: 6, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(roadmapSolved / ROADMAP_TOTAL) * 100}%` }}
+                    transition={{ duration: 1.2 }}
+                    style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #00c896, #1a73e8, #f59e0b)',
+                      borderRadius: 3,
+                    }} />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+            {TABS.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                style={{
+                  background: tab === t.key ? '#1a73e822' : 'transparent',
+                  border: `1px solid ${tab === t.key ? '#1a73e844' : '#1e2a3a'}`,
+                  borderRadius: 20,
+                  color: tab === t.key ? '#1a73e8' : '#555',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: tab === t.key ? 700 : 400,
+                  padding: '6px 16px',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'tracks' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+              {TRACKS.map((track, idx) => (
+                <TrackCard
+                  key={track.id}
+                  track={track}
+                  progress={getTrackProgress(track)}
+                  isLocked={!isUnlocked(track)}
+                  onStart={setSelected}
+                  idx={idx} />
+              ))}
+            </div>
+          )}
+
+          {tab === 'certificates' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+              {Object.entries(allCerts).map(([certId, cert]) => (
+                <CertificateCard key={certId} cert={cert} earned={earnedIds.has(certId)} />
+              ))}
+            </div>
+          )}
+
+          {tab === 'bookmarks' && (
+            <div>
+              {bookmarks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: '#333' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🔖</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#444', marginBottom: 6 }}>No bookmarks yet</div>
+                  <div style={{ fontSize: 13 }}>Bookmark problems to save them for later practice.</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {bookmarks.map((b, i) => (
+                    <motion.div
+                      key={b.id || i}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => navigate(`/solve/${b.problemId}`)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        background: '#0d1117',
+                        border: '1px solid #1e2a3a',
+                        borderRadius: 12,
+                        padding: '14px 18px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ fontSize: 18 }}>🔖</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 600 }}>
+                          {b.problemTitle || b.problemId}
+                        </div>
+                      </div>
+                      <span style={{ color: '#1a73e8', fontSize: 12 }}>Solve →</span>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {selected && (
+            <TrackDetail
+              track={selected}
+              userProgress={userData}
+              onClose={() => setSelected(null)} />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
-          <button
-            onClick={() => navigate('/world')}
-            style={{
-              background: 'transparent',
-              border: '1px solid #1e2a3a',
-              borderRadius: 8,
-              color: '#555',
-              cursor: 'pointer',
-              fontSize: 12,
-              padding: '6px 14px',
-              marginBottom: 16,
-            }}
-          >
-            ← World
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-            <div style={{ fontSize: 40 }}>🗺️</div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>Learning Roadmap</h1>
-              <p style={{ margin: '4px 0 0', color: '#555', fontSize: 13 }}>
-                Master future-ready DSA in the right order.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: '#555', fontSize: 11 }}>Overall Progress</span>
-                <span style={{ color: '#1a73e8', fontSize: 11, fontWeight: 700 }}>
-                  {roadmapSolved}/{ROADMAP_TOTAL} problems
-                </span>
-              </div>
-
-              <div style={{ width: '100%', height: 6, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(roadmapSolved / ROADMAP_TOTAL) * 100}%` }}
-                  transition={{ duration: 1.2 }}
-                  style={{
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #00c896, #1a73e8, #f59e0b)',
-                    borderRadius: 3,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                background: tab === t.key ? '#1a73e822' : 'transparent',
-                border: `1px solid ${tab === t.key ? '#1a73e844' : '#1e2a3a'}`,
-                borderRadius: 20,
-                color: tab === t.key ? '#1a73e8' : '#555',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: tab === t.key ? 700 : 400,
-                padding: '6px 16px',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'tracks' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {TRACKS.map((track, idx) => (
-              <TrackCard
-                key={track.id}
-                track={track}
-                progress={getTrackProgress(track)}
-                isLocked={!isUnlocked(track)}
-                onStart={setSelected}
-                idx={idx}
-              />
-            ))}
-          </div>
-        )}
-
-        {tab === 'certificates' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-            {Object.entries(allCerts).map(([certId, cert]) => (
-              <CertificateCard key={certId} cert={cert} earned={earnedIds.has(certId)} />
-            ))}
-          </div>
-        )}
-
-        {tab === 'bookmarks' && (
-          <div>
-            {bookmarks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: '#333' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🔖</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#444', marginBottom: 6 }}>No bookmarks yet</div>
-                <div style={{ fontSize: 13 }}>Bookmark problems to save them for later practice.</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {bookmarks.map((b, i) => (
-                  <motion.div
-                    key={b.id || i}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => navigate(`/solve/${b.problemId}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      background: '#0d1117',
-                      border: '1px solid #1e2a3a',
-                      borderRadius: 12,
-                      padding: '14px 18px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span style={{ fontSize: 18 }}>🔖</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 600 }}>
-                        {b.problemTitle || b.problemId}
-                      </div>
-                    </div>
-                    <span style={{ color: '#1a73e8', fontSize: 12 }}>Solve →</span>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {selected && (
-          <TrackDetail
-            track={selected}
-            userProgress={userData}
-            onClose={() => setSelected(null)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
+  // Fallback render when not loading. Implement the main roadmap UI here as needed.
+  return null;
 }
