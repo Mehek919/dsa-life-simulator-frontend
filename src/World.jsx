@@ -326,13 +326,24 @@ export default function World({ user, userData, onLogout }) {
 
       {/* ── HUD Top Bar ── */}
       <div className="relative z-10 flex items-center justify-between px-3 sm:px-4 pt-3 pb-2 gap-2 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-sm sm:text-lg font-bold text-cyan-400 tracking-widest">
-            DSA LIFE SIMULATOR
-          </h1>
-          <p className="text-[10px] text-gray-500 truncate">
-            {user?.displayName || 'Developer'} · Lv.{xpLevel} {LEVEL_NAMES[xpLevel]} · {userData?.elo ?? 1000} ELO
-          </p>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button
+            onClick={() => navigate('/profile')}
+            title="Profile"
+            className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-orange-500 to-pink-500
+                       border border-white/20 hover:border-white/40 flex items-center justify-center
+                       text-sm sm:text-base shadow-[0_0_12px_rgba(249,115,22,0.3)] transition-all"
+          >
+            👤
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm sm:text-lg font-bold text-cyan-400 tracking-widest">
+              DSA LIFE SIMULATOR
+            </h1>
+            <p className="text-[10px] text-gray-500 truncate">
+              {user?.displayName || 'Developer'} · Lv.{xpLevel} {LEVEL_NAMES[xpLevel]} · {userData?.elo ?? 1000} ELO
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="bg-white/10 px-2 py-1 rounded-lg text-xs whitespace-nowrap">

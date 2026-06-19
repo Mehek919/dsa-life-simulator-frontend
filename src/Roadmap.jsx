@@ -236,8 +236,21 @@ const TRACKS = [
     skills: ['Recursion', 'Pruning', 'State Search', 'Trie + DFS'],
   },
 ];
+const getUniqueProblems = () => {
+  const map = new Map();
 
-const ROADMAP_TOTAL = TRACKS.reduce((sum, t) => sum + t.problems.length, 0);
+  TRACKS.forEach(track => {
+    track.problems.forEach(problem => {
+      if (!problem.comingSoon) {
+        map.set(problem.id, problem);
+      }
+    });
+  });
+
+  return Array.from(map.values());
+};
+
+const ROADMAP_TOTAL = getUniqueProblems().length;
 
 function ProgressRing({ pct, color, size = 44 }) {
   const r = (size - 5) / 2;
@@ -631,12 +644,10 @@ export default function Roadmap({ user, userData }) {
     const reqProgress = getTrackProgress(reqTrack);
     return reqProgress.solved >= 1;
   };
-
-  const roadmapSolved = TRACKS
-    .flatMap(t => t.problems)
-    .filter(p => !p.comingSoon && userData?.solvedProblems?.[p.id])
-    .length;
-  const ROADMAP_REAL_TOTAL = TRACKS.flatMap(t => t.problems).filter(p => !p.comingSoon).length;
+  const roadmapSolved = getUniqueProblems()
+   .filter(p => userData?.solvedProblems?.[p.id])
+   .length;
+  const ROADMAP_REAL_TOTAL = getUniqueProblems().length;
   const earnedIds = new Set(certificates.map(c => c.certId));
 
   const TABS = [
