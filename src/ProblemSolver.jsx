@@ -4,7 +4,7 @@ import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
 
-export default function ProblemSolver({ user, userData, setUserData }) {
+export default function ProblemSolver({ user, userData, setUserData, mode = "odyssey", }) {
   const { problemId } = useParams();
   const navigate = useNavigate();
 

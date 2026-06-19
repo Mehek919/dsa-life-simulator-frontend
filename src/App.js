@@ -421,16 +421,16 @@ const AppShell = () => {
               </Guard>
             }
           />
-          <Route
-            path="/roadmap/solve/:id"
-            element={
-              <Roadmap
-                user={user}
-                userData={userData}
-                setUserData={setUserData}
-              />
-            }
-          />
+          <Route path="/roadmap-solve/:problemId"
+           element={
+            <ProblemSolver
+             user={user}
+             userData={userData}
+             setUserData={setUserData}
+             mode="roadmap"
+            />
+           }
+         />
         
 
           {/* ── Protected: Skills Profile ── */}
