@@ -355,7 +355,12 @@ export default function GameMap({ user, userData }) {
     setError('');
     try {
       const [probRes, progRes] = await Promise.all([
-        axios.get(`${API_BASE}/problems`, { params: { limit: 500 } }),
+        axios.get(`${API_BASE}/problems`, {
+          params: {
+           limit: 500,
+           source: 'odyssey'
+          }
+        }),
         axios.get(`${API_BASE}/problems/progress/${user.uid}`)
           .catch(() => ({ data: { progress: {} } })),
       ]);
@@ -368,8 +373,16 @@ export default function GameMap({ user, userData }) {
         orderInChapter: Number(p.orderInChapter || 0),
         xpReward:       Number(p.xpReward       || 100),
         creditReward:   Number(p.creditReward   || 20),
-      })).filter(p => p.chapter >= 1 && p.chapter <= 28 && p.district >= 1);
-
+      })).filter(p =>
+        p.chapter >= 1 &&
+        p.chapter <= 28 &&
+        p.district >= 1 &&
+        p.problemType !== 'roadmap' &&
+        p.source !== 'roadmap' &&
+        p.isRoadmap !== true &&
+        p.roadmap !== true &&
+        p.excludeFromOdyssey !== true
+      );
       setProblems(all);
       setUserProgress(progRes.data?.progress || {});
 
