@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 const p = (slug, title, coming = false) => ({
-  id: slug.startsWith('roadmap-') ? slug : `roadmap-${slug}`,
-  originalId: slug,
+  id: slug,
   title,
   comingSoon: coming,
 });
