@@ -26,7 +26,12 @@ export default function ProblemSolver({ user, userData, setUserData, mode = "ody
 
       try {
         const safeId = encodeURIComponent(problemId);
-        const res = await axios.get(`${API_BASE}/problems/${safeId}`);
+        const endpoint =
+          mode === "roadmap"
+            ? `${API_BASE}/roadmap-problems/${safeId}`
+            : `${API_BASE}/problems/${safeId}`;
+
+        const res = await axios.get(endpoint);
 
         if (res.data?.problem) {
           setProblem(res.data.problem);
