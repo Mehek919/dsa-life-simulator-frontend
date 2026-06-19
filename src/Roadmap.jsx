@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
-
-// ── Real problem slugs mapped to each track ────────────────────────────────
-const p = (slug, title, coming = false) => ({ id: slug, title, comingSoon: coming });
+const p = (slug, title, coming = false) => ({
+  id: slug.startsWith('roadmap-') ? slug : `roadmap-${slug}`,
+  originalId: slug,
+  title,
+  comingSoon: coming,
+});
 
 const TRACKS = [
   {
@@ -488,7 +491,7 @@ function TrackDetail({ track, userProgress, onClose }) {
 
             const handleClick = () => {
               if (isComingSoon) return;
-              navigate(`/solve/${p.id}`);
+              navigate(`/roadmap-solve/${p.id}`);
             };
 
             return (

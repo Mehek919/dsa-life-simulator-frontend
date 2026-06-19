@@ -40,9 +40,8 @@ const ZONES = [
   // Row 4 — Enterprise
   { id: 'company',       label: '🏢 HR Portal',      path: '/company',          desc: 'Hire developers',             color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null              },
   { id: 'visualizer',    label: '🔬 Visualizer',     path: '/visualizer',       desc: 'Algo animations',             color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null              },
-  { id: 'enterprise',    label: '🏢 Enterprise',     path: '/game',             desc: 'MS·Oracle·SF·Adobe·Broadcom', color: 'from-purple-700 to-violet-600', glow: '#a855f7', badge: null,  extra: { district: 4 } },
-  { id: 'assessment',    label: '📝 Assessment',     path: '/Assessment/demo',  desc: 'Proctored company tests',     color: 'from-rose-600 to-red-500',      glow: '#f43f5e', badge: null              },
 ];
+
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
@@ -318,7 +317,7 @@ export default function World({ user, userData, onLogout }) {
   const topZones        = ZONES.slice(0,  4);   // Row 1: Odyssey, Arena, Contest, Lab
   const middleZones     = ZONES.slice(4,  8);   // Row 2: Hub, Roadmap, Mock Interview, Submissions
   const bottomZones     = ZONES.slice(8,  12);  // Row 3: Office, Story, Profile, Rankings
-  const enterpriseZones = ZONES.slice(12, 16);  // Row 4: HR Portal, Visualizer, Enterprise, Assessment
+  const enterpriseZones = ZONES.slice(12, 14);  // Row 4: HR Portal, Visualizer
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -434,8 +433,8 @@ export default function World({ user, userData, onLogout }) {
           ))}
         </div>
 
-        {/* Row 4 — Enterprise + Assessment zones */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-4">
+        {/* Row 4 — Enterprise */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
           {enterpriseZones.map(zone => (
             <ZoneCard
               key={zone.id}
@@ -511,5 +510,4 @@ export default function World({ user, userData, onLogout }) {
     </div>
   );
 }
-
 
