@@ -21,6 +21,7 @@ import API_BASE from './config';
 import InstallBanner  from './components/InstallBanner';
 import MobileNav      from './components/MobileNav';
 import FeedbackButton from './FeedbackButton';
+import ProblemSolver from './ProblemSolver';
 const Roadmap = lazy(() => import('./Roadmap').catch(() => ({ default: () => <div>Coming soon</div> })));
 const Login                  = lazy(() => import('./Login'));
 const World                  = lazy(() => import('./World'));
