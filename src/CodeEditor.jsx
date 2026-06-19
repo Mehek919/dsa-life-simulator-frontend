@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const JUDGE0_URL  = 'https://judge0-ce.p.rapidapi.com';
 const JUDGE0_KEY  = process.env.REACT_APP_JUDGE0_KEY || '';
 const JUDGE0_HOST = 'judge0-ce.p.rapidapi.com';
-const [showSolution, setShowSolution] = useState(false);
 // Judge0 language IDs — https://ce.judge0.com/languages/
 // ── Language configs ───────────────────────────────────────────────────────────
 const LANGUAGES = [
@@ -41,7 +40,6 @@ const LANGUAGES = [
   { id: 'fortran',    label: 'Fortran',        judge0Id: 59,  ext: 'f90'   },
   { id: 'cobol',      label: 'COBOL',          judge0Id: 77,  ext: 'cob'   },
 ];
-
 // ── Starter templates ─────────────────────────────────────────────────────────
 const STARTER = {
   python3: `def solution(nums):
