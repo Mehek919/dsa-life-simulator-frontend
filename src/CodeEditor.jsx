@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 // ── Judge0 config ──────────────────────────────────────────────────────────────
 const JUDGE0_URL  = 'https://judge0-ce.p.rapidapi.com';
 const JUDGE0_KEY  = process.env.REACT_APP_JUDGE0_KEY || '';
 const JUDGE0_HOST = 'judge0-ce.p.rapidapi.com';
-
+const [showSolution, setShowSolution] = useState(false);
 // Judge0 language IDs — https://ce.judge0.com/languages/
 // ── Language configs ───────────────────────────────────────────────────────────
 const LANGUAGES = [
@@ -760,6 +759,7 @@ export default function CodeEditor({
   const [activeOut,   setActiveOut]   = useState('output');
   const [toast,       setToast]       = useState(null);
   const [showHint,    setShowHint]    = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
   const [hintIdx,     setHintIdx]     = useState(0);
   const [leftW,       setLeftW]       = useState(40); // % width of problem panel
   const [splitV,      setSplitV]      = useState(60); // % height of editor
@@ -1177,6 +1177,21 @@ export default function CodeEditor({
             >
               🧪 Test
             </button>
+            <button
+              onClick={() => setShowSolution(true)}
+              style={{
+               background: '#a855f722',
+               border: '1px solid #a855f766',
+               borderRadius: 8,
+               color: '#c084fc',
+               cursor: 'pointer',
+               fontSize: 13,
+               fontWeight: 700,
+               padding: '7px 16px',
+              }}
+            >
+              📖 Solution
+            </button>
 
             {onSubmit && (
               <button
@@ -1266,7 +1281,93 @@ export default function CodeEditor({
             onTabChange={setActiveOut}
           />
         </div>
-      </div>
+        </div>
+       {showSolution && (
+        <div style={{
+         position: 'fixed',
+         inset: 0,
+         background: 'rgba(0,0,0,0.78)',
+         zIndex: 9999,
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         padding: 24,
+        }}>
+          <div style={{
+                background: '#0d1117',
+                border: '1px solid #a855f766',
+                borderRadius: 18,
+                padding: 24,
+                maxWidth: 760,
+                width: '100%',
+                maxHeight: '85vh',
+                overflow: 'auto',
+                color: '#e8e8e8',
+                boxShadow: '0 0 40px #a855f733',
+                }}>
+                  <button onClick={() => setShowSolution(false)}
+                   style={{
+                    float: 'right',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#888',
+                   fontSize: 24,
+                   cursor: 'pointer',
+                  }}
+                >
+                 ✕
+                </button>
+
+                <h2 style={{ color: '#c084fc', marginTop: 0 }}>
+                 📖 {problem?.solution?.title || 'Solution Explanation'}
+                </h2>
+
+                <p style={{ color: '#ccc', lineHeight: 1.8 }}>
+                 {problem?.solution?.explanation ||
+                 problem?.solution?.idea ||
+                 'This problem tried to look scary, but relax. It is just a normal DSA pattern wearing a dramatic hoodie.'}
+                </p>
+
+                <h3 style={{ color: '#22d3ee' }}>Approach</h3>
+                 <ul style={{ lineHeight: 1.8 }}>
+                 {(problem?.solution?.approach || [
+                  'Understand the input and output.',
+                  'Identify the correct DSA pattern.',
+                  'Apply the logic step by step.',
+                  'Return the answer like a calm engineer, not like production is burning.',
+                  ]).map((step, i) => (
+                   <li key={i}>{step}</li>
+                   ))}
+                 </ul>
+
+                <h3 style={{ color: '#00c896' }}>Code</h3>
+                  <pre style={{
+                   background: '#05070c',
+                   border: '1px solid #1e2a3a',
+                   borderRadius: 12,
+                   padding: 16,
+                   color: '#f8f8f2',
+                   overflow: 'auto',
+                   fontSize: 13,
+                   lineHeight: 1.6,
+                  }}>
+                 {problem?.solution?.code?.python3 ||
+                 problem?.solution?.code?.javascript ||
+                 problem?.solutionCode ||
+                 `def solution(nums):
+                  # The problem is pretending to be hard.
+                  # Apply the pattern and move on with confidence.
+                  return nums`}
+                 </pre>
+
+                <h3 style={{ color: '#f59e0b' }}>Complexity</h3>
+                <p style={{ lineHeight: 1.7 }}>
+                 Time: {problem?.solution?.complexity?.time || problem?.timeComplexity || 'O(n)'}<br />
+                 Space: {problem?.solution?.complexity?.space || problem?.spaceComplexity || 'O(n)'}
+                </p>
+                </div>
+              </div>
+            )}
 
       {/* ── Toast ── */}
       <AnimatePresence>
