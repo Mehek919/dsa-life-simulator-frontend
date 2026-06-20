@@ -38,8 +38,9 @@ const CHAPTERS = {
   14: { district: 4, company: 'Microsoft',  title: 'The Gates of Redmond',               badge: '🪟', color: '#00a4ef', problems: 15 },
   15: { district: 4, company: 'Microsoft',  title: 'The Azure Depths',                   badge: '☁️', color: '#00a4ef', problems: 15 },
   16: { district: 4, company: 'Microsoft',  title: 'The Redmond Boss Fight',             badge: '⚔️', color: '#00a4ef', problems: 5,  isBoss: true },
-  17: { district: 4, company: 'Oracle',     title: 'The Oracle Database Labyrinth',      badge: '🗄️', color: '#f80000', problems: 10 },
-  18: { district: 4, company: 'Oracle',     title: 'The Cloud SQL Catacombs',            badge: '☁️', color: '#f80000', problems: 10 },
+  17: { district: 4, company: 'Oracle', title: 'The Oracle Database Labyrinth', badge: '🗄️', color: '#f80000', problems: 15 },
+
+  18: { district: 4, company: 'Oracle', title: 'The Cloud SQL Catacombs', badge: '☁️', color: '#f80000', problems: 15 },
   19: { district: 4, company: 'Oracle',     title: "Larry's Boss Chamber",               badge: '⚔️', color: '#f80000', problems: 5,  isBoss: true },
   20: { district: 4, company: 'Salesforce', title: 'The Salesforce Tower',               badge: '☁️', color: '#00a1e0', problems: 10 },
   21: { district: 4, company: 'Salesforce', title: 'The CRM Colosseum',                  badge: '🏟️', color: '#00a1e0', problems: 10 },
