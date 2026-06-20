@@ -18,9 +18,9 @@ const DISTRICTS = {
 // CHAPTERS — source of truth for titles, colors, problem counts
 // ─────────────────────────────────────────────────────────────────────────────
 const CHAPTERS = {
-  1:  { district: 1, company: 'Google',    title: 'The Search Engine War',              badge: '🔍', color: '#4285f4', problems: 15 },
-  2:  { district: 1, company: 'Amazon',    title: 'The Fulfillment Crisis',             badge: '📦', color: '#ff9900', problems: 15 },
-  3:  { district: 1, company: 'Apple',     title: 'The Launch Day Panic',               badge: '🍎', color: '#a2aaad', problems: 20 },
+  1: { district: 1, company: 'Google', title: 'The Search Engine War', badge: '🔍', color: '#4285f4', problems: 20 },
+  2: { district: 1, company: 'Amazon', title: 'The Fulfillment Crisis', badge: '📦', color: '#ff9900', problems: 15 },
+  3: { district: 1, company: 'Apple', title: 'The Launch Day Panic', badge: '🍎', color: '#a2aaad', problems: 15 },
 
   4:  { district: 2, company: 'Meta',      title: 'The Algorithm That Broke Democracy', badge: '🌐', color: '#0081fb', problems: 15 },
   5:  { district: 2, company: 'Google',    title: 'The City That Disappeared',          badge: '🗺️', color: '#4285f4', problems: 15 },
