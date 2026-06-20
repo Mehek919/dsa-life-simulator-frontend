@@ -473,8 +473,9 @@ export default function GameMap({ user, userData }) {
   const selectedProblems    = selectedChapter
     ? problems.filter(p => p.chapter === Number(selectedChapter)).sort((a,b) => a.orderInChapter - b.orderInChapter)
     : [];
-
-  const totalAvailable = problems.length || Object.values(CHAPTERS).reduce((s,ch) => s + ch.problems, 0);
+  const FAANG_TOTAL = 150;
+  const ENTERPRISE_TOTAL = 145;
+  const totalAvailable = FAANG_TOTAL + ENTERPRISE_TOTAL; // 295
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
