@@ -96,7 +96,7 @@ function ProgressRing({ solved, total, color, size = 40 }) {
 function ChapterCard({ chapterId, chapter, progress, isLocked, onClick }) {
   const [hovered, setHovered] = useState(false);
   const solved     = progress?.solved || 0;
-  const total      = progress?.total  || chapter.problems || 0;
+  const total = chapter.problems || 0;
   const stars      = progress?.stars  || 0;
   const pct        = total > 0 ? (solved / total) * 100 : 0;
   const isComplete = total > 0 && solved >= total;
@@ -177,7 +177,10 @@ function DistrictSection({ districtId, district, chapters, progress, unlockedCha
     .sort(([a],[b]) => Number(a) - Number(b));
 
   const totalSolved = districtChapters.reduce((sum,[id]) => sum + (progress[id]?.solved || 0), 0);
-  const totalProbs  = districtChapters.reduce((sum,[id, ch]) => sum + (progress[id]?.total || ch.problems || 0), 0);
+  const totalProbs = districtChapters.reduce(
+  (sum, [, ch]) => sum + (ch.problems || 0),
+  0
+   );
 
   // District is unlocked if its first chapter is in the unlocked list
   const firstChapterId = Number(districtChapters[0]?.[0]);
