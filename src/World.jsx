@@ -32,10 +32,9 @@ const ZONES = [
   { id: 'roadmap',       label: '🗺️ Roadmap',        path: '/roadmap',          desc: 'Learning paths',              color: 'from-emerald-600 to-teal-500',  glow: '#10b981', badge: null              },
   { id: 'mock-interview',label: '🎤 Mock Interview', path: '/mock-interview',   desc: 'AI interviews',               color: 'from-indigo-600 to-violet-500', glow: '#6366f1', badge: null              },
   { id: 'submissions',   label: '📋 Submissions',    path: '/submissions',      desc: 'Your history',                color: 'from-slate-600 to-slate-500',   glow: '#64748b', badge: null              },
-  // Row 3 — Profile + Career
+  // Row 3 — Career
   { id: 'office',        label: '🏛️ Office',         path: '/office',           desc: 'Stats & schedule',            color: 'from-green-600 to-teal-500',    glow: '#10b981', badge: null              },
   { id: 'story',         label: '📖 Story',          path: '/story',            desc: 'Your AI life story',          color: 'from-yellow-500 to-amber-400',  glow: '#f59e0b', badge: null              },
-  { id: 'profile',       label: '👤 Profile',        path: '/profile',          desc: 'Your stats & role',           color: 'from-orange-500 to-pink-500',   glow: '#f97316', badge: null              },
   { id: 'leaderboard',   label: '📊 Rankings',       path: '/leaderboard',      desc: 'Global leaderboard',          color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null              },
   // Row 4 — Enterprise
   { id: 'company',       label: '🏢 HR Portal',      path: '/company',          desc: 'Hire developers',             color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null              },
@@ -316,8 +315,8 @@ export default function World({ user, userData, onLogout }) {
   // Responsive grid — split zones into rows
   const topZones        = ZONES.slice(0,  4);   // Row 1: Odyssey, Arena, Contest, Lab
   const middleZones     = ZONES.slice(4,  8);   // Row 2: Hub, Roadmap, Mock Interview, Submissions
-  const bottomZones     = ZONES.slice(8,  12);  // Row 3: Office, Story, Profile, Rankings
-  const enterpriseZones = ZONES.slice(12, 14);  // Row 4: HR Portal, Visualizer
+  const bottomZones     = ZONES.slice(8,  11);  // Row 3: Office, Story, Rankings
+  const enterpriseZones = ZONES.slice(11, 13);  // Row 4: HR Portal, Visualizer
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -432,8 +431,8 @@ export default function World({ user, userData, onLogout }) {
           ))}
         </div>
 
-        {/* Row 3 — 4 zones */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* Row 3 — 3 zones */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
           {bottomZones.map(zone => (
             <ZoneCard
               key={zone.id}
