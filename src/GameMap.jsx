@@ -18,39 +18,37 @@ const DISTRICTS = {
 // CHAPTERS — source of truth for titles, colors, problem counts
 // ─────────────────────────────────────────────────────────────────────────────
 const CHAPTERS = {
-  // District 1 — FAANG Easy
-  1:  { district: 1, company: 'Google',     title: 'The Search Engine War',              badge: '🔍', color: '#4285f4', problems: 5  },
-  2:  { district: 1, company: 'Amazon',     title: 'The Fulfillment Crisis',             badge: '📦', color: '#ff9900', problems: 5  },
-  3:  { district: 1, company: 'Apple',      title: 'The Launch Day Panic',               badge: '🍎', color: '#a2aaad', problems: 5  },
-  // District 2 — FAANG Medium
-  4:  { district: 2, company: 'Meta',       title: 'The Algorithm That Broke Democracy', badge: '🌐', color: '#0081fb', problems: 7  },
-  5:  { district: 2, company: 'Google',     title: 'The City That Disappeared',          badge: '🗺️', color: '#4285f4', problems: 7  },
-  6:  { district: 2, company: 'Amazon',     title: 'The Cloud That Crashed',             badge: '☁️', color: '#ff9900', problems: 7  },
-  7:  { district: 2, company: 'Apple',      title: 'The Model Gone Rogue',               badge: '🤖', color: '#a2aaad', problems: 7  },
-  8:  { district: 2, company: 'Microsoft',  title: 'The Billion Dollar Outage',          badge: '⚡', color: '#00a4ef', problems: 7  },
-  // District 3 — FAANG Hard
-  9:  { district: 3, company: 'Google',     title: 'DeepMind — The Intelligence Wars',   badge: '🧠', color: '#4285f4', problems: 7  },
-  10: { district: 3, company: 'Meta',       title: 'The Metaverse Heist',                badge: '🕶️', color: '#0081fb', problems: 7  },
-  11: { district: 3, company: 'Amazon',     title: 'Black Friday Apocalypse',            badge: '🛒', color: '#ff9900', problems: 7  },
-  12: { district: 3, company: 'Apple',      title: 'The Hack That Shook the World',      badge: '🔐', color: '#a2aaad', problems: 7  },
-  13: { district: 3, company: 'Microsoft',  title: 'The Bug in the Machine',             badge: '🐛', color: '#00a4ef', problems: 7  },
-  // District 4 — Enterprise Empire
-  14: { district: 4, company: 'Microsoft',  title: 'The Gates of Redmond',               badge: '🪟', color: '#00a4ef', problems: 15 },
-  15: { district: 4, company: 'Microsoft',  title: 'The Azure Depths',                   badge: '☁️', color: '#00a4ef', problems: 15 },
-  16: { district: 4, company: 'Microsoft',  title: 'The Redmond Boss Fight',             badge: '⚔️', color: '#00a4ef', problems: 5,  isBoss: true },
-  17: { district: 4, company: 'Oracle', title: 'The Oracle Database Labyrinth', badge: '🗄️', color: '#f80000', problems: 15 },
+  1:  { district: 1, company: 'Google',    title: 'The Search Engine War',              badge: '🔍', color: '#4285f4', problems: 15 },
+  2:  { district: 1, company: 'Amazon',    title: 'The Fulfillment Crisis',             badge: '📦', color: '#ff9900', problems: 15 },
+  3:  { district: 1, company: 'Apple',     title: 'The Launch Day Panic',               badge: '🍎', color: '#a2aaad', problems: 20 },
 
-  18: { district: 4, company: 'Oracle', title: 'The Cloud SQL Catacombs', badge: '☁️', color: '#f80000', problems: 15 },
-  19: { district: 4, company: 'Oracle',     title: "Larry's Boss Chamber",               badge: '⚔️', color: '#f80000', problems: 5,  isBoss: true },
-  20: { district: 4, company: 'Salesforce', title: 'The Salesforce Tower',               badge: '☁️', color: '#00a1e0', problems: 10 },
-  21: { district: 4, company: 'Salesforce', title: 'The CRM Colosseum',                  badge: '🏟️', color: '#00a1e0', problems: 10 },
-  22: { district: 4, company: 'Salesforce', title: "Marc's Boss Fight",                  badge: '⚔️', color: '#00a1e0', problems: 5,  isBoss: true },
-  23: { district: 4, company: 'Adobe',      title: 'The Adobe Studio',                   badge: '🎨', color: '#ff0000', problems: 10 },
-  24: { district: 4, company: 'Adobe',      title: 'The Creative Cloud',                 badge: '☁️', color: '#ff0000', problems: 10 },
-  25: { district: 4, company: 'Adobe',      title: 'The Render Farm Boss',               badge: '⚔️', color: '#ff0000', problems: 5,  isBoss: true },
-  26: { district: 4, company: 'Broadcom',   title: 'The Broadcom Chip Floor',            badge: '🔌', color: '#ef4444', problems: 10 },
-  27: { district: 4, company: 'Broadcom',   title: 'Silicon Valley Signals',             badge: '📡', color: '#ef4444', problems: 10 },
-  28: { district: 4, company: 'Broadcom',   title: 'The ASIC Boss Fight',                badge: '⚔️', color: '#ef4444', problems: 5,  isBoss: true },
+  4:  { district: 2, company: 'Meta',      title: 'The Algorithm That Broke Democracy', badge: '🌐', color: '#0081fb', problems: 15 },
+  5:  { district: 2, company: 'Google',    title: 'The City That Disappeared',          badge: '🗺️', color: '#4285f4', problems: 15 },
+  6:  { district: 2, company: 'Amazon',    title: 'The Cloud That Crashed',             badge: '☁️', color: '#ff9900', problems: 20 },
+
+  7:  { district: 3, company: 'Apple',     title: 'The Model Gone Rogue',               badge: '🤖', color: '#a2aaad', problems: 15 },
+  8:  { district: 3, company: 'Microsoft', title: 'The Billion Dollar Outage',          badge: '⚡', color: '#00a4ef', problems: 15 },
+  9:  { district: 3, company: 'Google',    title: 'DeepMind Intelligence Wars',         badge: '🧠', color: '#4285f4', problems: 20 },
+
+  14: { district: 4, company: 'Microsoft', title: 'The Gates of Redmond',               badge: '🪟', color: '#00a4ef', problems: 15 },
+  15: { district: 4, company: 'Microsoft', title: 'The Azure Depths',                   badge: '☁️', color: '#00a4ef', problems: 15 },
+  16: { district: 4, company: 'Microsoft', title: 'The Redmond Boss Fight',             badge: '⚔️', color: '#00a4ef', problems: 5, isBoss: true },
+
+  17: { district: 4, company: 'Oracle', title: 'The Oracle Database Labyrinth',         badge: '🗄️', color: '#f80000', problems: 15 },
+  18: { district: 4, company: 'Oracle', title: 'The Cloud SQL Catacombs',               badge: '☁️', color: '#f80000', problems: 15 },
+  19: { district: 4, company: 'Oracle', title: "Larry's Boss Chamber",                 badge: '⚔️', color: '#f80000', problems: 5, isBoss: true },
+
+  20: { district: 4, company: 'Salesforce', title: 'The Salesforce Tower',              badge: '☁️', color: '#00a1e0', problems: 10 },
+  21: { district: 4, company: 'Salesforce', title: 'The CRM Colosseum',                 badge: '🏟️', color: '#00a1e0', problems: 10 },
+  22: { district: 4, company: 'Salesforce', title: "Marc's Boss Fight",                badge: '⚔️', color: '#00a1e0', problems: 5, isBoss: true },
+
+  23: { district: 4, company: 'Adobe', title: 'The Adobe Studio',                      badge: '🎨', color: '#ff0000', problems: 10 },
+  24: { district: 4, company: 'Adobe', title: 'The Creative Cloud',                    badge: '☁️', color: '#ff0000', problems: 10 },
+  25: { district: 4, company: 'Adobe', title: 'The Render Farm Boss',                  badge: '⚔️', color: '#ff0000', problems: 5, isBoss: true },
+
+  26: { district: 4, company: 'Broadcom', title: 'The Broadcom Chip Floor',            badge: '🔌', color: '#ef4444', problems: 10 },
+  27: { district: 4, company: 'Broadcom', title: 'Silicon Valley Signals',             badge: '📡', color: '#ef4444', problems: 10 },
+  28: { district: 4, company: 'Broadcom', title: 'The ASIC Boss Fight',                badge: '⚔️', color: '#ef4444', problems: 5, isBoss: true },
 };
 
 const COMPANY_LOGOS = {
@@ -409,7 +407,7 @@ export default function GameMap({ user, userData }) {
     const chProbs  = problems.filter(p => p.chapter === Number(chapterId));
     const solved   = chProbs.filter(p => userProgress[p.id]?.solved).length;
     const stars    = chProbs.reduce((s,p) => s + (userProgress[p.id]?.stars || 0), 0);
-    return { solved, total: chProbs.length || CHAPTERS[chapterId]?.problems || 0, stars };
+    return { solved, total: CHAPTERS[chapterId]?.problems || 0, stars };
   }, [problems, userProgress]);
 
   // ── Unlock logic ───────────────────────────────────────────────────────────
@@ -571,7 +569,7 @@ export default function GameMap({ user, userData }) {
 
           {/* Problems loaded counter */}
           <div style={{ marginTop:10, color:'#333', fontSize:11 }}>
-            {problems.length} problems loaded from backend
+            Backend loaded: {problems.length} | Expected total: 295
             {problems.length === 0 && (
               <span style={{ color:'#ef4444', marginLeft:8 }}>
                 ⚠️ Run the seed script and push the new problems.js backend
