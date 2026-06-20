@@ -1202,48 +1202,75 @@ export default function CodeEditor({
               }}
             >
               🧪 Test
+            </button>{hints.length > 0 && (
+            <button onClick={() => setShowHint(true)}>
+             💡 Hints ({visibleHints.length}/2)
             </button>
-            <button
-              onClick={() => { if (hasSubmitted) setShowSolution(true); else showToast('Submit your solution first to unlock the explanation.', 'warn'); }}
-              title={hasSubmitted ? 'View solution' : 'Submit your answer to unlock'}
-              style={{
-               background: hasSubmitted ? '#a855f722' : '#1e2a3a',
-               border: hasSubmitted ? '1px solid #a855f766' : '1px solid #2a3645',
-               borderRadius: 8,
-               color: hasSubmitted ? '#c084fc' : '#555',
-               cursor: hasSubmitted ? 'pointer' : 'not-allowed',
-               fontSize: 13,
-               fontWeight: 700,
-               padding: '7px 16px',
-              }}
-            >
-              {hasSubmitted ? '📖 Solution' : '🔒 Solution'}
-            </button>
-
-            {onSubmit && (
-              <button
-                onClick={handleSubmit}
-                disabled={running || submitting}
-                style={{
-                  background:   submitting ? '#1e2a3a' : 'linear-gradient(135deg,#00c896,#1a73e8)',
-                  border:       'none',
-                  borderRadius: 8,
-                  color:        '#fff',
-                  cursor:       submitting ? 'not-allowed' : 'pointer',
-                  fontSize:     13,
-                  fontWeight:   700,
-                  padding:      '7px 20px',
-                  opacity:      running || submitting ? 0.7 : 1,
-                  transition:   'all 0.2s',
-                  boxShadow:    submitting ? 'none' : '0 0 16px #00c89633',
-                }}
-              >
-                {submitting ? '⏳ Submitting...' : '🚀 Submit'}
-              </button>
             )}
+           {hints.length > 0 && (
+           <button
+            onClick={() => setShowHint(true)}
+            style={{
+            background: "#f59e0b22",
+            border: "1px solid #f59e0b66",
+            borderRadius: 8,
+            color: "#fbbf24",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            padding: "7px 16px",
+          }}
+          >
+          💡 Hints ({visibleHints.length}/2)
+          </button>
+          )}
+
+          <button
+           onClick={() => {
+            if (solutionUnlocked) setShowSolution(true);
+            else showToast("Solution unlocks on Attempt #3.", "warn");
+             }}
+            disabled={!solutionUnlocked}
+            style={{
+              background: solutionUnlocked ? "#a855f722" : "#1e2a3a",
+              border: solutionUnlocked ? "1px solid #a855f766" : "1px solid #2a3645",
+              borderRadius: 8,
+              color: solutionUnlocked ? "#c084fc" : "#555",
+              cursor: solutionUnlocked ? "pointer" : "not-allowed",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "7px 16px",
+           }}
+           >
+           {solutionUnlocked ? "📖 Solution" : "🔒 Solution"}
+          </button>
+
+          {onSubmit && (
+           <button
+            onClick={handleSubmit}
+            disabled={running || submitting || !canSubmit}
+            style={{
+              background:
+                submitting || !canSubmit
+                ? "#1e2a3a"
+                : "linear-gradient(135deg,#00c896,#1a73e8)",
+              border: "none",
+              borderRadius: 8,
+              color: "#fff",
+              cursor: running || submitting || !canSubmit ? "not-allowed" : "pointer",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "7px 20px",
+              opacity: running || submitting || !canSubmit ? 0.7 : 1,
+              transition: "all 0.2s",
+              boxShadow: submitting || !canSubmit ? "none" : "0 0 16px #00c89633",
+            }}
+            >
+            {submitting ? "⏳ Submitting..." : `🚀 Submit A${currentAttempt}`}
+          </button>
+          )}
           </div>
         </div>
-
         {/* Editor */}
         <div style={{ height: `${splitV}%`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <CodeEditorPane
