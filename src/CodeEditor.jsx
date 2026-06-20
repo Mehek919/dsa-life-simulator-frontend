@@ -1063,24 +1063,34 @@ export default function CodeEditor({
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    exit={{   opacity: 0, height: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
                     style={{
-                      background:   '#a855f711',
-                      border:       '1px solid #a855f733',
+                      background: '#a855f711',
+                      border: '1px solid #a855f733',
                       borderRadius: 10,
-                      padding:      '12px 14px',
-                      marginTop:    10,
-                      color:        '#c8a8f7',
-                      fontSize:     13,
-                      lineHeight:   1.6,
+                      padding: '12px 14px',
+                      marginTop: 10,
+                      color: '#c8a8f7',
+                      fontSize: 13,
+                      lineHeight: 1.6,
                     }}
                   >
-                  {visibleHints.map((hint, index) => (
-                   <div key={index} style={hintCard}>
-                     <strong>Hint {index + 1}</strong>
-                     <p>{hint}</p>
-                   </div>
-                  ))}
+                    {visibleHints.map((hint, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: '#f59e0b11',
+                          border: '1px solid #f59e0b33',
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 12,
+                          color: '#fde68a',
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        {hint}
+                      </div>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
