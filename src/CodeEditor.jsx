@@ -756,10 +756,11 @@ export default function CodeEditor({
   const [testResults, setTestResults] = useState(null);
   const [activeOut,   setActiveOut]   = useState('output');
   const [toast,       setToast]       = useState(null);
-  const [showHint,    setShowHint]    = useState(false);
+  const MAX_ATTEMPTS = 3;
+  const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [hintIdx,     setHintIdx]     = useState(0);
+  const [attemptsUsed, setAttemptsUsed] = useState(0);
+  const [isSolved, setIsSolved] = useState(false);
   const [leftW,       setLeftW]       = useState(40); // % width of problem panel
   const [splitV,      setSplitV]      = useState(60); // % height of editor
   const draggingH = useRef(false);
@@ -768,13 +769,21 @@ export default function CodeEditor({
   const langConfig = LANGUAGES.find(l => l.id === langId) || LANGUAGES[0];
   const testCases  = problem?.testCases || [];
   const hints      = problem?.hints     || [];
-
-  // ── Reset submit-gated state when switching problems ────────────────────────
+  const currentAttempt = Math.min(attemptsUsed + 1, MAX_ATTEMPTS);
+  const visibleHints =
+  currentAttempt === 1
+    ? hints.slice(0, 1)
+    : hints.slice(0, 2);
+  const solutionUnlocked =
+  currentAttempt >= 3 || attemptsUsed >= 3 || isSolved;
+  const canSubmit =
+  attemptsUsed < MAX_ATTEMPTS && !isSolved;
+// ── Reset submit-gated state when switching problems ────────────────────────
   useEffect(() => {
-    setHasSubmitted(false);
+    setAttemptsUsed(0);
+    setIsSolved(false);
     setShowSolution(false);
     setShowHint(false);
-    setHintIdx(0);
     setResult(null);
     setTestResults(null);
   }, [problem?.id]);
@@ -839,29 +848,58 @@ export default function CodeEditor({
     }
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!onSubmit) return;
-    setSubmitting(true);
-    try {
-      const results = testCases.length
-        ? await runTestCases(code, langConfig, testCases)
-        : [];
-      setTestResults(results);
-      setActiveOut('tests');
-      const res = await onSubmit(code, langId, results);
-      setHasSubmitted(true);
-      if (res?.passed) {
-        showToast(`🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`, 'success');
-      } else {
-        showToast(`✗ Wrong Answer — ${res?.passedCount || 0}/${res?.total || testCases.length} passed`, 'error');
-      }
+  if (!onSubmit) return;
+  if (!canSubmit) {
+    setShowSolution(true);
+    showToast("Maximum 3 attempts used. Solution is unlocked.", "warn");
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+     const results = testCases.length
+      ? await runTestCases(code, langConfig, testCases)
+      : [];
+
+     setTestResults(results);
+     setActiveOut("tests");
+
+     const res = await onSubmit(code, langId, results);
+     const passed = !!res?.passed;
+     const nextAttemptsUsed = attemptsUsed + 1;
+
+     setAttemptsUsed(nextAttemptsUsed);
+
+     if (passed) {
+      setIsSolved(true);
+      showToast(
+        `🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`,
+        "success"
+      );
+      return;
+     }
+
+     if (nextAttemptsUsed >= MAX_ATTEMPTS) {
+      setShowSolution(true);
+      showToast("❌ 3 attempts used. Solution unlocked.", "warn");
+      return;
+     }
+
+     showToast(
+      `✗ Wrong Answer — Attempt ${nextAttemptsUsed}/${MAX_ATTEMPTS}. ${
+        nextAttemptsUsed === 1
+          ? "Hint 2 unlocked."
+          : "Final attempt next."
+       }`,
+      "error"
+     );
     } catch (err) {
-      showToast('Submission failed: ' + err.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    showToast("Submission failed: " + err.message, "error");
+     } finally {
+    setSubmitting(false);
+     }
+    };
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   const showToast = (msg, type = 'info') => {
@@ -1020,26 +1058,6 @@ export default function CodeEditor({
             </div>
           )}
 
-          {/* Hints */}
-          {hints.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <button
-                onClick={() => setShowHint(h => !h)}
-                style={{
-                  background:   '#a855f711',
-                  border:       '1px solid #a855f733',
-                  borderRadius: 10,
-                  color:        '#a855f7',
-                  cursor:       'pointer',
-                  fontSize:     13,
-                  fontWeight:   600,
-                  padding:      '8px 16px',
-                  transition:   'all 0.2s',
-                }}
-              >
-                💡 {showHint ? 'Hide Hint' : `Show Hint (${hintIdx + 1}/${hints.length})`}
-              </button>
-
               <AnimatePresence>
                 {showHint && (
                   <motion.div
@@ -1086,9 +1104,7 @@ export default function CodeEditor({
                 )}
               </AnimatePresence>
             </div>
-          )}
         </div>
-      </div>
 
       {/* ── Horizontal drag handle ── */}
       <div
