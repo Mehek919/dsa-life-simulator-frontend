@@ -758,6 +758,7 @@ export default function CodeEditor({
   const [toast,       setToast]       = useState(null);
   const [showHint,    setShowHint]    = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [hintIdx,     setHintIdx]     = useState(0);
   const [leftW,       setLeftW]       = useState(40); // % width of problem panel
   const [splitV,      setSplitV]      = useState(60); // % height of editor
@@ -767,6 +768,16 @@ export default function CodeEditor({
   const langConfig = LANGUAGES.find(l => l.id === langId) || LANGUAGES[0];
   const testCases  = problem?.testCases || [];
   const hints      = problem?.hints     || [];
+
+  // ── Reset submit-gated state when switching problems ────────────────────────
+  useEffect(() => {
+    setHasSubmitted(false);
+    setShowSolution(false);
+    setShowHint(false);
+    setHintIdx(0);
+    setResult(null);
+    setTestResults(null);
+  }, [problem?.id]);
 
   // ── Language change ──────────────────────────────────────────────────────
   const handleLangChange = (id) => {
@@ -839,6 +850,7 @@ export default function CodeEditor({
       setTestResults(results);
       setActiveOut('tests');
       const res = await onSubmit(code, langId, results);
+      setHasSubmitted(true);
       if (res?.passed) {
         showToast(`🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`, 'success');
       } else {
@@ -1176,19 +1188,20 @@ export default function CodeEditor({
               🧪 Test
             </button>
             <button
-              onClick={() => setShowSolution(true)}
+              onClick={() => { if (hasSubmitted) setShowSolution(true); else showToast('Submit your solution first to unlock the explanation.', 'warn'); }}
+              title={hasSubmitted ? 'View solution' : 'Submit your answer to unlock'}
               style={{
-               background: '#a855f722',
-               border: '1px solid #a855f766',
+               background: hasSubmitted ? '#a855f722' : '#1e2a3a',
+               border: hasSubmitted ? '1px solid #a855f766' : '1px solid #2a3645',
                borderRadius: 8,
-               color: '#c084fc',
-               cursor: 'pointer',
+               color: hasSubmitted ? '#c084fc' : '#555',
+               cursor: hasSubmitted ? 'pointer' : 'not-allowed',
                fontSize: 13,
                fontWeight: 700,
                padding: '7px 16px',
               }}
             >
-              📖 Solution
+              {hasSubmitted ? '📖 Solution' : '🔒 Solution'}
             </button>
 
             {onSubmit && (
