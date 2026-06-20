@@ -1075,31 +1075,12 @@ export default function CodeEditor({
                       lineHeight:   1.6,
                     }}
                   >
-                    {hints[hintIdx]}
-                    {hints.length > 1 && (
-                      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                        <button
-                          disabled={hintIdx === 0}
-                          onClick={() => setHintIdx(h => h - 1)}
-                          style={{
-                            background: 'transparent', border: '1px solid #a855f744',
-                            borderRadius: 6, color: '#a855f7', cursor: 'pointer',
-                            fontSize: 11, padding: '3px 10px',
-                            opacity: hintIdx === 0 ? 0.4 : 1,
-                          }}
-                        >← Prev</button>
-                        <button
-                          disabled={hintIdx === hints.length - 1}
-                          onClick={() => setHintIdx(h => h + 1)}
-                          style={{
-                            background: 'transparent', border: '1px solid #a855f744',
-                            borderRadius: 6, color: '#a855f7', cursor: 'pointer',
-                            fontSize: 11, padding: '3px 10px',
-                            opacity: hintIdx === hints.length - 1 ? 0.4 : 1,
-                          }}
-                        >Next →</button>
-                      </div>
-                    )}
+                  {visibleHints.map((hint, index) => (
+                   <div key={index} style={hintCard}>
+                     <strong>Hint {index + 1}</strong>
+                     <p>{hint}</p>
+                   </div>
+                  ))}
                   </motion.div>
                 )}
               </AnimatePresence>
