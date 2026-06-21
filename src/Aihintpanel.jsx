@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
-
 export default function AIHintPanel({
   problem,
   user,
@@ -12,7 +11,7 @@ export default function AIHintPanel({
   testResults,
   onHintUsed,
 }) {
-  const [tab,       setTab]       = useState('hints');   // hints | editorial | review
+  const [tab, setTab] = useState('review');
   const [hints,     setHints]     = useState([]);
   const [editorial, setEditorial] = useState(null);
   const [review,    setReview]    = useState(null);
@@ -76,10 +75,9 @@ export default function AIHintPanel({
   };
 
   const TABS = [
-    { key: 'hints',     label: '💡 Hints',     locked: false },
-    { key: 'editorial', label: '📖 Editorial',  locked: !isSolved },
-    { key: 'review',    label: '🤖 AI Review',  locked: !code },
-  ];
+  { key: 'editorial', label: '📖 Editorial', locked: !isSolved },
+  { key: 'review', label: '🤖 AI Review', locked: !code },
+ ];
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -133,51 +131,6 @@ export default function AIHintPanel({
                   </button>
                 ))}
               </div>
-
-              {/* Hints tab */}
-              {tab === 'hints' && (
-                <div>
-                  {hints.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '12px 0', marginBottom: 12 }}>
-                      <div style={{ fontSize: 28, marginBottom: 6 }}>💡</div>
-                      <div style={{ color: '#888', fontSize: 12, lineHeight: 1.5 }}>
-                        Stuck? Get a contextual hint based on your code.
-                        <br />Each hint costs {creditCost} credits.
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                      {hints.map((hint, i) => (
-                        <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                          style={{ background: '#060910', border: '1px solid #1e2a3a', borderRadius: 10, padding: '10px 13px' }}>
-                          <div style={{ color: '#a855f7', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
-                            💡 Hint {i + 1}
-                          </div>
-                          <div style={{ color: '#c8c8c8', fontSize: 12, lineHeight: 1.6 }}>{hint}</div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-
-                  {hints.length < 3 && (
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={getHint} disabled={loading}
-                      style={{
-                        width: '100%', background: loading ? '#1e2a3a' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                        border: 'none', borderRadius: 8, color: loading ? '#444' : '#fff',
-                        cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, padding: '9px 0',
-                      }}
-                    >
-                      {loading ? '⏳ Getting hint...' : `💡 Get Hint ${hints.length + 1} (${creditCost} credits)`}
-                    </motion.button>
-                  )}
-                  {hints.length >= 3 && (
-                    <div style={{ color: '#555', fontSize: 11, textAlign: 'center', padding: '4px 0' }}>
-                      All hints used. Try the editorial after solving!
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Editorial tab */}
               {tab === 'editorial' && (
