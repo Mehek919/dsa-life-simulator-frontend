@@ -309,7 +309,7 @@ export default function MockInterview({ user, userData, setUserData }) {
       {/* Editor */}
       <div style={{ flex:1, overflow:'hidden' }}>
         {currentProblem && (
-          <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="python3" />
+          <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="python3" hideHints />
         )}
       </div>
     </div>
