@@ -889,8 +889,8 @@ export default function CodeEditor({
      showToast(
       `✗ Wrong Answer — Attempt ${nextAttemptsUsed}/${MAX_ATTEMPTS}. ${
         nextAttemptsUsed === 1
-          ? "Hint 2 unlocked."
-          : "Final attempt next."
+        ? "Hint 1 unlocked."
+        : "Hint 2 unlocked."
        }`,
       "error"
      );
@@ -1057,43 +1057,6 @@ export default function CodeEditor({
               </ul>
             </div>
           )}
-
-              <AnimatePresence>
-                {showHint && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    style={{
-                      background: '#a855f711',
-                      border: '1px solid #a855f733',
-                      borderRadius: 10,
-                      padding: '12px 14px',
-                      marginTop: 10,
-                      color: '#c8a8f7',
-                      fontSize: 13,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {visibleHints.map((hint, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          background: '#f59e0b11',
-                          border: '1px solid #f59e0b33',
-                          borderRadius: 12,
-                          padding: 14,
-                          marginBottom: 12,
-                          color: '#fde68a',
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        {hint}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
         </div>
 
@@ -1154,7 +1117,15 @@ export default function CodeEditor({
               v{langConfig.version}
             </span>
           </div>
-
+          <div
+            style={{
+              color: "#22d3ee",
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            Attempt {currentAttempt}/3
+          </div>
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
@@ -1193,30 +1164,25 @@ export default function CodeEditor({
               }}
             >
               🧪 Test
-            </button>{hints.length > 0 && (
-            <button onClick={() => setShowHint(true)}>
-             💡 Hints ({visibleHints.length}/2)
             </button>
+            {hints.length > 0 && (
+              <button
+                onClick={() => setShowHint(true)}
+                style={{
+                  background: "#f59e0b22",
+                  border: "1px solid #f59e0b66",
+                  borderRadius: 8,
+                  color: "#fbbf24",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "7px 16px",
+                }}
+              >
+                💡 Hints ({visibleHints.length}/2)
+              </button>
             )}
-           {hints.length > 0 && (
-           <button
-            onClick={() => setShowHint(true)}
-            style={{
-            background: "#f59e0b22",
-            border: "1px solid #f59e0b66",
-            borderRadius: 8,
-            color: "#fbbf24",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 700,
-            padding: "7px 16px",
-          }}
-          >
-          💡 Hints ({visibleHints.length}/2)
-          </button>
-          )}
-
-          <button
+            <button
            onClick={() => {
             if (solutionUnlocked) setShowSolution(true);
             else showToast("Solution unlocks on Attempt #3.", "warn");
@@ -1413,7 +1379,66 @@ export default function CodeEditor({
                 </div>
               </div>
             )}
+            {showHint && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.75)",
+                zIndex: 9998,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  background: "#0d1117",
+                  border: "1px solid #f59e0b55",
+                  borderRadius: 18,
+                  padding: 24,
+                  maxWidth: 700,
+                  width: "100%",
+                  color: "#fff",
+                }}
+              >
+                <button
+                  onClick={() => setShowHint(false)}
+                  style={{
+                    float: "right",
+                    background: "transparent",
+                    border: "none",
+                    color: "#888",
+                    fontSize: 24,
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
 
+                <h2 style={{ color: "#fbbf24" }}>
+                  💡 Hints
+                </h2>
+
+                {visibleHints.map((hint, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      background: "#111827",
+                      border: "1px solid #374151",
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <strong>Hint {index + 1}</strong>
+                    <p>{hint}</p>
+                  </div>
+                ))}
+                </div>
+                </div>
+                )}
       {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
