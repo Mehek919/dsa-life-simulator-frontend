@@ -20,7 +20,7 @@ function formatTime(s) {
 }
 
 // ── Company Selector ──────────────────────────────────────────────────────────
-function CompanySelector({ onStart }) {
+function CompanySelector({ onStart, error }) {
   const [selected, setSelected] = useState('general');
   const [starting, setStarting] = useState(false);
   const config = CONFIGS[selected];
@@ -104,6 +104,12 @@ function CompanySelector({ onStart }) {
           </div>
         </div>
 
+        {error && (
+          <div style={{ background:'#ff4d4d11', border:'1px solid #ff4d4d44', borderRadius:12, padding:'12px 16px', marginBottom:16, color:'#ff6b6b', fontSize:13, textAlign:'center' }}>
+            ⚠ {error}
+          </div>
+        )}
+
         <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
           onClick={async () => { setStarting(true); await onStart(selected); setStarting(false); }}
           disabled={starting}
@@ -186,18 +192,30 @@ export default function MockInterview({ user, userData, setUserData }) {
 
   const config = CONFIGS[company] || CONFIGS.general;
 
+  const [startError, setStartError] = useState(null);
+
   const startInterview = async (selectedCompany) => {
     setCompany(selectedCompany);
+    setStartError(null);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/start`, {
         userId:  user.uid,
         company: selectedCompany,
       });
-      setSession(res.data);
-      setRemaining(res.data.duration * 60);
+
+      const data = res.data;
+      if (!data || !Array.isArray(data.problems) || data.problems.length === 0) {
+        console.error('mock-interview/start returned no problems:', data);
+        setStartError('Could not load interview problems. Please try again in a moment.');
+        return;
+      }
+
+      setSession(data);
+      setRemaining((data.duration || 60) * 60);
       setPhase('active');
     } catch (err) {
       console.error('Failed to start interview:', err);
+      setStartError('Failed to start interview. Please check your connection and try again.');
     }
   };
 
@@ -246,7 +264,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     }
   };
 
-  if (phase === 'select') return <CompanySelector onStart={startInterview} />;
+  if (phase === 'select') return <CompanySelector onStart={startInterview} error={startError} />;
   if (phase === 'complete') return (
     <InterviewResult result={result || {}} company={company}
       onRedo={() => { setPhase('select'); setSession(null); setSolved([]); setProbIdx(0); }}
