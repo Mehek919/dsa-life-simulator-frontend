@@ -1380,34 +1380,90 @@ export default function CodeEditor({
               </div>
             )}
             {showHint && (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.75)",
-                zIndex: 9998,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 24,
-              }}
-            >
               <div
+                onClick={() => setShowHint(false)}
                 style={{
-                  background: "#0d1117",
-                  border: "1px solid #f59e0b55",
-                  borderRadius: 18,
-                  padding: 24,
-                  maxWidth: 700,
-                  width: "100%",
-                  color: "#fff",
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.72)",
+                  zIndex: 10000,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "center",
+                  paddingTop: 90,
                 }}
               >
+              <div
+               onClick={(e) => e.stopPropagation()}
+               style={{
+                background: "#0d1117",
+                border: "1px solid #f59e0b88",
+                borderRadius: 18,
+                padding: 24,
+                maxWidth: 700,
+                width: "90%",
+                color: "#fff",
+                boxShadow: "0 0 40px #f59e0b44",
+                }}
+              >
+              <button
+                onClick={() => setShowHint(false)}
+                style={{
+                  float: "right",
+                  background: "transparent",
+                  border: "none",
+                  color: "#aaa",
+                  fontSize: 24,
+                  cursor: "pointer",
+                  }}
+                  >
+                  ✕
+              </button>
 
-                
-                </div>
-                </div>
-                )}
+                  <h2 style={{ color: "#fbbf24", marginTop: 0 }}>
+                    💡 Hints — Attempt {currentAttempt}/3
+                  </h2>
+
+                  {visibleHints.length === 0 ? (
+                    <p style={{ color: "#aaa" }}>No hints available.</p>
+                  ) : (
+                    visibleHints.map((hint, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: "#1f2937",
+                          border: "1px solid #f59e0b55",
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 12,
+                          color: "#fde68a",
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        <strong>Hint {index + 1}</strong>
+                        <p style={{ marginBottom: 0 }}>{hint}</p>
+                      </div>
+                    ))
+                  )}
+
+                  <button
+                    onClick={() => setShowHint(false)}
+                    style={{
+                      marginTop: 10,
+                      background: "#f59e0b22",
+                      border: "1px solid #f59e0b66",
+                      borderRadius: 10,
+                      color: "#fbbf24",
+                      padding: "9px 16px",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Close
+                  </button>
+            </div>
+          </div>
+        )}
       {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
