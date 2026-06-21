@@ -1403,39 +1403,8 @@ export default function CodeEditor({
                   color: "#fff",
                 }}
               >
-                <button
-                  onClick={() => setShowHint(false)}
-                  style={{
-                    float: "right",
-                    background: "transparent",
-                    border: "none",
-                    color: "#888",
-                    fontSize: 24,
-                    cursor: "pointer",
-                  }}
-                >
-                  ✕
-                </button>
 
-                <h2 style={{ color: "#fbbf24" }}>
-                  💡 Hints
-                </h2>
-
-                {visibleHints.map((hint, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: "#111827",
-                      border: "1px solid #374151",
-                      borderRadius: 12,
-                      padding: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <strong>Hint {index + 1}</strong>
-                    <p>{hint}</p>
-                  </div>
-                ))}
+                
                 </div>
                 </div>
                 )}
