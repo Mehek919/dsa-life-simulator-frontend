@@ -279,6 +279,9 @@ export default function MockInterview({ user, userData, setUserData }) {
 
   return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'#0a0a14', fontFamily:'Arial, sans-serif', overflow:'hidden' }}>
+      <div style={{ background:'#ff0000', color:'#fff', fontSize:11, padding:'4px 10px', fontFamily:'monospace' }}>
+        DEBUG: phase={phase} | problems.length={problems.length} | probIdx={probIdx} | currentProblem={currentProblem ? currentProblem.id : 'NONE'}
+      </div>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0, gap:10, flexWrap:'wrap' }}>
         {/* Left — company + problems */}
