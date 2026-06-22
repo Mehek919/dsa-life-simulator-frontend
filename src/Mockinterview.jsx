@@ -127,6 +127,7 @@ function CompanySelector({ onStart, error }) {
   const [jdText,       setJdText]       = useState('');
   const [jdFile,       setJdFile]       = useState(null);
   const [jdLoading,    setJdLoading]    = useState(false);
+  const [realWorld, setRealWorld] = useState(false);
   const config = CONFIGS[selected] || CONFIGS.general;
 
   const toggleTopic = (t) => setTopics(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev, t]);
@@ -402,7 +403,7 @@ function CompanySelector({ onStart, error }) {
             setStarting(true);
             const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice'].includes(interviewType)
               ? interviewType : selected;
-            await onStart(companyToSend, topics, interviewType, jdText);
+            await onStart(companyToSend, topics, interviewType, jdText, realWorld);
             setStarting(false);
           }}
           disabled={starting || (interviewType==='personalized' && jdText.length < 50)}
@@ -426,13 +427,36 @@ function CompanySelector({ onStart, error }) {
 // ── Interview Result Screen ───────────────────────────────────────────────────
 function InterviewResult({ result, company, onRedo, onHome }) {
   const config     = CONFIGS[company] || CONFIGS.general;
+  const [followUpOpen,    setFollowUpOpen]    = useState(false);
+  const [followUpMsgs,    setFollowUpMsgs]    = useState([]);
+  const [followUpInput,   setFollowUpInput]   = useState('');
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const followUpEndRef = useRef(null);
+
+  const sendFollowUp = async () => {
+    if (!followUpInput.trim() || followUpLoading || !result.sessionId) return;
+    const msg = followUpInput.trim();
+    setFollowUpMsgs(prev => [...prev, { role:'user', text:msg }]);
+    setFollowUpInput('');
+    setFollowUpLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/${result.sessionId}/followup`, {
+        userId: result.userId, message: msg, conversation: followUpMsgs,
+      });
+      if (res.data.reply) {
+        setFollowUpMsgs(prev => [...prev, { role:'coach', text:res.data.reply }]);
+      }
+    } catch (e) { console.error('Follow-up error:', e); }
+    finally { setFollowUpLoading(false); }
+  };
+
+  useEffect(() => { followUpEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [followUpMsgs]);
   const grade      = result.pct >= 80 ? 'A' : result.pct >= 60 ? 'B' : result.pct >= 40 ? 'C' : 'D';
   const gradeColor = result.pct >= 80 ? '#00c896' : result.pct >= 60 ? '#f5c542' : result.pct >= 40 ? '#1a73e8' : '#ff4d4d';
   const breakdown  = result.problemBreakdown || [];
   const diffColors = { Easy:'#00c896', Medium:'#f5c542', Hard:'#ff4d4d' };
   const statusIcon  = { solved:'✓', attempted:'✗', skipped:'⊘' };
   const statusColor = { solved:'#00c896', attempted:'#ff4d4d', skipped:'#555' };
-
   const typeColors = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
   const displayColor = typeColors[result.interviewType] || config.color;
 
@@ -516,7 +540,53 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             <div style={{ color:'#c8c8c8', fontSize:12, lineHeight:1.7 }}>{result.feedback}</div>
           </div>
         )}
+        {/* Follow-up Chat */}
+        <div style={{ marginBottom:24 }}>
+          <button
+            onClick={() => setFollowUpOpen(o => !o)}
+            style={{ width:'100%', background:followUpOpen?`${displayColor}11`:'#060910', border:`1px solid ${followUpOpen?displayColor+'44':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:18 }}>💬</span>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ color:followUpOpen?displayColor:'#e8e8e8', fontSize:13, fontWeight:700 }}>Follow-up Chat</div>
+                <div style={{ color:'#555', fontSize:10, marginTop:1 }}>Ask the AI coach about your feedback or weak areas</div>
+              </div>
+            </div>
+            <span style={{ color:'#555', fontSize:12 }}>{followUpOpen ? '▲' : '▼'}</span>
+          </button>
 
+          {followUpOpen && (
+            <div style={{ border:`1px solid ${displayColor}33`, borderTop:'none', borderRadius:'0 0 12px 12px', background:'#060910', overflow:'hidden' }}>
+              <div style={{ maxHeight:320, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                {followUpMsgs.length === 0 && (
+                  <div style={{ color:'#333', fontSize:12, textAlign:'center', padding:16 }}>
+                    Ask anything about your performance — "Why did I fail test cases?", "What should I study?", "Walk me through the optimal solution"
+                  </div>
+                )}
+                {followUpMsgs.map((m, i) => (
+                  <div key={i} style={{ alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'85%', background:m.role==='user'?`${displayColor}18`:'#1e2a3a', border:`1px solid ${m.role==='user'?displayColor+'33':'#2a3645'}`, borderRadius:m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px', padding:'8px 12px', color:m.role==='user'?'#e8e8e8':'#c8c8c8', fontSize:12, lineHeight:1.6 }}>
+                    {m.role==='coach' && <div style={{ color:displayColor, fontSize:9, fontWeight:700, marginBottom:3, textTransform:'uppercase' }}>🎓 AI Coach</div>}
+                    {m.text}
+                  </div>
+                ))}
+                {followUpLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🎓 Coach is thinking...</div>}
+                <div ref={followUpEndRef} />
+              </div>
+              <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6 }}>
+                <input
+                  value={followUpInput}
+                  onChange={e => setFollowUpInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') sendFollowUp(); }}
+                  placeholder="Ask about your feedback, weak areas, or solutions..."
+                  style={{ flex:1, background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }}
+                />
+                <button onClick={sendFollowUp} disabled={followUpLoading || !followUpInput.trim() || !result.sessionId}
+                  style={{ background:displayColor, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:followUpLoading||!followUpInput.trim()?0.4:1 }}>Ask</button>
+              </div>
+            </div>
+          )}
+        </div>
         <div style={{ display:'flex', gap:10 }}>
           <button onClick={onRedo} style={{ flex:1, background:'#1e2a3a', border:'1px solid #1e2a3a', borderRadius:10, color:'#888', cursor:'pointer', fontSize:13, fontWeight:600, padding:'10px 0' }}>Try Again</button>
           <button onClick={onHome} style={{ flex:1, background:`linear-gradient(135deg, ${displayColor}, ${displayColor}88)`, border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 0' }}>Back to World →</button>
@@ -605,13 +675,13 @@ export default function MockInterview({ user, userData, setUserData }) {
 
   const config = CONFIGS[company] || CONFIGS.general;
 
-  const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '') => {
+  const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '', realWorld = false) => {
     setCompany(selectedCompany);
     setStartError(null);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/start`, {
-        userId: user.uid, company: selectedCompany, topics: selectedTopics,
-        interviewType: selectedType, jdText,
+      userId: user.uid, company: selectedCompany, topics: selectedTopics,
+        interviewType: selectedType, jdText, realWorld,
       });
       const data = res.data;
       if (!data || !Array.isArray(data.problems) || data.problems.length === 0) {
@@ -642,7 +712,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (timerRef.current) clearInterval(timerRef.current);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, { userId: user.uid });
-      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType });
+      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid });
       setPhase('complete');
     } catch {
       setPhase('complete');
@@ -708,7 +778,10 @@ export default function MockInterview({ user, userData, setUserData }) {
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:22 }}>{config.logo}</span>
           <div>
-            <div style={{ color:headerColor, fontSize:10, fontWeight:700, textTransform:'uppercase' }}>{config.company} Mock Interview</div>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <div style={{ color:headerColor, fontSize:10, fontWeight:700, textTransform:'uppercase' }}>{config.company} Mock Interview</div>
+              {session?.realWorld && <span style={{ background:'#f59e0b22', border:'1px solid #f59e0b44', borderRadius:6, padding:'1px 6px', color:'#f59e0b', fontSize:9, fontWeight:700 }}>🌍 REAL-WORLD</span>}
+            </div>
             <div style={{ display:'flex', gap:5, marginTop:3 }}>
               {problems.map((p, i) => {
                 const isSolved = solved.includes(p.id);
@@ -755,7 +828,31 @@ export default function MockInterview({ user, userData, setUserData }) {
         {iType === 'frontend' && currentProblem && (
           <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
         )}
-
+        {/* Real-world mode toggle — coding only */}
+        {interviewType === 'coding' && (
+          <div style={{ marginBottom:20 }}>
+            <button
+              onClick={() => setRealWorld(r => !r)}
+              style={{ width:'100%', background:realWorld?'#f59e0b11':'#0d1117', border:`1px solid ${realWorld?'#f59e0b66':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:20 }}>🌍</span>
+                <div style={{ textAlign:'left' }}>
+                  <div style={{ color:realWorld?'#f59e0b':'#e8e8e8', fontSize:13, fontWeight:700 }}>Real-World Mode</div>
+                  <div style={{ color:'#555', fontSize:10, marginTop:2 }}>AI generates actual {CONFIGS[selected]?.company || 'company'} interview problems on-demand</div>
+                </div>
+              </div>
+              <div style={{ width:40, height:22, background:realWorld?'#f59e0b':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+                <div style={{ position:'absolute', top:3, left:realWorld?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
+              </div>
+            </button>
+            {realWorld && (
+              <div style={{ background:'#f59e0b08', border:'1px solid #f59e0b22', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11, lineHeight:1.6 }}>
+                ⚡ The AI will generate fresh {CONFIGS[selected]?.company || 'company'}-style problems each session. Generation takes ~5 seconds.
+              </div>
+            )}
+          </div>
+        )}
         {/* System Design */}
         {iType === 'system-design' && currentProblem && (
           <div style={{ display:'flex', height:'100%' }}>
