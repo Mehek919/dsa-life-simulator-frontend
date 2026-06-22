@@ -123,6 +123,7 @@ function CompanySelector({ onStart, error }) {
   const [jdFile,       setJdFile]       = useState(null);
   const [jdLoading,    setJdLoading]    = useState(false);
   const [realWorld, setRealWorld] = useState(false);
+  const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
   const config = CONFIGS[selected] || CONFIGS.general;
 
   const toggleTopic = (t) => setTopics(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev, t]);
@@ -398,7 +399,7 @@ function CompanySelector({ onStart, error }) {
             setStarting(true);
             const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice'].includes(interviewType)
               ? interviewType : selected;
-            await onStart(companyToSend, topics, interviewType, jdText, realWorld);
+            await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled, );
             setStarting(false);
           }}
           disabled={starting || (interviewType==='personalized' && jdText.length < 50)}
@@ -535,6 +536,36 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             <div style={{ color:'#c8c8c8', fontSize:12, lineHeight:1.7 }}>{result.feedback}</div>
           </div>
         )}
+        {/* AI Usage Report */}
+        {result.aiUsageLog && result.aiUsageLog.length > 0 && (
+          <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
+            <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>✨ AI Usage Report</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:12 }}>
+              {[
+                { label:'Total Requests',    value: result.aiUsageLog.length,                                         color:'#1a73e8' },
+                { label:'Accepted',          value: result.aiUsageLog.filter(l => l.accepted).length,                 color:'#00c896' },
+                { label:'Chat Questions',    value: result.aiUsageLog.filter(l => l.type === 'chat').length,           color:'#a855f7' },
+              ].map(s => (
+                <div key={s.label} style={{ background:'#060910', borderRadius:8, padding:'8px 10px', textAlign:'center' }}>
+                  <div style={{ color:s.color, fontSize:16, fontWeight:900 }}>{s.value}</div>
+                  <div style={{ color:'#444', fontSize:9, marginTop:2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {result.aiUsageLog.slice(0, 5).map((entry, i) => (
+                <div key={i} style={{ background:'#060910', borderRadius:8, padding:'8px 10px', display:'flex', alignItems:'flex-start', gap:8 }}>
+                  <span style={{ fontSize:12, flexShrink:0 }}>{entry.type==='completion'?'⚡':'💬'}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ color:'#666', fontSize:10, marginBottom:2 }}>{entry.type==='completion'?'Completion request':entry.prompt}</div>
+                    <div style={{ color:'#444', fontSize:9 }}>{new Date(entry.timestamp).toLocaleTimeString()} {entry.accepted && <span style={{ color:'#00c896' }}>• Used</span>}</div>
+                  </div>
+                </div>
+              ))}
+              {result.aiUsageLog.length > 5 && <div style={{ color:'#444', fontSize:10, textAlign:'center' }}>+{result.aiUsageLog.length - 5} more interactions</div>}
+            </div>
+          </div>
+        )}
         {/* Follow-up Chat */}
         <div style={{ marginBottom:24 }}>
           <button
@@ -603,12 +634,55 @@ export default function MockInterview({ user, userData, setUserData }) {
   const [tabSwitches, setTabSwitches] = useState(0);
   const [pasteCount,  setPasteCount]  = useState(0);
   const timerRef = useRef(null);
-
   const [chatOpen,    setChatOpen]    = useState(false);
   const [chatMsgs,    setChatMsgs]    = useState([]);
   const [chatInput,   setChatInput]   = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
+  const [aiPanelOpen,    setAiPanelOpen]    = useState(false);
+  const [aiPanelTab,     setAiPanelTab]     = useState('chat'); // 'chat' | 'complete'
+  const [aiChatMsgs,     setAiChatMsgs]     = useState([]);
+  const [aiChatInput,    setAiChatInput]    = useState('');
+  const [aiLoading,      setAiLoading]      = useState(false);
+  const [aiCompletion,   setAiCompletion]   = useState('');
+  const [lastTimestamp,  setLastTimestamp]  = useState(null);
+  const aiPanelEndRef = useRef(null);
+
+  useEffect(() => { aiPanelEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [aiChatMsgs]);
+
+  const requestAiAssist = async (type, question = '') => {
+    if (!session?.sessionId || aiLoading) return;
+    setAiLoading(true);
+    const problem = session.problems?.[probIdx];
+    const ts = new Date().toISOString();
+    setLastTimestamp(ts);
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist`, {
+        userId: user.uid, type,
+        code: '',
+        language: 'python3',
+        question,
+        problemTitle: problem?.title || '',
+        problemDescription: problem?.description || '',
+      });
+      if (type === 'chat') {
+        setAiChatMsgs(prev => [...prev, { role:'assistant', text:res.data.result }]);
+      } else {
+        setAiCompletion(res.data.result);
+      }
+    } catch (e) { console.error('AI assist error:', e); }
+    finally { setAiLoading(false); }
+  };
+
+  const acceptCompletion = async () => {
+    if (!lastTimestamp || !session?.sessionId) return;
+    try {
+      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist/accept`, {
+        timestamp: lastTimestamp,
+      });
+    } catch (e) { /* non-blocking */ }
+    setAiCompletion('');
+  };
 
   const askInterviewer = useCallback(async (userMsg) => {
     if (!session?.sessionId) return;
@@ -667,14 +741,13 @@ export default function MockInterview({ user, userData, setUserData }) {
   }, [phase]);
 
   const config = CONFIGS[company] || CONFIGS.general;
-
-  const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '', realWorld = false) => {
+  const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '', realWorld = false, aiAssistEnabled = false) => {
     setCompany(selectedCompany);
     setStartError(null);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/start`, {
       userId: user.uid, company: selectedCompany, topics: selectedTopics,
-        interviewType: selectedType, jdText, realWorld,
+        interviewType: selectedType, jdText, realWorld, aiAssistEnabled,
       });
       const data = res.data;
       if (!data || !Array.isArray(data.problems) || data.problems.length === 0) {
@@ -705,7 +778,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (timerRef.current) clearInterval(timerRef.current);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, { userId: user.uid });
-      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid });
+      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid, aiUsageLog: res.data.aiUsageLog || [] });
       setPhase('complete');
     } catch {
       setPhase('complete');
@@ -821,6 +894,32 @@ export default function MockInterview({ user, userData, setUserData }) {
         {iType === 'frontend' && currentProblem && (
           <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
         )}
+        {/* AI IDE toggle — all interview types */}
+        <div style={{ marginBottom:20 }}>
+          <button
+            onClick={() => setAiAssistEnabled(a => !a)}
+            style={{ width:'100%', background:aiAssistEnabled?'#1a73e811':'#0d1117', border:`1px solid ${aiAssistEnabled?'#1a73e866':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:20 }}>🤖</span>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ color:aiAssistEnabled?'#1a73e8':'#e8e8e8', fontSize:13, fontWeight:700 }}>AI-Assisted IDE</div>
+                <div style={{ color:'#555', fontSize:10, marginTop:2 }}>Enable AI chat + inline completions • All usage tracked</div>
+              </div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {aiAssistEnabled && <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d44', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>TRACKED</span>}
+              <div style={{ width:40, height:22, background:aiAssistEnabled?'#1a73e8':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+                <div style={{ position:'absolute', top:3, left:aiAssistEnabled?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
+              </div>
+            </div>
+          </button>
+          {aiAssistEnabled && (
+            <div style={{ background:'#1a73e808', border:'1px solid #1a73e822', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11, lineHeight:1.6 }}>
+              ⚠ All AI prompts, responses, and accepted suggestions are logged and visible in the interview report.
+            </div>
+          )}
+        </div>
         {/* System Design */}
         {iType === 'system-design' && currentProblem && (
           <div style={{ display:'flex', height:'100%' }}>
@@ -1043,7 +1142,112 @@ export default function MockInterview({ user, userData, setUserData }) {
                   />
                   <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()}
                     style={{ background:config.color, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
+                </div>               
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+      {/* AI IDE Assistant — shown when enabled */}
+      {session?.aiAssistEnabled && (
+        <>
+          <motion.button
+            whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+            onClick={() => setAiPanelOpen(o => !o)}
+            style={{ position:'fixed', bottom:24, right: (iType==='coding'||!iType||iType==='frontend') ? 86 : 24, zIndex:9000, width:52, height:52, borderRadius:'50%', background: aiPanelOpen ? '#1a73e8' : 'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #1a73e844', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
+          >
+            {aiPanelOpen ? '✕' : '✨'}
+            {!aiPanelOpen && (aiChatMsgs.length > 0 || aiCompletion) && (
+              <span style={{ position:'absolute', top:-2, right:-2, width:14, height:14, borderRadius:'50%', background:'#1a73e8', border:'2px solid #0a0a14', animation:'pulse 1.5s infinite' }} />
+            )}
+          </motion.button>
+
+          <AnimatePresence>
+            {aiPanelOpen && (
+              <motion.div
+                initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
+                style={{ position:'fixed', bottom:86, right:(iType==='coding'||!iType||iType==='frontend')?86:24, zIndex:9000, width:380, maxHeight:'60vh', background:'#0d1117', border:'1px solid #1a73e844', borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 8px 40px #00000088' }}
+              >
+                {/* Header */}
+                <div style={{ padding:'10px 14px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:16 }}>✨</span>
+                    <div>
+                      <div style={{ color:'#1a73e8', fontSize:12, fontWeight:900 }}>AI Assistant</div>
+                      <div style={{ color:'#444', fontSize:9 }}>All usage tracked • Never gives full solutions</div>
+                    </div>
+                  </div>
+                  <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d33', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>LOGGED</span>
                 </div>
+
+                {/* Tabs */}
+                <div style={{ display:'flex', borderBottom:'1px solid #1e2a3a', flexShrink:0 }}>
+                  {[{ id:'chat', label:'💬 Chat' }, { id:'complete', label:'⚡ Complete' }].map(tab => (
+                    <button key={tab.id} onClick={() => setAiPanelTab(tab.id)}
+                      style={{ flex:1, padding:'8px 0', background:aiPanelTab===tab.id?'#1a73e811':'transparent', border:'none', borderBottom:aiPanelTab===tab.id?'2px solid #1a73e8':'2px solid transparent', color:aiPanelTab===tab.id?'#1a73e8':'#555', cursor:'pointer', fontSize:11, fontWeight:700, transition:'all 0.15s' }}
+                    >{tab.label}</button>
+                  ))}
+                </div>
+
+                {/* Chat tab */}
+                {aiPanelTab === 'chat' && (
+                  <>
+                    <div style={{ flex:1, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                      {aiChatMsgs.length === 0 && (
+                        <div style={{ color:'#333', fontSize:11, textAlign:'center', padding:16 }}>
+                          Ask about concepts, errors, or approach.<br/>
+                          <span style={{ color:'#2a3645', fontSize:10 }}>Won't give the full solution.</span>
+                        </div>
+                      )}
+                      {aiChatMsgs.map((m,i) => (
+                        <div key={i} style={{ alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'88%', background:m.role==='user'?'#1a73e822':'#1e2a3a', border:`1px solid ${m.role==='user'?'#1a73e844':'#2a3645'}`, borderRadius:m.role==='user'?'12px 12px 4px 12px':'12px 12px 12px 4px', padding:'7px 10px', color:m.role==='user'?'#88bbff':'#c8c8c8', fontSize:11, lineHeight:1.6 }}>
+                          {m.role==='assistant' && <div style={{ color:'#1a73e8', fontSize:9, fontWeight:700, marginBottom:3 }}>✨ AI ASSISTANT</div>}
+                          {m.text}
+                        </div>
+                      ))}
+                      {aiLoading && aiPanelTab==='chat' && <div style={{ color:'#555', fontSize:11, fontStyle:'italic' }}>✨ Thinking...</div>}
+                      <div ref={aiPanelEndRef} />
+                    </div>
+                    <div style={{ padding:'8px 10px', borderTop:'1px solid #1e2a3a', display:'flex', gap:5, flexShrink:0 }}>
+                      <input value={aiChatInput} onChange={e=>setAiChatInput(e.target.value)}
+                        onKeyDown={e=>{if(e.key==='Enter'&&aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
+                        placeholder="Ask about concepts, errors, approach..."
+                        style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'7px 10px', color:'#e8e8e8', fontSize:11, outline:'none' }}
+                      />
+                      <button
+                        onClick={()=>{if(aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
+                        disabled={aiLoading||!aiChatInput.trim()}
+                        style={{ background:'#1a73e8', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:11, fontWeight:700, padding:'7px 12px', opacity:aiLoading||!aiChatInput.trim()?0.4:1 }}>Ask</button>
+                    </div>
+                  </>
+                )}
+
+                {/* Complete tab */}
+                {aiPanelTab === 'complete' && (
+                  <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:10, overflowY:'auto' }}>
+                    <div style={{ color:'#666', fontSize:11, lineHeight:1.6 }}>
+                      AI will suggest the next logical lines based on your current code. Copy and paste what you want to use.
+                    </div>
+                    {aiCompletion ? (
+                      <div style={{ flex:1 }}>
+                        <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>✨ Suggestion</div>
+                        <pre style={{ background:'#060910', border:'1px solid #1a73e833', borderRadius:8, padding:'10px 12px', color:'#88ffbb', fontSize:11, fontFamily:'"Fira Code", monospace', lineHeight:1.6, margin:0, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all' }}>{aiCompletion}</pre>
+                        <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                          <button onClick={acceptCompletion} style={{ flex:1, background:'#00c89622', border:'1px solid #00c89644', borderRadius:8, color:'#00c896', cursor:'pointer', fontSize:11, fontWeight:700, padding:'7px 0' }}>✓ Used it</button>
+                          <button onClick={()=>setAiCompletion('')} style={{ flex:1, background:'#1e2a3a', border:'1px solid #2a3645', borderRadius:8, color:'#555', cursor:'pointer', fontSize:11, padding:'7px 0' }}>✕ Dismiss</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
+                        onClick={() => requestAiAssist('completion')} disabled={aiLoading}
+                        style={{ background:aiLoading?'#1e2a3a':'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', borderRadius:10, color:aiLoading?'#444':'#fff', cursor:aiLoading?'not-allowed':'pointer', fontSize:13, fontWeight:700, padding:'14px 0', boxShadow:aiLoading?'none':'0 0 20px #1a73e844' }}
+                      >
+                        {aiLoading ? '⏳ Generating...' : '⚡ Get Completion'}
+                      </motion.button>
+                    )}
+                    <div style={{ color:'#2a3645', fontSize:9, textAlign:'center' }}>This request will be logged in your interview report</div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
