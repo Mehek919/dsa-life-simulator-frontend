@@ -338,8 +338,12 @@ export default function MockInterview({ user, userData, setUserData }) {
           setChatMsgs([{ role: 'interviewer', text: res.data.question }]);
           setChatOpen(true);
         }
-      } catch (e) { console.error('AI auto-question failed:', e); }
-      finally { setChatLoading(false); }
+      } catch (e) {
+        console.error('AI auto-question failed:', e);
+        setChatMsgs([{ role: 'interviewer', text: '⚠ Interviewer unavailable. Check Groq API key on Render.' }]);
+      } finally {
+        setChatLoading(false);
+      }
     }, 1500);
     return () => clearTimeout(timer);
   }, [phase, probIdx, session?.sessionId]);
