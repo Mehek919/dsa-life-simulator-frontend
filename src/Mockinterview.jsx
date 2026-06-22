@@ -145,7 +145,50 @@ function CompanySelector({ onStart, error }) {
             </div>
           </div>
         )}
+        {/* Technical Screening info */}
+        {interviewType === 'technical-screening' && (
+          <div style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#10b981', fontSize:15 }}>📋 Technical Screening Round</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              30-minute recruiter-style screening. CS fundamentals, resume walkthrough, and role fit evaluation with an AI recruiter.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['Background','Big O','Data Structures','Problem Solving','Behaviorals','Role Fit'].map(t => (
+                <span key={t} style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:12, padding:'2px 10px', color:'#10b981', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {/* Frontend info */}
+        {interviewType === 'frontend' && (
+          <div style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#f472b6', fontSize:15 }}>🖥️ Frontend Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              45-minute frontend-specific coding round. UI implementation, JavaScript fundamentals, React patterns, and architecture trade-offs.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['JavaScript','React','CSS','DOM','Performance','Accessibility','Component Design'].map(t => (
+                <span key={t} style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:12, padding:'2px 10px', color:'#f472b6', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Fluency info */}
+        {interviewType === 'ai-fluency' && (
+          <div style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#a78bfa', fontSize:15 }}>🤖 AI Fluency Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              30-minute assessment of your AI collaboration skills — prompting strategies, AI-assisted workflows, tool selection, and limitations awareness.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['Prompt Engineering','AI Tools','Copilot Usage','Limitations','Debugging with AI','Evaluation'].map(t => (
+                <span key={t} style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:12, padding:'2px 10px', color:'#a78bfa', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Selected config details — coding only */}
         {interviewType === 'coding' && (
         <AnimatePresence mode="wait">
@@ -179,28 +222,28 @@ function CompanySelector({ onStart, error }) {
 
         {/* Tips — type-aware */}
         <div style={{ background:`${config.color}11`, border:`1px solid ${config.color}22`, borderRadius:12, padding:'14px 18px', marginBottom:24 }}>
-          <div style={{ color:config.color, fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>💡 {interviewType === 'behavioral' ? 'Behavioral Tips' : interviewType === 'system-design' ? 'System Design Tips' : 'Interview Tips'}</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-            {(interviewType === 'system-design'
-              ? ['Start with requirements clarification',
-                 'Draw the high-level architecture first',
-                 'Discuss trade-offs for every decision',
-                 'Address bottlenecks and failure modes']
-              : interviewType === 'behavioral'
-              ? ['Use the STAR method: Situation, Task, Action, Result',
-                 'Be specific — use "I" not "we"',
-                 'Quantify your impact whenever possible',
-                 'Show self-awareness and growth']
-              : ['Think out loud — interviewers want to hear your process',
-                 'Start with brute force, then optimize',
-                 'Always discuss time & space complexity',
-                 'Ask clarifying questions before coding']
-            ).map(tip => (
-              <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
-                <span style={{ color:config.color, flexShrink:0 }}>•</span>{tip}
-              </div>
-            ))}
+          <div style={{ color:config.color, fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>
+            💡 {interviewType==='behavioral'?'Behavioral Tips':interviewType==='system-design'?'System Design Tips':interviewType==='technical-screening'?'Screening Tips':interviewType==='frontend'?'Frontend Tips':interviewType==='ai-fluency'?'AI Fluency Tips':'Interview Tips'}
           </div>
+          {(interviewType === 'system-design'
+            ? ['Start with requirements clarification',
+               'Draw the high-level architecture first',
+               'Discuss trade-offs for every decision',
+               'Address bottlenecks and failure modes']
+            : interviewType === 'behavioral'
+            ? ['Use the STAR method: Situation, Task, Action, Result',
+               'Be specific — use "I" not "we"',
+               'Quantify your impact whenever possible',
+               'Show self-awareness and growth']
+            : ['Think out loud — interviewers want to hear your process',
+               'Start with brute force, then optimize',
+               'Always discuss time & space complexity',
+               'Ask clarifying questions before coding']
+          ).map(tip => (
+            <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
+              <span style={{ color:config.color, flexShrink:0 }}>•</span>{tip}
+            </div>
+          ))}
         </div>
 
         {error && (
@@ -215,15 +258,14 @@ function CompanySelector({ onStart, error }) {
           style={{ width:'100%', background:starting?'#1e2a3a':`linear-gradient(135deg, ${config.color}, ${config.color}88)`, border:'none', borderRadius:14, color:starting?'#444':'#fff', cursor:starting?'not-allowed':'pointer', fontSize:16, fontWeight:900, padding:'16px 0', boxShadow:starting?'none':`0 0 30px ${config.color}44` }}
         >
           {starting ? '⏳ Setting up interview...'
-           : interviewType === 'system-design' ? '🏗️ Start System Design Interview'
-           : interviewType === 'behavioral'    ? '🎙️ Start Behavioral Interview'
-           : `🚀 Start ${config.company} Coding Interview`}
+            : interviewType === 'system-design' ? '🏗️ Start System Design Interview'
+            : interviewType === 'behavioral'    ? '🎙️ Start Behavioral Interview'
+            : `🚀 Start ${config.company} Coding Interview`}
         </motion.button>
       </motion.div>
     </div>
   );
 }
-
 // ── Interview Result Screen ───────────────────────────────────────────────────
 function InterviewResult({ result, company, onRedo, onHome }) {
   const config = CONFIGS[company] || CONFIGS.general;
