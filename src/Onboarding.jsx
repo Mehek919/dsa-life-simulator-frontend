@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
-
-// ── Animated Background ────────────────────────────────────────────────────────
 function Background({ accentColor }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: '#0a0a14', overflow: 'hidden', pointerEvents: 'none' }}>
@@ -73,8 +71,6 @@ function Particles() {
     </div>
   );
 }
-
-// ── Stage: Intro ───────────────────────────────────────────────────────────────
 function IntroStage({ onStart, loading, userName }) {
   return (
     <motion.div
@@ -353,8 +349,6 @@ function QuestionsStage({ questions, currentQ, answers, onAnswer, onNext, onPrev
     </motion.div>
   );
 }
-
-// ── Stage: Role Reveal ─────────────────────────────────────────────────────────
 function RoleRevealStage({ roleData, onEnter }) {
   const [revealed, setRevealed] = useState(false);
 
@@ -512,25 +506,29 @@ const Onboarding = ({ user, onComplete }) => {
   const [loading,         setLoading]         = useState(false);
   const [roleData,        setRoleData]        = useState(null);
   const [error,           setError]           = useState('');
-
-  // ── Generate questions ──
   const handleStart = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axios.post(`${API_BASE}/onboard/generate-questions`, {
-        name:  user.displayName,
-        email: user.email,
-      });
-      setQuestions(res.data.questions || []);
-      setStage('questions');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to generate questions. Is the backend running?');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  setError('');
+
+  try {
+    const res = await axios.post(
+      `${API_BASE}/onboarding/generate-questions`,
+      {
+        name: user?.displayName || 'Developer',
+        email: user?.email || 'user@example.com',
+      }
+    );
+
+    setQuestions(res.data.questions || []);
+    setStage('questions');
+  } catch (err) {
+    console.error(err);
+    setError('Failed to generate questions. Is the backend running?');
+  } finally {
+    setLoading(false);
+  }
+};
+  
 
   // ── Answer change ──
   const handleAnswer = (value) => {
@@ -554,7 +552,7 @@ const Onboarding = ({ user, onComplete }) => {
     setError('');
     try {
       const answerArray = questions.map((_, i) => answers[i] || '');
-      const res = await axios.post(`${API_BASE}/onboard/analyze-answers`, {
+      const res = await axios.post(`${API_BASE}/onboarding/analyze`, {
         userId:    user.uid,
         name:      user.displayName,
         questions,
