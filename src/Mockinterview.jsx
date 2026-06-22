@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
-
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -13,15 +12,11 @@ const CONFIGS = {
   apple:     { company:'Apple',     logo:'🍎', color:'#a2aaad', duration:45, desc:'Elegant production-quality code'          },
   general:   { company:'General',   logo:'💻', color:'#a855f7', duration:60, desc:'Mixed difficulty fundamentals'            },
 };
-
 function formatTime(s) {
   const m = Math.floor(s/60), sec = s%60;
   return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
-
 const TOPICS = ['Array','String','Linked List','Tree','Graph','DP','Hash Table','Stack','Heap','Binary Search','Sorting','Sliding Window','Matrix','DFS','BFS'];
-
-// ── Voice Interview Component ─────────────────────────────────────────────────
 function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, setChatMsgs }) {
   const [listening,  setListening]  = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -595,8 +590,6 @@ function InterviewResult({ result, company, onRedo, onHome }) {
     </div>
   );
 }
-
-// ── Main MockInterview ────────────────────────────────────────────────────────
 export default function MockInterview({ user, userData, setUserData }) {
   const navigate = useNavigate();
   const [phase,      setPhase]      = useState('select');
@@ -827,31 +820,6 @@ export default function MockInterview({ user, userData, setUserData }) {
         {/* Frontend */}
         {iType === 'frontend' && currentProblem && (
           <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
-        )}
-        {/* Real-world mode toggle — coding only */}
-        {interviewType === 'coding' && (
-          <div style={{ marginBottom:20 }}>
-            <button
-              onClick={() => setRealWorld(r => !r)}
-              style={{ width:'100%', background:realWorld?'#f59e0b11':'#0d1117', border:`1px solid ${realWorld?'#f59e0b66':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontSize:20 }}>🌍</span>
-                <div style={{ textAlign:'left' }}>
-                  <div style={{ color:realWorld?'#f59e0b':'#e8e8e8', fontSize:13, fontWeight:700 }}>Real-World Mode</div>
-                  <div style={{ color:'#555', fontSize:10, marginTop:2 }}>AI generates actual {CONFIGS[selected]?.company || 'company'} interview problems on-demand</div>
-                </div>
-              </div>
-              <div style={{ width:40, height:22, background:realWorld?'#f59e0b':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
-                <div style={{ position:'absolute', top:3, left:realWorld?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
-              </div>
-            </button>
-            {realWorld && (
-              <div style={{ background:'#f59e0b08', border:'1px solid #f59e0b22', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11, lineHeight:1.6 }}>
-                ⚡ The AI will generate fresh {CONFIGS[selected]?.company || 'company'}-style problems each session. Generation takes ~5 seconds.
-              </div>
-            )}
-          </div>
         )}
         {/* System Design */}
         {iType === 'system-design' && currentProblem && (
