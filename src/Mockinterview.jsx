@@ -415,6 +415,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         });
         if (res.data.question) {
           setChatMsgs([{ role: 'interviewer', text: res.data.question }]);
+          setChatOpen(true); // Auto-open so the user sees the first question
         }
       } catch (e) { console.error('AI auto-question failed:', e); }
       finally { setChatLoading(false); }
@@ -531,6 +532,7 @@ export default function MockInterview({ user, userData, setUserData }) {
 
   return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'#0a0a14', fontFamily:'Arial, sans-serif', overflow:'hidden' }}>
+      <style>{`@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }`}</style>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0, gap:10, flexWrap:'wrap' }}>
         {/* Left — company + problems */}
@@ -709,6 +711,15 @@ export default function MockInterview({ user, userData, setUserData }) {
         }}
       >
         {chatOpen ? '✕' : '🤖'}
+        {/* Pulsing notification dot when panel is closed and AI has asked something */}
+        {!chatOpen && chatMsgs.length > 0 && (
+          <span style={{
+            position:'absolute', top:-2, right:-2,
+            width:14, height:14, borderRadius:'50%',
+            background:'#ff4d4d', border:'2px solid #0a0a14',
+            animation:'pulse 1.5s infinite',
+          }} />
+        )}
       </motion.button>
 
       <AnimatePresence>
