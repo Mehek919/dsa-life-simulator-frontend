@@ -231,7 +231,14 @@ function CompanySelector({ onStart, error }) {
         )}
 
         <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
-          onClick={async () => { setStarting(true); await onStart(selected, topics, interviewType); setStarting(false); }}
+          onClick={async () => {
+           setStarting(true);
+          const companyToSend = (interviewType === 'technical-screening' || interviewType === 'ai-fluency')
+          ? interviewType
+          : selected;
+          await onStart(companyToSend, topics, interviewType);
+          setStarting(false);
+        }}
           disabled={starting}
           style={{ width:'100%', background:starting?'#1e2a3a':`linear-gradient(135deg, ${config.color}, ${config.color}88)`, border:'none', borderRadius:14, color:starting?'#444':'#fff', cursor:starting?'not-allowed':'pointer', fontSize:16, fontWeight:900, padding:'16px 0', boxShadow:starting?'none':`0 0 30px ${config.color}44` }}
         >
