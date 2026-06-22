@@ -31,13 +31,14 @@ function CompanySelector({ onStart, error }) {
   const config = CONFIGS[selected];
 
   const toggleTopic = (t) => setTopics(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev, t]);
-
   const TYPES = [
-    { id:'coding',        label:'💻 Coding',         desc:'DSA problems with live code editor' },
-    { id:'system-design', label:'🏗️ System Design',  desc:'Architecture & scalability discussions' },
-    { id:'behavioral',    label:'🎙️ Behavioral',     desc:'STAR method • Leadership • Conflict' },
+    { id:'coding',              label:'💻 Coding',         desc:'DSA problems with live code editor'      },
+    { id:'system-design',       label:'🏗️ System Design',  desc:'Architecture & scalability discussions'  },
+    { id:'behavioral',          label:'🎙️ Behavioral',     desc:'STAR method • Leadership • Conflict'     },
+    { id:'technical-screening', label:'📋 Tech Screening', desc:'CS fundamentals • Resume • Role fit'     },
+    { id:'frontend',            label:'🖥️ Frontend',       desc:'UI coding • React • CSS • Architecture'  },
+    { id:'ai-fluency',          label:'🤖 AI Fluency',     desc:'Prompting • AI-assisted dev • Workflows' },
   ];
-
   return (
     <div style={{ minHeight:'100vh', background:'#0a0a14', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Arial, sans-serif', position:'relative', overflow:'hidden' }}>
       {/* Ambient */}
@@ -257,10 +258,13 @@ function CompanySelector({ onStart, error }) {
           disabled={starting}
           style={{ width:'100%', background:starting?'#1e2a3a':`linear-gradient(135deg, ${config.color}, ${config.color}88)`, border:'none', borderRadius:14, color:starting?'#444':'#fff', cursor:starting?'not-allowed':'pointer', fontSize:16, fontWeight:900, padding:'16px 0', boxShadow:starting?'none':`0 0 30px ${config.color}44` }}
         >
-          {starting ? '⏳ Setting up interview...'
-            : interviewType === 'system-design' ? '🏗️ Start System Design Interview'
-            : interviewType === 'behavioral'    ? '🎙️ Start Behavioral Interview'
-            : `🚀 Start ${config.company} Coding Interview`}
+        {starting ? '⏳ Setting up interview...'
+          : interviewType === 'system-design'       ? '🏗️ Start System Design Interview'
+          : interviewType === 'behavioral'           ? '🎙️ Start Behavioral Interview'
+          : interviewType === 'technical-screening'  ? '📋 Start Technical Screening'
+          : interviewType === 'frontend'             ? '🖥️ Start Frontend Interview'
+          : interviewType === 'ai-fluency'           ? '🤖 Start AI Fluency Interview'
+          : `🚀 Start ${config.company} Coding Interview`}
         </motion.button>
       </motion.div>
     </div>
@@ -739,8 +743,91 @@ export default function MockInterview({ user, userData, setUserData }) {
       </div>
 
       {/* ── AI Interviewer Chat — coding interviews only (SD/behavioral have built-in chat) ── */}
-      {(!session?.interviewType || session.interviewType === 'coding') && (<>
-      <motion.button
+      {/* ── Technical Screening: full-screen recruiter chat ── */}
+        {session?.interviewType === 'technical-screening' && (
+          <div style={{ display:'flex', height:'100%' }}>
+            <div style={{ width:240, borderRight:'1px solid #1e2a3a', padding:'20px 16px', overflowY:'auto', flexShrink:0, background:'#0d1117' }}>
+              <div style={{ color:'#10b981', fontSize:13, fontWeight:900, marginBottom:6 }}>📋 Screening Round</div>
+              <div style={{ color:'#555', fontSize:11, lineHeight:1.7, marginBottom:16 }}>A recruiter-style conversation assessing your background, CS knowledge, and role fit.</div>
+              {['Your background & experience','Big O + Data Structures','Problem-solving process','Behavioral (STAR)','Role fit & motivation'].map((item,i) => (
+                <div key={i} style={{ color:'#444', fontSize:11, marginBottom:8, display:'flex', gap:6 }}>
+                  <span style={{ color:'#10b981', flexShrink:0 }}>→</span>{item}
+                </div>
+              ))}
+              <div style={{ marginTop:16, background:'#10b98111', border:'1px solid #10b98122', borderRadius:10, padding:10 }}>
+                <div style={{ color:'#10b981', fontSize:10, fontWeight:700, marginBottom:6 }}>💡 Tips</div>
+                {['Be concise and structured','Use "I" not "we"','Quantify your impact','Ask one smart question back'].map(t => (
+                  <div key={t} style={{ color:'#555', fontSize:10, marginBottom:4 }}>• {t}</div>
+                ))}
+              </div>
+            </div>
+            <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+              <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', display:'flex', flexDirection:'column', gap:10 }}>
+                {chatMsgs.length===0 && !chatLoading && <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>🤖 Connecting to your recruiter...</div>}
+                {chatMsgs.map((m,i) => (
+                  <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'72%', background:m.role==='candidate'?'#1a73e822':'#10b98118', border:`1px solid ${m.role==='candidate'?'#1a73e844':'#10b98133'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#88bbff':'#d8d8d8', fontSize:13, lineHeight:1.65 }}>
+                    {m.role==='interviewer' && <div style={{ color:'#10b981', fontSize:10, fontWeight:700, marginBottom:4 }}>📋 RECRUITER</div>}
+                    {m.text}
+                  </div>
+                ))}
+                {chatLoading && <div style={{ color:'#444', fontSize:12, fontStyle:'italic' }}>📋 Recruiter is typing...</div>}
+                <div ref={chatEndRef} />
+              </div>
+              <div style={{ padding:'12px 16px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
+                <input value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'&&chatInput.trim()&&!chatLoading){const msg=chatInput.trim();setChatMsgs(p=>[...p,{role:'candidate',text:msg}]);setChatInput('');askInterviewer(msg);}}}
+                  placeholder="Type your answer..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }}
+                />
+                <button onClick={()=>{if(chatInput.trim()&&!chatLoading){const msg=chatInput.trim();setChatMsgs(p=>[...p,{role:'candidate',text:msg}]);setChatInput('');askInterviewer(msg);}}} disabled={chatLoading||!chatInput.trim()}
+                  style={{ background:'#10b981', border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Frontend Interview: coding editor with JS default ── */}
+        {session?.interviewType === 'frontend' && currentProblem && (
+          <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
+        )}
+
+        {/* ── AI Fluency Interview: discussion-based chat ── */}
+        {session?.interviewType === 'ai-fluency' && (
+          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
+            <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ background:'#a78bfa22', border:'1px solid #a78bfa44', borderRadius:12, padding:'2px 10px', color:'#a78bfa', fontSize:10, fontWeight:700 }}>AI FLUENCY ROUND</span>
+                <span style={{ color:'#555', fontSize:11 }}>Discuss your real experience with AI tools — there are no wrong answers, only shallow ones.</span>
+              </div>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'16px 24px', display:'flex', flexDirection:'column', gap:10 }}>
+              {chatMsgs.length===0 && !chatLoading && <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>🤖 AI interviewer is ready...</div>}
+              {chatMsgs.map((m,i) => (
+                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'75%', background:m.role==='candidate'?'#a78bfa11':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#a78bfa44':'#2a3645'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#c4b5fd':'#c8c8c8', fontSize:13, lineHeight:1.7 }}>
+                  {m.role==='interviewer' && <div style={{ color:'#a78bfa', fontSize:10, fontWeight:700, marginBottom:4 }}>🤖 AI INTERVIEWER</div>}
+                  {m.text}
+                </div>
+              ))}
+              {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🤖 Thinking...</div>}
+              <div ref={chatEndRef} />
+            </div>
+            <div style={{ padding:'12px 24px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
+              <input value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter'&&chatInput.trim()&&!chatLoading){const msg=chatInput.trim();setChatMsgs(p=>[...p,{role:'candidate',text:msg}]);setChatInput('');askInterviewer(msg);}}}
+                placeholder="Share how you use AI in your workflow..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }}
+              />
+              <button onClick={()=>{if(chatInput.trim()&&!chatLoading){const msg=chatInput.trim();setChatMsgs(p=>[...p,{role:'candidate',text:msg}]);setChatInput('');askInterviewer(msg);}}} disabled={chatLoading||!chatInput.trim()}
+                style={{ background:'#a78bfa', border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+/* ── AI Interviewer Chat — coding + frontend only (others have built-in chat) ── */
+      
+      {(!session?.interviewType || session.interviewType === 'coding' || session.interviewType === 'frontend') && (
+        <>
+          <motion.button
         whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
         onClick={() => setChatOpen(o => !o)}
         style={{
@@ -855,7 +942,6 @@ export default function MockInterview({ user, userData, setUserData }) {
           </motion.div>
         )}
       </AnimatePresence>
-      </>)}
-    </div>
-  );
+      </>
+    )}
 }
