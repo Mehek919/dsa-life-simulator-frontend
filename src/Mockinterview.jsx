@@ -233,7 +233,7 @@ function CompanySelector({ onStart, error }) {
         <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
           onClick={async () => {
            setStarting(true);
-          const companyToSend = (interviewType === 'technical-screening' || interviewType === 'ai-fluency')
+          const companyToSend = (interviewType === 'technical-screening' || interviewType === 'ai-fluency' || interviewType === 'frontend')
           ? interviewType
           : selected;
           await onStart(companyToSend, topics, interviewType);
