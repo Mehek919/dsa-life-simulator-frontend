@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
-
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -13,15 +12,12 @@ const CONFIGS = {
   apple:     { company:'Apple',     logo:'🍎', color:'#a2aaad', duration:45, desc:'Elegant production-quality code'          },
   general:   { company:'General',   logo:'💻', color:'#a855f7', duration:60, desc:'Mixed difficulty fundamentals'            },
 };
-
 function formatTime(s) {
   const m = Math.floor(s/60), sec = s%60;
   return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
-
 // ── Topic categories for filtering ────────────────────────────────────────────
 const TOPICS = ['Array','String','Linked List','Tree','Graph','DP','Hash Table','Stack','Heap','Binary Search','Sorting','Sliding Window','Matrix','DFS','BFS'];
-
 // ── Company Selector ──────────────────────────────────────────────────────────
 function CompanySelector({ onStart, error }) {
   const [selected, setSelected] = useState('general');
@@ -340,6 +336,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         });
         if (res.data.question) {
           setChatMsgs([{ role: 'interviewer', text: res.data.question }]);
+          setChatOpen(true);
         }
       } catch (e) { console.error('AI auto-question failed:', e); }
       finally { setChatLoading(false); }
