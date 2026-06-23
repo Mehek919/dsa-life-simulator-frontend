@@ -6,6 +6,7 @@ import API_BASE from './config';
 import CodeEditor from './CodeEditor';
 import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
 import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
+import AINativeIDE from './AINativeIDE';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -144,12 +145,13 @@ function CompanySelector({ onStart, error }) {
     { id:'personalized',        label:'📄 Personalized',   desc:'JD upload • Role-specific questions'     },
     { id:'voice',               label:'🎤 Voice',          desc:'Speak naturally • AI listens & responds' },
     { id:'autonomous', label:'🧠 Autonomous AI', desc:'Adaptive • Self-directing • Full report' },
+    { id:'ai-native', label:'⚡ AI-Native', desc:'Multi-file • Copilot • Agent mode' },
   ];
 
   const typeColors = {
     coding:'#a855f7', 'system-design':'#1a73e8', behavioral:'#f59e0b',
     'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa',
-    personalized:'#f59e0b', voice:'#ec4899',
+    personalized:'#f59e0b', voice:'#ec4899', 'ai-native':'#06b6d4'
   };
   const activeColor = typeColors[interviewType] || config.color;
 
@@ -453,6 +455,8 @@ function CompanySelector({ onStart, error }) {
               : ['Think out loud — interviewers want to hear your process','Start with brute force, then optimize','Always discuss time & space complexity','Ask clarifying questions before coding']
               ? ['Think out loud — the AI is listening','Be specific with examples','It\'s okay to say "I\'m not sure" honestly','Ask clarifying questions freely']
               : interviewType==='autonomous'
+              ? ['Read all files before writing','Run tests early and often','Use Agent mode for boilerplate','Copilot won\'t give the full answer']
+              : interviewType==='ai-native'
             ).map(tip => (
               <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
                 <span style={{ color:activeColor, flexShrink:0 }}>•</span>{tip}
@@ -470,7 +474,7 @@ function CompanySelector({ onStart, error }) {
         <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
           onClick={async () => {
             setStarting(true);
-            const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice', 'autonomous'].includes(interviewType)
+            const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice', 'autonomous', 'ai-native'].includes(interviewType)
               ? interviewType : selected;
             await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled);
             setStarting(false);
@@ -487,6 +491,7 @@ function CompanySelector({ onStart, error }) {
             : interviewType==='personalized'        ? (jdText.length<50 ? '📄 Paste a Job Description first' : '📄 Start Personalized Interview')
             : interviewType==='voice'               ? '🎤 Start Voice Interview'
             : interviewType==='autonomous'          ? '🧠 Start Autonomous Interview'
+            : interviewType==='ai-native'            ? '⚡ Start AI-Native Interview'
             : `🚀 Start ${config.company} Coding Interview`}
         </motion.button>
       </motion.div>
@@ -1286,6 +1291,26 @@ export default function MockInterview({ user, userData, setUserData }) {
               <div style={{ color:'#333', fontSize:10, marginTop:6 }}>
                 The AI interviewer adapts every question to your answers. {chatMsgs.length > 0 ? `${Math.ceil(chatMsgs.length/2)} exchanges so far.` : 'Start whenever you\'re ready.'}
               </div>
+            </div>
+          </div>
+        )}
+        {/* AI-Native IDE */}
+        {iType === 'ai-native' && (
+          <AINativeIDE session={session} user={user} onComplete={() => completeInterview(false)} />
+        )}
+        {interviewType === 'ai-native' && (
+          <div style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#06b6d4', fontSize:15 }}>⚡ AI-Native Developer Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              Real workplace simulation. Multi-file project, AI copilot for questions, AI agent to rewrite files, and Judge0 for test execution. Build like you would on the job.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+              {['Multi-file IDE','File Tree','Terminal','AI Copilot','AI Agent Mode','Test Runner'].map(t => (
+                <span key={t} style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:12, padding:'2px 10px', color:'#06b6d4', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+            <div style={{ background:'#06b6d408', borderRadius:8, padding:'8px 12px', color:'#888', fontSize:11 }}>
+              💡 Copilot mode: ask AI questions about the code. Agent mode: give AI a natural language instruction and it rewrites the file. All AI interactions are tracked.
             </div>
           </div>
         )}
