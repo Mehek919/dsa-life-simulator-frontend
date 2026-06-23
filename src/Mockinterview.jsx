@@ -5,7 +5,7 @@ import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
 import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
-
+import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -143,6 +143,7 @@ function CompanySelector({ onStart, error }) {
     { id:'ai-fluency',          label:'🤖 AI Fluency',     desc:'Prompting • AI-assisted dev • Workflows' },
     { id:'personalized',        label:'📄 Personalized',   desc:'JD upload • Role-specific questions'     },
     { id:'voice',               label:'🎤 Voice',          desc:'Speak naturally • AI listens & responds' },
+    { id:'autonomous', label:'🧠 Autonomous AI', desc:'Adaptive • Self-directing • Full report' },
   ];
 
   const typeColors = {
@@ -382,7 +383,22 @@ function CompanySelector({ onStart, error }) {
             </div>
           </div>
         )}
-
+        {interviewType === 'autonomous' && (
+          <div style={{ background:'#00c89611', border:'1px solid #00c89633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#00c896', fontSize:15 }}>🧠 Autonomous AI Interviewer</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              A fully adaptive AI interviewer drives the entire session. No fixed questions — it responds to your answers, probes weak areas, and generates a comprehensive AI hiring report.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+              {['Adaptive Questioning','Real-time Probing','Multi-domain','Behavioral + Technical','AI Hiring Report','PDF Export'].map(t => (
+                <span key={t} style={{ background:'#00c89611', border:'1px solid #00c89633', borderRadius:12, padding:'2px 10px', color:'#00c896', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+            <div style={{ background:'#00c89608', borderRadius:8, padding:'8px 12px', color:'#888', fontSize:11 }}>
+              💡 The AI adjusts every question based on your previous answer. Stronger answers lead to harder follow-ups. Weaker answers trigger deeper probing.
+            </div>
+          </div>
+        )}
         {/* Selected config details — coding only */}
         {interviewType === 'coding' && (
           <AnimatePresence mode="wait">
@@ -435,6 +451,8 @@ function CompanySelector({ onStart, error }) {
               : interviewType==='voice'
               ? ['Speak clearly and at a natural pace','Structure answers with STAR','Pause before answering — it\'s okay','Treat it like a real phone screen']
               : ['Think out loud — interviewers want to hear your process','Start with brute force, then optimize','Always discuss time & space complexity','Ask clarifying questions before coding']
+              ? ['Think out loud — the AI is listening','Be specific with examples','It\'s okay to say "I\'m not sure" honestly','Ask clarifying questions freely']
+              : interviewType==='autonomous'
             ).map(tip => (
               <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
                 <span style={{ color:activeColor, flexShrink:0 }}>•</span>{tip}
@@ -452,7 +470,7 @@ function CompanySelector({ onStart, error }) {
         <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
           onClick={async () => {
             setStarting(true);
-            const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice'].includes(interviewType)
+            const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice', 'autonomous'].includes(interviewType)
               ? interviewType : selected;
             await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled);
             setStarting(false);
@@ -468,6 +486,7 @@ function CompanySelector({ onStart, error }) {
             : interviewType==='ai-fluency'          ? '🤖 Start AI Fluency Interview'
             : interviewType==='personalized'        ? (jdText.length<50 ? '📄 Paste a Job Description first' : '📄 Start Personalized Interview')
             : interviewType==='voice'               ? '🎤 Start Voice Interview'
+            : interviewType==='autonomous'          ? '🧠 Start Autonomous Interview'
             : `🚀 Start ${config.company} Coding Interview`}
         </motion.button>
       </motion.div>
@@ -590,7 +609,25 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             <div style={{ color:'#c8c8c8', fontSize:12, lineHeight:1.7 }}>{result.feedback}</div>
           </div>
         )}
-
+        {/* AI Hiring Report */}
+        {result.hiringReport && (
+          <>
+            <HiringReportPanel
+              report={result.hiringReport}
+              company={company}
+              interviewType={result.interviewType}
+              sessionId={result.sessionId}
+            />
+            <div style={{ marginBottom:24 }}>
+              <button
+                onClick={() => downloadHiringReportPDF({ report:result.hiringReport, company, interviewType:result.interviewType, result })}
+                style={{ width:'100%', background:'linear-gradient(135deg, #4285f4, #4285f488)', border:'none', borderRadius:12, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'12px 0', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+              >
+                <span>📄</span> Download Hiring Report PDF
+              </button>
+            </div>
+          </>
+        )}
         {/* AI Usage Report */}
         {result.aiUsageLog && result.aiUsageLog.length > 0 && (
           <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
@@ -938,7 +975,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (timerRef.current) clearInterval(timerRef.current);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, { userId: user.uid });
-      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid, aiUsageLog: res.data.aiUsageLog || [] });
+      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid, aiUsageLog: res.data.aiUsageLog || [], hiringReport: res.data.hiringReport || null });
       setPhase('complete');
     } catch {
       setPhase('complete');
@@ -982,7 +1019,7 @@ export default function MockInterview({ user, userData, setUserData }) {
   const pctDone         = (remaining / (sessionDuration * 60)) * 100;
   const timeColor       = remaining < 300 ? '#ff4d4d' : remaining < 900 ? '#f5c542' : '#00c896';
   const iType           = session?.interviewType || 'coding';
-  const typeColors      = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
+  const typeColors = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b', autonomous:'#00c896' };
   const headerColor     = typeColors[iType] || config.color;
 
   const sendChatMsg = () => {
@@ -1177,6 +1214,78 @@ export default function MockInterview({ user, userData, setUserData }) {
             <div style={{ padding:'12px 24px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
               <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Share how you use AI in your workflow..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }} />
               <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#a78bfa', border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
+            </div>
+          </div>
+        )}
+        {/* Autonomous AI Interviewer */}
+        {iType === 'autonomous' && (
+          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
+            <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ background:'#00c89622', border:'1px solid #00c89644', borderRadius:12, padding:'2px 10px', color:'#00c896', fontSize:10, fontWeight:700 }}>🧠 AUTONOMOUS AI INTERVIEWER</span>
+                  <span style={{ color:'#555', fontSize:11 }}>Adaptive • Evidence-based • Real-time probing</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ color:'#444', fontSize:10 }}>Turn {Math.ceil(chatMsgs.length / 2) + 1}</span>
+                  <div style={{ width:60, height:4, background:'#1e2a3a', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{ width:`${Math.min(100, (chatMsgs.length/22)*100)}%`, height:'100%', background:'#00c896', borderRadius:2, transition:'width 0.5s' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:12 }}>
+              {chatMsgs.length===0 && !chatLoading && (
+                <div style={{ textAlign:'center', padding:60 }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>🧠</div>
+                  <div style={{ color:'#444', fontSize:14, fontWeight:700, marginBottom:6 }}>Your AI Interviewer is ready</div>
+                  <div style={{ color:'#333', fontSize:12 }}>The interview will begin when you press Send or type your first message.</div>
+                </div>
+              )}
+              {chatMsgs.map((m,i) => (
+                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'78%' }}>
+                  {m.role === 'interviewer' && (
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                      <span style={{ fontSize:14 }}>🧠</span>
+                      <span style={{ color:'#00c896', fontSize:9, fontWeight:700, textTransform:'uppercase' }}>AI Interviewer</span>
+                    </div>
+                  )}
+                  <div style={{ background:m.role==='candidate'?'#00c89611':'#0d1117', border:`1px solid ${m.role==='candidate'?'#00c89644':'#1e2a3a'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'12px 16px', color:m.role==='candidate'?'#a7f3d0':'#d8d8d8', fontSize:13, lineHeight:1.75 }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0' }}>
+                  <span style={{ fontSize:16 }}>🧠</span>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {[0,1,2].map(i => (
+                      <span key={i} style={{ width:6, height:6, borderRadius:'50%', background:'#00c896', display:'inline-block', animation:`pulse 1.2s ${i*0.2}s infinite` }} />
+                    ))}
+                  </div>
+                  <span style={{ color:'#444', fontSize:11, fontStyle:'italic' }}>Analyzing your response...</span>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div style={{ padding:'14px 24px', borderTop:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
+              <div style={{ display:'flex', gap:8 }}>
+                <textarea
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMsg(); } }}
+                  placeholder="Type your answer... (Shift+Enter for new line)"
+                  rows={2}
+                  style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none', resize:'none', fontFamily:'Arial, sans-serif', lineHeight:1.5 }}
+                />
+                <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()}
+                  style={{ background:chatLoading||!chatInput.trim()?'#1e2a3a':'linear-gradient(135deg, #00c896, #00c89688)', border:'none', borderRadius:10, color:chatLoading||!chatInput.trim()?'#444':'#fff', cursor:chatLoading||!chatInput.trim()?'not-allowed':'pointer', fontSize:13, fontWeight:700, padding:'0 20px', opacity:1, minWidth:80 }}>
+                  {chatLoading ? '...' : 'Send →'}
+                </button>
+              </div>
+              <div style={{ color:'#333', fontSize:10, marginTop:6 }}>
+                The AI interviewer adapts every question to your answers. {chatMsgs.length > 0 ? `${Math.ceil(chatMsgs.length/2)} exchanges so far.` : 'Start whenever you\'re ready.'}
+              </div>
             </div>
           </div>
         )}
