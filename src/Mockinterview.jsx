@@ -7,6 +7,7 @@ import CodeEditor from './CodeEditor';
 import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
 import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
 import AINativeIDE from './AINativeIDE';
+import InterviewReplay from './InterviewReplay';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -666,6 +667,8 @@ function InterviewResult({ result, company, onRedo, onHome }) {
 
         {/* AI Integrity Report */}
         <IntegrityReport sessionId={result.sessionId} displayColor={displayColor} />
+        {/* Session Replay */}
+        <InterviewReplay sessionId={result.sessionId} displayColor={displayColor} />
 
         {/* Follow-up Chat */}
         <div style={{ marginBottom:24 }}>
