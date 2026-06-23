@@ -1293,27 +1293,7 @@ export default function MockInterview({ user, userData, setUserData }) {
               </div>
             </div>
           </div>
-        )}
-        {/* AI-Native IDE */}
-        {iType === 'ai-native' && (
-          <AINativeIDE session={session} user={user} onComplete={() => completeInterview(false)} />
-        )}
-        {interviewType === 'ai-native' && (
-          <div style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#06b6d4', fontSize:15 }}>⚡ AI-Native Developer Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              Real workplace simulation. Multi-file project, AI copilot for questions, AI agent to rewrite files, and Judge0 for test execution. Build like you would on the job.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
-              {['Multi-file IDE','File Tree','Terminal','AI Copilot','AI Agent Mode','Test Runner'].map(t => (
-                <span key={t} style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:12, padding:'2px 10px', color:'#06b6d4', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-            <div style={{ background:'#06b6d408', borderRadius:8, padding:'8px 12px', color:'#888', fontSize:11 }}>
-              💡 Copilot mode: ask AI questions about the code. Agent mode: give AI a natural language instruction and it rewrites the file. All AI interactions are tracked.
-            </div>
-          </div>
-        )}
+        )}        
         {iType === 'personalized' && (
           <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
             <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
