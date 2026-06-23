@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 import CodeEditor from './CodeEditor';
+import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
+
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -12,11 +14,15 @@ const CONFIGS = {
   apple:     { company:'Apple',     logo:'🍎', color:'#a2aaad', duration:45, desc:'Elegant production-quality code'          },
   general:   { company:'General',   logo:'💻', color:'#a855f7', duration:60, desc:'Mixed difficulty fundamentals'            },
 };
+
 function formatTime(s) {
   const m = Math.floor(s/60), sec = s%60;
   return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
+
 const TOPICS = ['Array','String','Linked List','Tree','Graph','DP','Hash Table','Stack','Heap','Binary Search','Sorting','Sliding Window','Matrix','DFS','BFS'];
+
+// ── Voice Interview Component ─────────────────────────────────────────────────
 function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, setChatMsgs }) {
   const [listening,  setListening]  = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -115,14 +121,14 @@ function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, set
 
 // ── Company Selector ──────────────────────────────────────────────────────────
 function CompanySelector({ onStart, error }) {
-  const [selected,     setSelected]     = useState('general');
-  const [starting,     setStarting]     = useState(false);
-  const [topics,       setTopics]       = useState([]);
-  const [interviewType, setInterviewType] = useState('coding');
-  const [jdText,       setJdText]       = useState('');
-  const [jdFile,       setJdFile]       = useState(null);
-  const [jdLoading,    setJdLoading]    = useState(false);
-  const [realWorld, setRealWorld] = useState(false);
+  const [selected,        setSelected]        = useState('general');
+  const [starting,        setStarting]        = useState(false);
+  const [topics,          setTopics]          = useState([]);
+  const [interviewType,   setInterviewType]   = useState('coding');
+  const [jdText,          setJdText]          = useState('');
+  const [jdFile,          setJdFile]          = useState(null);
+  const [jdLoading,       setJdLoading]       = useState(false);
+  const [realWorld,       setRealWorld]       = useState(false);
   const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
   const config = CONFIGS[selected] || CONFIGS.general;
 
@@ -207,6 +213,57 @@ function CompanySelector({ onStart, error }) {
           </div>
         )}
 
+        {/* Real-world mode toggle — coding only */}
+        {interviewType === 'coding' && (
+          <div style={{ marginBottom:20 }}>
+            <button onClick={() => setRealWorld(r => !r)}
+              style={{ width:'100%', background:realWorld?'#f59e0b11':'#0d1117', border:`1px solid ${realWorld?'#f59e0b66':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:20 }}>🌍</span>
+                <div style={{ textAlign:'left' }}>
+                  <div style={{ color:realWorld?'#f59e0b':'#e8e8e8', fontSize:13, fontWeight:700 }}>Real-World Mode</div>
+                  <div style={{ color:'#555', fontSize:10, marginTop:2 }}>AI generates actual {CONFIGS[selected]?.company || 'company'} interview problems on-demand</div>
+                </div>
+              </div>
+              <div style={{ width:40, height:22, background:realWorld?'#f59e0b':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+                <div style={{ position:'absolute', top:3, left:realWorld?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
+              </div>
+            </button>
+            {realWorld && (
+              <div style={{ background:'#f59e0b08', border:'1px solid #f59e0b22', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11 }}>
+                ⚡ The AI will generate fresh {CONFIGS[selected]?.company || 'company'}-style problems each session. Generation takes ~5 seconds.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI IDE toggle — all types */}
+        <div style={{ marginBottom:20 }}>
+          <button onClick={() => setAiAssistEnabled(a => !a)}
+            style={{ width:'100%', background:aiAssistEnabled?'#1a73e811':'#0d1117', border:`1px solid ${aiAssistEnabled?'#1a73e866':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:20 }}>✨</span>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ color:aiAssistEnabled?'#1a73e8':'#e8e8e8', fontSize:13, fontWeight:700 }}>AI-Assisted IDE</div>
+                <div style={{ color:'#555', fontSize:10, marginTop:2 }}>Enable AI chat + inline completions • All usage tracked</div>
+              </div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {aiAssistEnabled && <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d44', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>TRACKED</span>}
+              <div style={{ width:40, height:22, background:aiAssistEnabled?'#1a73e8':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+                <div style={{ position:'absolute', top:3, left:aiAssistEnabled?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
+              </div>
+            </div>
+          </button>
+          {aiAssistEnabled && (
+            <div style={{ background:'#1a73e808', border:'1px solid #1a73e822', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11 }}>
+              ⚠ All AI prompts, responses, and accepted suggestions are logged and visible in the interview report.
+            </div>
+          )}
+        </div>
+
         {/* Info panels */}
         {interviewType === 'system-design' && (
           <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
@@ -276,9 +333,7 @@ function CompanySelector({ onStart, error }) {
             </div>
             <div style={{ background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:12, padding:'16px' }}>
               <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:8 }}>Paste Job Description</div>
-              <textarea
-                value={jdText}
-                onChange={e => setJdText(e.target.value)}
+              <textarea value={jdText} onChange={e => setJdText(e.target.value)}
                 placeholder="Paste the full job description here — requirements, responsibilities, tech stack..."
                 style={{ width:'100%', boxSizing:'border-box', height:140, background:'#060910', border:`1px solid ${jdText.length > 100 ? '#f59e0b44' : '#1e2a3a'}`, borderRadius:8, padding:'10px 12px', color:'#e8e8e8', fontSize:12, fontFamily:'Arial, sans-serif', lineHeight:1.6, outline:'none', resize:'vertical' }}
               />
@@ -399,7 +454,7 @@ function CompanySelector({ onStart, error }) {
             setStarting(true);
             const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice'].includes(interviewType)
               ? interviewType : selected;
-            await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled, );
+            await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled);
             setStarting(false);
           }}
           disabled={starting || (interviewType==='personalized' && jdText.length < 50)}
@@ -439,21 +494,20 @@ function InterviewResult({ result, company, onRedo, onHome }) {
       const res = await axios.post(`${API_BASE}/mock-interview/${result.sessionId}/followup`, {
         userId: result.userId, message: msg, conversation: followUpMsgs,
       });
-      if (res.data.reply) {
-        setFollowUpMsgs(prev => [...prev, { role:'coach', text:res.data.reply }]);
-      }
+      if (res.data.reply) setFollowUpMsgs(prev => [...prev, { role:'coach', text:res.data.reply }]);
     } catch (e) { console.error('Follow-up error:', e); }
     finally { setFollowUpLoading(false); }
   };
 
   useEffect(() => { followUpEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [followUpMsgs]);
+
   const grade      = result.pct >= 80 ? 'A' : result.pct >= 60 ? 'B' : result.pct >= 40 ? 'C' : 'D';
   const gradeColor = result.pct >= 80 ? '#00c896' : result.pct >= 60 ? '#f5c542' : result.pct >= 40 ? '#1a73e8' : '#ff4d4d';
   const breakdown  = result.problemBreakdown || [];
   const diffColors = { Easy:'#00c896', Medium:'#f5c542', Hard:'#ff4d4d' };
   const statusIcon  = { solved:'✓', attempted:'✗', skipped:'⊘' };
   const statusColor = { solved:'#00c896', attempted:'#ff4d4d', skipped:'#555' };
-  const typeColors = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
+  const typeColors  = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
   const displayColor = typeColors[result.interviewType] || config.color;
 
   return (
@@ -536,15 +590,16 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             <div style={{ color:'#c8c8c8', fontSize:12, lineHeight:1.7 }}>{result.feedback}</div>
           </div>
         )}
+
         {/* AI Usage Report */}
         {result.aiUsageLog && result.aiUsageLog.length > 0 && (
           <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
             <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>✨ AI Usage Report</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:12 }}>
               {[
-                { label:'Total Requests',    value: result.aiUsageLog.length,                                         color:'#1a73e8' },
-                { label:'Accepted',          value: result.aiUsageLog.filter(l => l.accepted).length,                 color:'#00c896' },
-                { label:'Chat Questions',    value: result.aiUsageLog.filter(l => l.type === 'chat').length,           color:'#a855f7' },
+                { label:'Total Requests', value:result.aiUsageLog.length,                                       color:'#1a73e8' },
+                { label:'Accepted',       value:result.aiUsageLog.filter(l => l.accepted).length,               color:'#00c896' },
+                { label:'Chat Questions', value:result.aiUsageLog.filter(l => l.type === 'chat').length,         color:'#a855f7' },
               ].map(s => (
                 <div key={s.label} style={{ background:'#060910', borderRadius:8, padding:'8px 10px', textAlign:'center' }}>
                   <div style={{ color:s.color, fontSize:16, fontWeight:900 }}>{s.value}</div>
@@ -566,10 +621,13 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             </div>
           </div>
         )}
+
+        {/* AI Integrity Report */}
+        <IntegrityReport sessionId={result.sessionId} displayColor={displayColor} />
+
         {/* Follow-up Chat */}
         <div style={{ marginBottom:24 }}>
-          <button
-            onClick={() => setFollowUpOpen(o => !o)}
+          <button onClick={() => setFollowUpOpen(o => !o)}
             style={{ width:'100%', background:followUpOpen?`${displayColor}11`:'#060910', border:`1px solid ${followUpOpen?displayColor+'44':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
           >
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -581,7 +639,6 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             </div>
             <span style={{ color:'#555', fontSize:12 }}>{followUpOpen ? '▲' : '▼'}</span>
           </button>
-
           {followUpOpen && (
             <div style={{ border:`1px solid ${displayColor}33`, borderTop:'none', borderRadius:'0 0 12px 12px', background:'#060910', overflow:'hidden' }}>
               <div style={{ maxHeight:320, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
@@ -600,9 +657,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
                 <div ref={followUpEndRef} />
               </div>
               <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6 }}>
-                <input
-                  value={followUpInput}
-                  onChange={e => setFollowUpInput(e.target.value)}
+                <input value={followUpInput} onChange={e => setFollowUpInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') sendFollowUp(); }}
                   placeholder="Ask about your feedback, weak areas, or solutions..."
                   style={{ flex:1, background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }}
@@ -613,6 +668,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             </div>
           )}
         </div>
+
         <div style={{ display:'flex', gap:10 }}>
           <button onClick={onRedo} style={{ flex:1, background:'#1e2a3a', border:'1px solid #1e2a3a', borderRadius:10, color:'#888', cursor:'pointer', fontSize:13, fontWeight:600, padding:'10px 0' }}>Try Again</button>
           <button onClick={onHome} style={{ flex:1, background:`linear-gradient(135deg, ${displayColor}, ${displayColor}88)`, border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 0' }}>Back to World →</button>
@@ -621,6 +677,8 @@ function InterviewResult({ result, company, onRedo, onHome }) {
     </div>
   );
 }
+
+// ── Main MockInterview ────────────────────────────────────────────────────────
 export default function MockInterview({ user, userData, setUserData }) {
   const navigate = useNavigate();
   const [phase,      setPhase]      = useState('select');
@@ -634,18 +692,132 @@ export default function MockInterview({ user, userData, setUserData }) {
   const [tabSwitches, setTabSwitches] = useState(0);
   const [pasteCount,  setPasteCount]  = useState(0);
   const timerRef = useRef(null);
+
   const [chatOpen,    setChatOpen]    = useState(false);
   const [chatMsgs,    setChatMsgs]    = useState([]);
   const [chatInput,   setChatInput]   = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
-  const [aiPanelOpen,    setAiPanelOpen]    = useState(false);
-  const [aiPanelTab,     setAiPanelTab]     = useState('chat'); // 'chat' | 'complete'
-  const [aiChatMsgs,     setAiChatMsgs]     = useState([]);
-  const [aiChatInput,    setAiChatInput]    = useState('');
-  const [aiLoading,      setAiLoading]      = useState(false);
-  const [aiCompletion,   setAiCompletion]   = useState('');
-  const [lastTimestamp,  setLastTimestamp]  = useState(null);
+
+  // ── Integrity monitoring ────────────────────────────────────────────────────
+  const videoRef      = useRef(null);
+  const canvasRef     = useRef(null);
+  const streamRef     = useRef(null);
+  const keystrokesRef = useRef([]);
+  const lastKeyRef    = useRef(null);
+  const burstCountRef = useRef(0);
+  const idleBurstRef  = useRef(0);
+  const [webcamOn,    setWebcamOn]    = useState(false);
+  const [observeOpen, setObserveOpen] = useState(false);
+
+  const sendIntegrityEvent = useCallback(async (type, data) => {
+    if (!session?.sessionId) return;
+    try {
+      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/integrity-event`, { type, data });
+    } catch (e) { /* non-blocking */ }
+  }, [session?.sessionId]);
+
+  // Start webcam
+  useEffect(() => {
+    if (phase !== 'active') return;
+    let stopped = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width:160, height:120 }, audio: false });
+        streamRef.current = stream;
+        if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+        if (!stopped) setWebcamOn(true);
+      } catch (e) { console.warn('Webcam unavailable:', e.message); }
+    })();
+    return () => {
+      stopped = true;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      setWebcamOn(false);
+    };
+  }, [phase]);
+
+  // Webcam snapshot every 30s
+  useEffect(() => {
+    if (phase !== 'active' || !webcamOn) return;
+    const capture = async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0, 160, 120);
+      const img = canvasRef.current.toDataURL('image/jpeg', 0.4);
+      const imgData = ctx.getImageData(40, 20, 80, 80);
+      let skinPixels = 0;
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
+        if (r > 60 && g > 40 && b > 20 && r > g && r > b && r - b > 15) skinPixels++;
+      }
+      const faceDetected = skinPixels > 200;
+      await sendIntegrityEvent('webcam_snapshot', { img, faceDetected });
+    };
+    capture();
+    const timer = setInterval(capture, 30000);
+    return () => clearInterval(timer);
+  }, [phase, webcamOn, sendIntegrityEvent]);
+
+  // Keystroke timing
+  useEffect(() => {
+    if (phase !== 'active') return;
+    const onKey = () => {
+      const now = Date.now();
+      if (lastKeyRef.current) {
+        const interval = now - lastKeyRef.current;
+        keystrokesRef.current.push(interval);
+        if (keystrokesRef.current.length > 100) keystrokesRef.current.shift();
+        const recent = keystrokesRef.current.slice(-8);
+        if (recent.length === 8 && recent.every(i => i < 80)) {
+          burstCountRef.current += 1;
+          const idleBeforeBurst = keystrokesRef.current.slice(-10, -8);
+          if (idleBeforeBurst.some(i => i > 2000)) idleBurstRef.current += 1;
+          sendIntegrityEvent('burst_event', { burstCount: burstCountRef.current });
+        }
+      }
+      lastKeyRef.current = now;
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [phase, sendIntegrityEvent]);
+
+  // Keystroke summary every 60s
+  useEffect(() => {
+    if (phase !== 'active') return;
+    const timer = setInterval(() => {
+      const intervals = keystrokesRef.current;
+      if (!intervals.length) return;
+      const avg = Math.round(intervals.reduce((a,b)=>a+b,0) / intervals.length);
+      sendIntegrityEvent('keystroke_stats', { avgInterval:avg, burstCount:burstCountRef.current, idleBursts:idleBurstRef.current, sampleSize:intervals.length });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [phase, sendIntegrityEvent]);
+
+  // Screen blur tracking
+  useEffect(() => {
+    if (phase !== 'active') return;
+    let blurTs = null;
+    const onBlur  = () => { blurTs = Date.now(); };
+    const onFocus = () => {
+      if (blurTs) {
+        const duration = Math.round((Date.now() - blurTs) / 1000);
+        if (duration > 2) sendIntegrityEvent('screen_blur', { duration });
+        blurTs = null;
+      }
+    };
+    window.addEventListener('blur',  onBlur);
+    window.addEventListener('focus', onFocus);
+    return () => { window.removeEventListener('blur', onBlur); window.removeEventListener('focus', onFocus); };
+  }, [phase, sendIntegrityEvent]);
+
+  // ── AI IDE state ────────────────────────────────────────────────────────────
+  const [aiPanelOpen,   setAiPanelOpen]   = useState(false);
+  const [aiPanelTab,    setAiPanelTab]    = useState('chat');
+  const [aiChatMsgs,    setAiChatMsgs]    = useState([]);
+  const [aiChatInput,   setAiChatInput]   = useState('');
+  const [aiLoading,     setAiLoading]     = useState(false);
+  const [aiCompletion,  setAiCompletion]  = useState('');
+  const [lastTimestamp, setLastTimestamp] = useState(null);
   const aiPanelEndRef = useRef(null);
 
   useEffect(() => { aiPanelEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [aiChatMsgs]);
@@ -658,32 +830,23 @@ export default function MockInterview({ user, userData, setUserData }) {
     setLastTimestamp(ts);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist`, {
-        userId: user.uid, type,
-        code: '',
-        language: 'python3',
-        question,
-        problemTitle: problem?.title || '',
-        problemDescription: problem?.description || '',
+        userId: user.uid, type, code: '', language: 'python3', question,
+        problemTitle: problem?.title || '', problemDescription: problem?.description || '',
       });
-      if (type === 'chat') {
-        setAiChatMsgs(prev => [...prev, { role:'assistant', text:res.data.result }]);
-      } else {
-        setAiCompletion(res.data.result);
-      }
+      if (type === 'chat') setAiChatMsgs(prev => [...prev, { role:'assistant', text:res.data.result }]);
+      else setAiCompletion(res.data.result);
     } catch (e) { console.error('AI assist error:', e); }
     finally { setAiLoading(false); }
   };
 
   const acceptCompletion = async () => {
     if (!lastTimestamp || !session?.sessionId) return;
-    try {
-      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist/accept`, {
-        timestamp: lastTimestamp,
-      });
-    } catch (e) { /* non-blocking */ }
+    try { await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist/accept`, { timestamp: lastTimestamp }); }
+    catch (e) { /* non-blocking */ }
     setAiCompletion('');
   };
 
+  // ── AI Interviewer ──────────────────────────────────────────────────────────
   const askInterviewer = useCallback(async (userMsg) => {
     if (!session?.sessionId) return;
     const problem = session.problems?.[probIdx];
@@ -695,9 +858,7 @@ export default function MockInterview({ user, userData, setUserData }) {
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
         userId: user.uid, problemId: problem.id, code: '', language: 'python3', conversation,
       });
-      if (res.data.question) {
-        setChatMsgs([...conversation, { role:'interviewer', text:res.data.question }]);
-      }
+      if (res.data.question) setChatMsgs([...conversation, { role:'interviewer', text:res.data.question }]);
     } catch (e) { console.error('AI interviewer error:', e); }
     finally { setChatLoading(false); }
   }, [session, probIdx, chatMsgs, user.uid]);
@@ -714,10 +875,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
           userId: user.uid, problemId: problem.id, code: '', language: 'python3', conversation: [],
         });
-        if (res.data.question) {
-          setChatMsgs([{ role:'interviewer', text:res.data.question }]);
-          setChatOpen(true);
-        }
+        if (res.data.question) { setChatMsgs([{ role:'interviewer', text:res.data.question }]); setChatOpen(true); }
       } catch (e) {
         console.error('AI auto-question failed:', e);
         setChatMsgs([{ role:'interviewer', text:'⚠ Interviewer unavailable — check GROQ_API_KEY on Render.' }]);
@@ -728,6 +886,7 @@ export default function MockInterview({ user, userData, setUserData }) {
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [chatMsgs]);
 
+  // Tab switch + paste tracking
   useEffect(() => {
     if (phase !== 'active') return;
     const onVisChange = () => { if (document.hidden) setTabSwitches(c => c+1); };
@@ -741,12 +900,13 @@ export default function MockInterview({ user, userData, setUserData }) {
   }, [phase]);
 
   const config = CONFIGS[company] || CONFIGS.general;
+
   const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '', realWorld = false, aiAssistEnabled = false) => {
     setCompany(selectedCompany);
     setStartError(null);
     try {
       const res = await axios.post(`${API_BASE}/mock-interview/start`, {
-      userId: user.uid, company: selectedCompany, topics: selectedTopics,
+        userId: user.uid, company: selectedCompany, topics: selectedTopics,
         interviewType: selectedType, jdText, realWorld, aiAssistEnabled,
       });
       const data = res.data;
@@ -821,12 +981,10 @@ export default function MockInterview({ user, userData, setUserData }) {
   const sessionDuration = session?.config?.duration || session?.duration || 60;
   const pctDone         = (remaining / (sessionDuration * 60)) * 100;
   const timeColor       = remaining < 300 ? '#ff4d4d' : remaining < 900 ? '#f5c542' : '#00c896';
+  const iType           = session?.interviewType || 'coding';
+  const typeColors      = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
+  const headerColor     = typeColors[iType] || config.color;
 
-  const iType = session?.interviewType || 'coding';
-  const typeColors = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
-  const headerColor = typeColors[iType] || config.color;
-
-  // Chat input shared sender
   const sendChatMsg = () => {
     if (!chatInput.trim() || chatLoading) return;
     const msg = chatInput.trim();
@@ -838,6 +996,8 @@ export default function MockInterview({ user, userData, setUserData }) {
   return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'#0a0a14', fontFamily:'Arial, sans-serif', overflow:'hidden' }}>
       <style>{`@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }`}</style>
+      <video ref={videoRef} style={{ display:'none' }} muted playsInline />
+      <canvas ref={canvasRef} width={160} height={120} style={{ display:'none' }} />
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0, gap:10, flexWrap:'wrap' }}>
@@ -847,6 +1007,7 @@ export default function MockInterview({ user, userData, setUserData }) {
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <div style={{ color:headerColor, fontSize:10, fontWeight:700, textTransform:'uppercase' }}>{config.company} Mock Interview</div>
               {session?.realWorld && <span style={{ background:'#f59e0b22', border:'1px solid #f59e0b44', borderRadius:6, padding:'1px 6px', color:'#f59e0b', fontSize:9, fontWeight:700 }}>🌍 REAL-WORLD</span>}
+              {session?.aiAssistEnabled && <span style={{ background:'#1a73e822', border:'1px solid #1a73e844', borderRadius:6, padding:'1px 6px', color:'#1a73e8', fontSize:9, fontWeight:700 }}>✨ AI IDE</span>}
             </div>
             <div style={{ display:'flex', gap:5, marginTop:3 }}>
               {problems.map((p, i) => {
@@ -884,43 +1045,12 @@ export default function MockInterview({ user, userData, setUserData }) {
 
       {/* Main content */}
       <div style={{ flex:1, overflow:'hidden' }}>
-
-        {/* Coding */}
         {(iType === 'coding' || !iType) && currentProblem && (
           <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="python3" hideHints />
         )}
-
-        {/* Frontend */}
         {iType === 'frontend' && currentProblem && (
           <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
         )}
-        {/* AI IDE toggle — all interview types */}
-        <div style={{ marginBottom:20 }}>
-          <button
-            onClick={() => setAiAssistEnabled(a => !a)}
-            style={{ width:'100%', background:aiAssistEnabled?'#1a73e811':'#0d1117', border:`1px solid ${aiAssistEnabled?'#1a73e866':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
-          >
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:20 }}>🤖</span>
-              <div style={{ textAlign:'left' }}>
-                <div style={{ color:aiAssistEnabled?'#1a73e8':'#e8e8e8', fontSize:13, fontWeight:700 }}>AI-Assisted IDE</div>
-                <div style={{ color:'#555', fontSize:10, marginTop:2 }}>Enable AI chat + inline completions • All usage tracked</div>
-              </div>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {aiAssistEnabled && <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d44', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>TRACKED</span>}
-              <div style={{ width:40, height:22, background:aiAssistEnabled?'#1a73e8':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
-                <div style={{ position:'absolute', top:3, left:aiAssistEnabled?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
-              </div>
-            </div>
-          </button>
-          {aiAssistEnabled && (
-            <div style={{ background:'#1a73e808', border:'1px solid #1a73e822', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11, lineHeight:1.6 }}>
-              ⚠ All AI prompts, responses, and accepted suggestions are logged and visible in the interview report.
-            </div>
-          )}
-        </div>
-        {/* System Design */}
         {iType === 'system-design' && currentProblem && (
           <div style={{ display:'flex', height:'100%' }}>
             <div style={{ width:'50%', display:'flex', flexDirection:'column', borderRight:'1px solid #1e2a3a', overflow:'hidden' }}>
@@ -967,8 +1097,6 @@ export default function MockInterview({ user, userData, setUserData }) {
             </div>
           </div>
         )}
-
-        {/* Behavioral */}
         {iType === 'behavioral' && currentProblem && (
           <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
             <div style={{ padding:'16px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
@@ -991,8 +1119,6 @@ export default function MockInterview({ user, userData, setUserData }) {
             </div>
           </div>
         )}
-
-        {/* Technical Screening */}
         {iType === 'technical-screening' && (
           <div style={{ display:'flex', height:'100%' }}>
             <div style={{ width:240, borderRight:'1px solid #1e2a3a', padding:'20px 16px', overflowY:'auto', flexShrink:0, background:'#0d1117' }}>
@@ -1029,8 +1155,6 @@ export default function MockInterview({ user, userData, setUserData }) {
             </div>
           </div>
         )}
-
-        {/* AI Fluency */}
         {iType === 'ai-fluency' && (
           <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
             <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
@@ -1056,8 +1180,6 @@ export default function MockInterview({ user, userData, setUserData }) {
             </div>
           </div>
         )}
-
-        {/* Personalized */}
         {iType === 'personalized' && (
           <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
             <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
@@ -1083,23 +1205,23 @@ export default function MockInterview({ user, userData, setUserData }) {
             </div>
           </div>
         )}
-
-        {/* Voice */}
         {iType === 'voice' && (
-          <VoiceInterview
-            chatMsgs={chatMsgs} chatLoading={chatLoading}
-            chatEndRef={chatEndRef} askInterviewer={askInterviewer}
-            setChatMsgs={setChatMsgs}
-          />
+          <VoiceInterview chatMsgs={chatMsgs} chatLoading={chatLoading} chatEndRef={chatEndRef} askInterviewer={askInterviewer} setChatMsgs={setChatMsgs} />
         )}
+      </div>
 
-      </div>{/* end main content */}
+      {/* Webcam indicator */}
+      {webcamOn && (
+        <div style={{ position:'fixed', top:60, left:16, zIndex:8000, display:'flex', alignItems:'center', gap:6, background:'#0d111788', border:'1px solid #00c89633', borderRadius:20, padding:'4px 10px' }}>
+          <span style={{ width:6, height:6, borderRadius:'50%', background:'#00c896', display:'inline-block', animation:'pulse 1.5s infinite' }} />
+          <span style={{ color:'#00c896', fontSize:9, fontWeight:700 }}>WEBCAM MONITORING</span>
+        </div>
+      )}
 
       {/* Floating chat — coding + frontend only */}
       {(iType === 'coding' || !iType || iType === 'frontend') && (
         <>
-          <motion.button
-            whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+          <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
             onClick={() => setChatOpen(o => !o)}
             style={{ position:'fixed', bottom:24, right:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:`linear-gradient(135deg, ${config.color}, ${config.color}88)`, border:'none', cursor:'pointer', fontSize:22, boxShadow:`0 4px 20px ${config.color}44`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
           >
@@ -1108,12 +1230,10 @@ export default function MockInterview({ user, userData, setUserData }) {
               <span style={{ position:'absolute', top:-2, right:-2, width:14, height:14, borderRadius:'50%', background:'#ff4d4d', border:'2px solid #0a0a14', animation:'pulse 1.5s infinite' }} />
             )}
           </motion.button>
-
           <AnimatePresence>
             {chatOpen && (
-              <motion.div
-                initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
-                style={{ position:'fixed', bottom:86, right:24, zIndex:9000, width:360, maxHeight:'55vh', background:'#0d1117', border:`1px solid ${config.color}44`, borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:`0 8px 40px #00000088` }}
+              <motion.div initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
+                style={{ position:'fixed', bottom:86, right:24, zIndex:9000, width:360, maxHeight:'55vh', background:'#0d1117', border:`1px solid ${config.color}44`, borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 8px 40px #00000088' }}
               >
                 <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
                   <span style={{ fontSize:20 }}>🤖</span>
@@ -1135,40 +1255,35 @@ export default function MockInterview({ user, userData, setUserData }) {
                   <div ref={chatEndRef} />
                 </div>
                 <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6, flexShrink:0 }}>
-                  <input value={chatInput} onChange={e=>setChatInput(e.target.value)}
-                    onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}}
-                    placeholder="Reply to the interviewer..."
+                  <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Reply to the interviewer..."
                     style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }}
                   />
                   <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()}
                     style={{ background:config.color, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-                </div>               
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </>
       )}
-      {/* AI IDE Assistant — shown when enabled */}
+
+      {/* AI IDE Panel */}
       {session?.aiAssistEnabled && (
         <>
-          <motion.button
-            whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+          <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
             onClick={() => setAiPanelOpen(o => !o)}
-            style={{ position:'fixed', bottom:24, right: (iType==='coding'||!iType||iType==='frontend') ? 86 : 24, zIndex:9000, width:52, height:52, borderRadius:'50%', background: aiPanelOpen ? '#1a73e8' : 'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #1a73e844', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
+            style={{ position:'fixed', bottom:24, right:(iType==='coding'||!iType||iType==='frontend')?86:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:aiPanelOpen?'#1a73e8':'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #1a73e844', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
           >
             {aiPanelOpen ? '✕' : '✨'}
             {!aiPanelOpen && (aiChatMsgs.length > 0 || aiCompletion) && (
               <span style={{ position:'absolute', top:-2, right:-2, width:14, height:14, borderRadius:'50%', background:'#1a73e8', border:'2px solid #0a0a14', animation:'pulse 1.5s infinite' }} />
             )}
           </motion.button>
-
           <AnimatePresence>
             {aiPanelOpen && (
-              <motion.div
-                initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
+              <motion.div initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
                 style={{ position:'fixed', bottom:86, right:(iType==='coding'||!iType||iType==='frontend')?86:24, zIndex:9000, width:380, maxHeight:'60vh', background:'#0d1117', border:'1px solid #1a73e844', borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 8px 40px #00000088' }}
               >
-                {/* Header */}
                 <div style={{ padding:'10px 14px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span style={{ fontSize:16 }}>✨</span>
@@ -1179,8 +1294,6 @@ export default function MockInterview({ user, userData, setUserData }) {
                   </div>
                   <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d33', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>LOGGED</span>
                 </div>
-
-                {/* Tabs */}
                 <div style={{ display:'flex', borderBottom:'1px solid #1e2a3a', flexShrink:0 }}>
                   {[{ id:'chat', label:'💬 Chat' }, { id:'complete', label:'⚡ Complete' }].map(tab => (
                     <button key={tab.id} onClick={() => setAiPanelTab(tab.id)}
@@ -1188,17 +1301,10 @@ export default function MockInterview({ user, userData, setUserData }) {
                     >{tab.label}</button>
                   ))}
                 </div>
-
-                {/* Chat tab */}
                 {aiPanelTab === 'chat' && (
                   <>
                     <div style={{ flex:1, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                      {aiChatMsgs.length === 0 && (
-                        <div style={{ color:'#333', fontSize:11, textAlign:'center', padding:16 }}>
-                          Ask about concepts, errors, or approach.<br/>
-                          <span style={{ color:'#2a3645', fontSize:10 }}>Won't give the full solution.</span>
-                        </div>
-                      )}
+                      {aiChatMsgs.length === 0 && <div style={{ color:'#333', fontSize:11, textAlign:'center', padding:16 }}>Ask about concepts, errors, or approach.<br/><span style={{ color:'#2a3645', fontSize:10 }}>Won't give the full solution.</span></div>}
                       {aiChatMsgs.map((m,i) => (
                         <div key={i} style={{ alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'88%', background:m.role==='user'?'#1a73e822':'#1e2a3a', border:`1px solid ${m.role==='user'?'#1a73e844':'#2a3645'}`, borderRadius:m.role==='user'?'12px 12px 4px 12px':'12px 12px 12px 4px', padding:'7px 10px', color:m.role==='user'?'#88bbff':'#c8c8c8', fontSize:11, lineHeight:1.6 }}>
                           {m.role==='assistant' && <div style={{ color:'#1a73e8', fontSize:9, fontWeight:700, marginBottom:3 }}>✨ AI ASSISTANT</div>}
@@ -1214,20 +1320,15 @@ export default function MockInterview({ user, userData, setUserData }) {
                         placeholder="Ask about concepts, errors, approach..."
                         style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'7px 10px', color:'#e8e8e8', fontSize:11, outline:'none' }}
                       />
-                      <button
-                        onClick={()=>{if(aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
+                      <button onClick={()=>{if(aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
                         disabled={aiLoading||!aiChatInput.trim()}
                         style={{ background:'#1a73e8', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:11, fontWeight:700, padding:'7px 12px', opacity:aiLoading||!aiChatInput.trim()?0.4:1 }}>Ask</button>
                     </div>
                   </>
                 )}
-
-                {/* Complete tab */}
                 {aiPanelTab === 'complete' && (
                   <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:10, overflowY:'auto' }}>
-                    <div style={{ color:'#666', fontSize:11, lineHeight:1.6 }}>
-                      AI will suggest the next logical lines based on your current code. Copy and paste what you want to use.
-                    </div>
+                    <div style={{ color:'#666', fontSize:11, lineHeight:1.6 }}>AI will suggest the next logical lines based on your current code.</div>
                     {aiCompletion ? (
                       <div style={{ flex:1 }}>
                         <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>✨ Suggestion</div>
@@ -1253,6 +1354,24 @@ export default function MockInterview({ user, userData, setUserData }) {
           </AnimatePresence>
         </>
       )}
+
+      {/* Live Observer Panel */}
+      <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+        onClick={() => setObserveOpen(o => !o)}
+        title="Observation Mode"
+        style={{ position:'fixed', bottom:24, left:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:observeOpen?'#ff4d4d':'linear-gradient(135deg, #ff4d4d, #ff4d4d88)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #ff4d4d44', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
+      >
+        {observeOpen ? '✕' : '🔍'}
+      </motion.button>
+      <AnimatePresence>
+        {observeOpen && session?.sessionId && (
+          <motion.div initial={{ opacity:0, x:-20, scale:0.95 }} animate={{ opacity:1, x:0, scale:1 }} exit={{ opacity:0, x:-20, scale:0.95 }}
+            style={{ position:'fixed', bottom:86, left:24, zIndex:9000, maxHeight:'80vh', overflowY:'auto' }}
+          >
+            <LiveObserverPanel sessionId={session.sessionId} config={session.config} onClose={() => setObserveOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
