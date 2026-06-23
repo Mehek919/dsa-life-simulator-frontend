@@ -16,49 +16,80 @@ const CONFIGS = {
   apple:     { company:'Apple',     logo:'🍎', color:'#a2aaad', duration:45, desc:'Elegant production-quality code'          },
   general:   { company:'General',   logo:'💻', color:'#a855f7', duration:60, desc:'Mixed difficulty fundamentals'            },
 };
-
 function formatTime(s) {
-  const m = Math.floor(s/60), sec = s%60;
-  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
-
-const TOPICS = ['Array','String','Linked List','Tree','Graph','DP','Hash Table','Stack','Heap','Binary Search','Sorting','Sliding Window','Matrix','DFS','BFS'];
-
+const TOPICS = [
+  'Array',
+  'String',
+  'Linked List',
+  'Tree',
+  'Graph',
+  'DP',
+  'Hash Table',
+  'Stack',
+  'Heap',
+  'Binary Search',
+  'Sorting',
+  'Sliding Window',
+  'Matrix',
+  'DFS',
+  'BFS',
+];
 // ── Voice Interview Component ─────────────────────────────────────────────────
 function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, setChatMsgs }) {
-  const [listening,  setListening]  = useState(false);
+  const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [supported,  setSupported]  = useState(true);
+  const [supported, setSupported] = useState(true);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
     const last = chatMsgs[chatMsgs.length - 1];
     if (!last || last.role !== 'interviewer') return;
+
     const utt = new window.SpeechSynthesisUtterance(last.text);
-    utt.rate = 0.95; utt.pitch = 1;
+    utt.rate = 0.95;
+    utt.pitch = 1;
+
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utt);
   }, [chatMsgs]);
 
   useEffect(() => {
-    return () => { window.speechSynthesis.cancel(); recognitionRef.current?.stop(); };
+    return () => {
+      window.speechSynthesis.cancel();
+      recognitionRef.current?.stop();
+    };
   }, []);
 
   const startListening = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setSupported(false); return; }
+    if (!SR) {
+      setSupported(false);
+      return;
+    }
+
     window.speechSynthesis.cancel();
+
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+
     let currentTranscript = '';
+
     recognition.onresult = (e) => {
-      currentTranscript = Array.from(e.results).map(r => r[0].transcript).join('');
+      currentTranscript = Array.from(e.results)
+        .map(r => r[0].transcript)
+        .join('');
       setTranscript(currentTranscript);
     };
+
     recognition.onend = () => {
       setListening(false);
+
       if (currentTranscript.trim()) {
         const msg = currentTranscript.trim();
         setTranscript('');
@@ -66,53 +97,124 @@ function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, set
         askInterviewer(msg);
       }
     };
-    recognition.onerror = () => { setListening(false); };
+
+    recognition.onerror = () => {
+      setListening(false);
+    };
+
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
   };
 
-  const stopListening = () => { recognitionRef.current?.stop(); setListening(false); };
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
       <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ background:'#ec489922', border:'1px solid #ec489944', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10, fontWeight:700 }}>🎤 VOICE INTERVIEW</span>
-          <span style={{ color:'#555', fontSize:11 }}>Speak your answers — AI listens and responds aloud.</span>
-          {!supported && <span style={{ color:'#ff4d4d', fontSize:11 }}>⚠ Not supported. Use Chrome.</span>}
+          <span style={{ background:'#ec489922', border:'1px solid #ec489944', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10, fontWeight:700 }}>
+            🎤 VOICE INTERVIEW
+          </span>
+          <span style={{ color:'#555', fontSize:11 }}>
+            Speak your answers — AI listens and responds aloud.
+          </span>
+          {!supported && (
+            <span style={{ color:'#ff4d4d', fontSize:11 }}>
+              ⚠ Not supported. Use Chrome.
+            </span>
+          )}
         </div>
       </div>
+
       <div style={{ flex:1, overflowY:'auto', padding:'16px 24px', display:'flex', flexDirection:'column', gap:10 }}>
-        {chatMsgs.length===0 && !chatLoading && (
+        {chatMsgs.length === 0 && !chatLoading && (
           <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>
-            🎤 Press the mic button below to start speaking.<br/>
-            <span style={{ fontSize:11, color:'#2a3645' }}>The AI will ask questions and read them aloud.</span>
+            🎤 Press the mic button below to start speaking.
+            <br />
+            <span style={{ fontSize:11, color:'#2a3645' }}>
+              The AI will ask questions and read them aloud.
+            </span>
           </div>
         )}
-        {chatMsgs.map((m,i) => (
-          <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'75%', background:m.role==='candidate'?'#ec489911':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#ec489944':'#2a3645'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#fbcfe8':'#c8c8c8', fontSize:13, lineHeight:1.7 }}>
-            {m.role==='interviewer' && <div style={{ color:'#ec4899', fontSize:10, fontWeight:700, marginBottom:4 }}>🔊 AI RECRUITER</div>}
+
+        {chatMsgs.map((m, i) => (
+          <div
+            key={i}
+            style={{
+              alignSelf:m.role === 'candidate' ? 'flex-end' : 'flex-start',
+              maxWidth:'75%',
+              background:m.role === 'candidate' ? '#ec489911' : '#1e2a3a',
+              border:`1px solid ${m.role === 'candidate' ? '#ec489944' : '#2a3645'}`,
+              borderRadius:m.role === 'candidate' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+              padding:'10px 14px',
+              color:m.role === 'candidate' ? '#fbcfe8' : '#c8c8c8',
+              fontSize:13,
+              lineHeight:1.7,
+            }}
+          >
+            {m.role === 'interviewer' && (
+              <div style={{ color:'#ec4899', fontSize:10, fontWeight:700, marginBottom:4 }}>
+                🔊 AI RECRUITER
+              </div>
+            )}
             {m.text}
           </div>
         ))}
-        {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🎤 AI is responding...</div>}
+
+        {chatLoading && (
+          <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>
+            🎤 AI is responding...
+          </div>
+        )}
+
         <div ref={chatEndRef} />
       </div>
+
       {transcript && (
         <div style={{ padding:'8px 24px', background:'#ec489908', borderTop:'1px solid #ec489922' }}>
-          <span style={{ color:'#ec4899', fontSize:11, fontStyle:'italic' }}>🎤 "{transcript}"</span>
+          <span style={{ color:'#ec4899', fontSize:11, fontStyle:'italic' }}>
+            🎤 "{transcript}"
+          </span>
         </div>
       )}
-      <div style={{ padding:'20px 24px', borderTop:'1px solid #1e2a3a', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center', gap:16, flexShrink:0 }}>
+
+      <div style={{
+        padding:'20px 24px',
+        borderTop:'1px solid #1e2a3a',
+        background:'#0d1117',
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+        gap:16,
+        flexShrink:0,
+      }}>
         <motion.button
-          whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+          whileHover={{ scale:1.05 }}
+          whileTap={{ scale:0.95 }}
           onClick={listening ? stopListening : startListening}
           disabled={chatLoading || !supported}
-          style={{ width:72, height:72, borderRadius:'50%', background:listening?'#ff4d4d':'#ec4899', border:listening?'3px solid #ff8080':'3px solid #ec489966', cursor:'pointer', fontSize:28, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:listening?'0 0 30px #ff4d4d66':'0 0 20px #ec489944', opacity:chatLoading||!supported?0.4:1 }}
+          style={{
+            width:72,
+            height:72,
+            borderRadius:'50%',
+            background:listening ? '#ff4d4d' : '#ec4899',
+            border:listening ? '3px solid #ff8080' : '3px solid #ec489966',
+            cursor:'pointer',
+            fontSize:28,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            boxShadow:listening ? '0 0 30px #ff4d4d66' : '0 0 20px #ec489944',
+            opacity:chatLoading || !supported ? 0.4 : 1,
+          }}
         >
           {listening ? '⏹' : '🎤'}
         </motion.button>
+
         <div style={{ color:'#555', fontSize:12 }}>
           {chatLoading ? 'AI is responding...' : listening ? 'Listening — tap to stop' : 'Tap to speak'}
         </div>
@@ -120,7 +222,6 @@ function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, set
     </div>
   );
 }
-
 // ── Company Selector ──────────────────────────────────────────────────────────
 function CompanySelector({ onStart, error }) {
   const [selected,        setSelected]        = useState('general');
@@ -147,12 +248,20 @@ function CompanySelector({ onStart, error }) {
     { id:'voice',               label:'🎤 Voice',          desc:'Speak naturally • AI listens & responds' },
     { id:'autonomous', label:'🧠 Autonomous AI', desc:'Adaptive • Self-directing • Full report' },
     { id:'ai-native', label:'⚡ AI-Native', desc:'Multi-file • Copilot • Agent mode' },
+    { id:'db-debug',            label:'🗄️ DB Debug',       desc:'SQL · Schema · Transactions · Optimization' },
+    { id:'api-integration',     label:'🔌 API Design',      desc:'REST · GraphQL · Auth · Rate Limiting'      },
+    { id:'cloud-arch',          label:'☁️ Cloud Arch',       desc:'AWS/GCP · Serverless · K8s · Cost'          },
+    { id:'distributed-systems', label:'🌐 Distributed Sys', desc:'CAP · Consensus · Sharding · Sagas'         },
   ];
 
   const typeColors = {
     coding:'#a855f7', 'system-design':'#1a73e8', behavioral:'#f59e0b',
     'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa',
-    personalized:'#f59e0b', voice:'#ec4899', 'ai-native':'#06b6d4'
+    personalized:'#f59e0b', voice:'#ec4899', 'ai-native':'#06b6d4',
+    'db-debug':'#06b6d4',
+    'api-integration':'#f97316',
+    'cloud-arch':'#8b5cf6',
+    'distributed-systems':'#ec4899'
   };
   const activeColor = typeColors[interviewType] || config.color;
 
@@ -267,12 +376,13 @@ function CompanySelector({ onStart, error }) {
             </div>
           )}
         </div>
-
-        {/* Info panels */}
+                {/* Info panels */}
         {interviewType === 'system-design' && (
           <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#1a73e8', fontSize:15 }}>🏗️ System Design Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>2 system design questions in 60 minutes. Discuss architecture, trade-offs, and scalability with the AI interviewer.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              2 system design questions in 60 minutes. Discuss architecture, trade-offs, and scalability with the AI interviewer.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {['API Design','Database','Caching','Load Balancing','Message Queues','CDN','Scalability'].map(t => (
                 <span key={t} style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'2px 10px', color:'#1a73e8', fontSize:10 }}>{t}</span>
@@ -284,7 +394,9 @@ function CompanySelector({ onStart, error }) {
         {interviewType === 'behavioral' && (
           <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#f59e0b', fontSize:15 }}>🎙️ Behavioral Interview (STAR Method)</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>4 behavioral questions in 30 minutes. The AI will probe using the STAR framework.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              4 behavioral questions in 30 minutes. The AI will probe using the STAR framework.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {['Leadership','Conflict Resolution','Ownership','Teamwork','Innovation','Time Management'].map(t => (
                 <span key={t} style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:12, padding:'2px 10px', color:'#f59e0b', fontSize:10 }}>{t}</span>
@@ -296,7 +408,9 @@ function CompanySelector({ onStart, error }) {
         {interviewType === 'technical-screening' && (
           <div style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#10b981', fontSize:15 }}>📋 Technical Screening Round</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>30-minute recruiter-style screening. CS fundamentals, resume walkthrough, and role fit evaluation.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              30-minute recruiter-style screening. CS fundamentals, resume walkthrough, and role fit evaluation.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {['Background','Big O','Data Structures','Problem Solving','Behaviorals','Role Fit'].map(t => (
                 <span key={t} style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:12, padding:'2px 10px', color:'#10b981', fontSize:10 }}>{t}</span>
@@ -308,7 +422,9 @@ function CompanySelector({ onStart, error }) {
         {interviewType === 'frontend' && (
           <div style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#f472b6', fontSize:15 }}>🖥️ Frontend Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>45-minute frontend coding round. JavaScript, React patterns, CSS, and architecture trade-offs.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              45-minute frontend coding round. JavaScript, React patterns, CSS, and architecture trade-offs.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {['JavaScript','React','CSS','DOM','Performance','Accessibility','Component Design'].map(t => (
                 <span key={t} style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:12, padding:'2px 10px', color:'#f472b6', fontSize:10 }}>{t}</span>
@@ -320,7 +436,9 @@ function CompanySelector({ onStart, error }) {
         {interviewType === 'ai-fluency' && (
           <div style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#a78bfa', fontSize:15 }}>🤖 AI Fluency Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>30-minute assessment of AI collaboration skills — prompting strategies, tool usage, and limitations awareness.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              30-minute assessment of AI collaboration skills — prompting strategies, tool usage, and limitations awareness.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {['Prompt Engineering','AI Tools','Copilot Usage','Limitations','Debugging with AI','Evaluation'].map(t => (
                 <span key={t} style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:12, padding:'2px 10px', color:'#a78bfa', fontSize:10 }}>{t}</span>
@@ -333,21 +451,60 @@ function CompanySelector({ onStart, error }) {
           <div style={{ marginBottom:20 }}>
             <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:14, padding:'16px 20px', marginBottom:12 }}>
               <h3 style={{ margin:'0 0 6px', color:'#f59e0b', fontSize:15 }}>📄 Personalized Interview</h3>
-              <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:0 }}>Paste a job description and the AI will generate 5 role-specific interview questions just for you.</p>
+              <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:0 }}>
+                Paste a job description and the AI will generate 5 role-specific interview questions just for you.
+              </p>
             </div>
+
             <div style={{ background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:12, padding:'16px' }}>
-              <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:8 }}>Paste Job Description</div>
-              <textarea value={jdText} onChange={e => setJdText(e.target.value)}
+              <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:8 }}>
+                Paste Job Description
+              </div>
+              <textarea
+                value={jdText}
+                onChange={e => setJdText(e.target.value)}
                 placeholder="Paste the full job description here — requirements, responsibilities, tech stack..."
-                style={{ width:'100%', boxSizing:'border-box', height:140, background:'#060910', border:`1px solid ${jdText.length > 100 ? '#f59e0b44' : '#1e2a3a'}`, borderRadius:8, padding:'10px 12px', color:'#e8e8e8', fontSize:12, fontFamily:'Arial, sans-serif', lineHeight:1.6, outline:'none', resize:'vertical' }}
+                style={{
+                  width:'100%',
+                  boxSizing:'border-box',
+                  height:140,
+                  background:'#060910',
+                  border:`1px solid ${jdText.length > 100 ? '#f59e0b44' : '#1e2a3a'}`,
+                  borderRadius:8,
+                  padding:'10px 12px',
+                  color:'#e8e8e8',
+                  fontSize:12,
+                  fontFamily:'Arial, sans-serif',
+                  lineHeight:1.6,
+                  outline:'none',
+                  resize:'vertical',
+                }}
               />
               <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:10 }}>
                 <div style={{ flex:1, height:1, background:'#1e2a3a' }} />
                 <span style={{ color:'#333', fontSize:11 }}>or</span>
                 <div style={{ flex:1, height:1, background:'#1e2a3a' }} />
               </div>
-              <label style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:10, background:'#060910', border:`1px solid ${jdFile ? '#f59e0b44' : '#1e2a3a'}`, borderRadius:8, padding:'10px', cursor:'pointer', color:jdFile?'#f59e0b':'#555', fontSize:12, fontWeight:600, transition:'all 0.15s' }}>
-                <input type="file" accept=".pdf,.txt,.doc,.docx" style={{ display:'none' }}
+              <label style={{
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'center',
+                gap:8,
+                marginTop:10,
+                background:'#060910',
+                border:`1px solid ${jdFile ? '#f59e0b44' : '#1e2a3a'}`,
+                borderRadius:8,
+                padding:'10px',
+                cursor:'pointer',
+                color:jdFile ? '#f59e0b' : '#555',
+                fontSize:12,
+                fontWeight:600,
+                transition:'all 0.15s',
+              }}>
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.doc,.docx"
+                  style={{ display:'none' }}
                   onChange={async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -360,13 +517,17 @@ function CompanySelector({ onStart, error }) {
                       } else {
                         setJdText(`[File: ${file.name}] — PDF text extraction requires manual paste. Please also paste the JD text above.`);
                       }
-                    } finally { setJdLoading(false); }
+                    } finally {
+                      setJdLoading(false);
+                    }
                   }}
                 />
                 {jdLoading ? '⏳ Reading file...' : jdFile ? `✓ ${jdFile.name}` : '📎 Upload PDF or TXT'}
               </label>
               {jdText.length > 0 && (
-                <div style={{ marginTop:8, color:'#f59e0b', fontSize:10, textAlign:'right' }}>{jdText.length} characters — ready to generate questions</div>
+                <div style={{ marginTop:8, color:'#f59e0b', fontSize:10, textAlign:'right' }}>
+                  {jdText.length} characters — ready to generate questions
+                </div>
               )}
             </div>
           </div>
@@ -375,7 +536,9 @@ function CompanySelector({ onStart, error }) {
         {interviewType === 'voice' && (
           <div style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#ec4899', fontSize:15 }}>🎤 Voice Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>Speak naturally with an AI recruiter. Your voice is transcribed in real time. The AI reads questions aloud.</p>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              Speak naturally with an AI recruiter. Your voice is transcribed in real time. The AI reads questions aloud.
+            </p>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
               {['Speech-to-Text','Text-to-Speech','Real-time','No Typing'].map(t => (
                 <span key={t} style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10 }}>{t}</span>
@@ -386,6 +549,7 @@ function CompanySelector({ onStart, error }) {
             </div>
           </div>
         )}
+
         {interviewType === 'autonomous' && (
           <div style={{ background:'#00c89611', border:'1px solid #00c89633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
             <h3 style={{ margin:'0 0 8px', color:'#00c896', fontSize:15 }}>🧠 Autonomous AI Interviewer</h3>
@@ -402,27 +566,115 @@ function CompanySelector({ onStart, error }) {
             </div>
           </div>
         )}
-        {/* Selected config details — coding only */}
+
+        {interviewType === 'db-debug' && (
+          <div style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#06b6d4', fontSize:15 }}>🗄️ Database Debugging Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              2 real-world database problems in 45 minutes. Debug slow queries, deadlocks, N+1 issues, and schema design problems with a senior DB engineer.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['SQL Optimization','EXPLAIN Plans','Indexing','Transactions','Schema Design','Replication','Deadlocks'].map(t => (
+                <span key={t} style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:12, padding:'2px 10px', color:'#06b6d4', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {interviewType === 'api-integration' && (
+          <div style={{ background:'#f9731611', border:'1px solid #f9731633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#f97316', fontSize:15 }}>🔌 API Integration Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              45-minute deep dive into API design and integration engineering. Webhooks, OAuth, GraphQL, rate limiting, circuit breakers, and versioning.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['REST Design','GraphQL','OAuth 2.0','Webhooks','Rate Limiting','Circuit Breaker','Versioning'].map(t => (
+                <span key={t} style={{ background:'#f9731611', border:'1px solid #f9731633', borderRadius:12, padding:'2px 10px', color:'#f97316', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {interviewType === 'cloud-arch' && (
+          <div style={{ background:'#8b5cf611', border:'1px solid #8b5cf633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#8b5cf6', fontSize:15 }}>☁️ Cloud Architecture Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              60-minute cloud architecture session. Design serverless pipelines, multi-region systems, Kubernetes deployments, observability stacks, and cost-optimized infrastructure.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['AWS/GCP/Azure','Serverless','Kubernetes','Multi-region','Cost Optimization','CI/CD','Observability'].map(t => (
+                <span key={t} style={{ background:'#8b5cf611', border:'1px solid #8b5cf633', borderRadius:12, padding:'2px 10px', color:'#8b5cf6', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {interviewType === 'distributed-systems' && (
+          <div style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
+            <h3 style={{ margin:'0 0 8px', color:'#ec4899', fontSize:15 }}>🌐 Distributed Systems Interview</h3>
+            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
+              60-minute senior-level distributed systems deep dive. CAP theorem, Raft consensus, eventual consistency, distributed transactions, sharding, and clock synchronization.
+            </p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {['CAP Theorem','Raft/Paxos','Eventual Consistency','Sagas','Consistent Hashing','Vector Clocks','CRDTs'].map(t => (
+                <span key={t} style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+                {/* Selected config details — coding only */}
         {interviewType === 'coding' && (
           <AnimatePresence mode="wait">
-            <motion.div key={selected} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-              style={{ background:'#0d1117', border:`1px solid ${config.color}44`, borderRadius:16, padding:'20px 24px', marginBottom:24, position:'relative', overflow:'hidden' }}
+            <motion.div
+              key={selected}
+              initial={{ opacity:0, y:8 }}
+              animate={{ opacity:1, y:0 }}
+              exit={{ opacity:0 }}
+              style={{
+                background:'#0d1117',
+                border:`1px solid ${config.color}44`,
+                borderRadius:16,
+                padding:'20px 24px',
+                marginBottom:24,
+                position:'relative',
+                overflow:'hidden',
+              }}
             >
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, transparent, ${config.color}, transparent)` }} />
+              <div style={{
+                position:'absolute',
+                top:0,
+                left:0,
+                right:0,
+                height:2,
+                background:`linear-gradient(90deg, transparent, ${config.color}, transparent)`,
+              }} />
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
                 <span style={{ fontSize:32 }}>{config.logo}</span>
                 <div>
-                  <h2 style={{ margin:0, color:config.color, fontSize:18, fontWeight:900 }}>{config.company} Interview</h2>
-                  <p style={{ margin:'3px 0 0', color:'#666', fontSize:12 }}>{config.desc}</p>
+                  <h2 style={{ margin:0, color:config.color, fontSize:18, fontWeight:900 }}>
+                    {config.company} Interview
+                  </h2>
+                  <p style={{ margin:'3px 0 0', color:'#666', fontSize:12 }}>
+                    {config.desc}
+                  </p>
                 </div>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
                 {[
                   { icon:'⏱', label:'Duration', value:`${config.duration} min` },
-                  { icon:'📝', label:'Problems', value:`${selected==='microsoft'?3:2} problems` },
-                  { icon:'🎯', label:'Focus',    value:selected==='general'?'Mixed':config.company },
+                  { icon:'📝', label:'Problems', value:`${selected === 'microsoft' ? 3 : 2} problems` },
+                  { icon:'🎯', label:'Focus',    value:selected === 'general' ? 'Mixed' : config.company },
                 ].map(d => (
-                  <div key={d.label} style={{ background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px', textAlign:'center' }}>
+                  <div
+                    key={d.label}
+                    style={{
+                      background:'#060910',
+                      border:'1px solid #1e2a3a',
+                      borderRadius:10,
+                      padding:'10px',
+                      textAlign:'center',
+                    }}
+                  >
                     <div style={{ fontSize:18, marginBottom:4 }}>{d.icon}</div>
                     <div style={{ color:'#e8e8e8', fontSize:13, fontWeight:700 }}>{d.value}</div>
                     <div style={{ color:'#444', fontSize:9, textTransform:'uppercase', letterSpacing:'0.06em' }}>{d.label}</div>
@@ -436,28 +688,52 @@ function CompanySelector({ onStart, error }) {
         {/* Tips */}
         <div style={{ background:`${activeColor}11`, border:`1px solid ${activeColor}22`, borderRadius:12, padding:'14px 18px', marginBottom:24 }}>
           <div style={{ color:activeColor, fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>
-            💡 {interviewType==='behavioral'?'Behavioral Tips':interviewType==='system-design'?'System Design Tips':interviewType==='technical-screening'?'Screening Tips':interviewType==='frontend'?'Frontend Tips':interviewType==='ai-fluency'?'AI Fluency Tips':interviewType==='personalized'?'Personalized Tips':interviewType==='voice'?'Voice Tips':'Interview Tips'}
+            💡 {
+              interviewType === 'behavioral' ? 'Behavioral Tips'
+              : interviewType === 'system-design' ? 'System Design Tips'
+              : interviewType === 'technical-screening' ? 'Screening Tips'
+              : interviewType === 'frontend' ? 'Frontend Tips'
+              : interviewType === 'ai-fluency' ? 'AI Fluency Tips'
+              : interviewType === 'personalized' ? 'Personalized Tips'
+              : interviewType === 'voice' ? 'Voice Tips'
+              : interviewType === 'autonomous' ? 'Autonomous Tips'
+              : interviewType === 'ai-native' ? 'AI-Native Tips'
+              : interviewType === 'db-debug' ? 'Database Debug Tips'
+              : interviewType === 'api-integration' ? 'API Integration Tips'
+              : interviewType === 'cloud-arch' ? 'Cloud Architecture Tips'
+              : interviewType === 'distributed-systems' ? 'Distributed Systems Tips'
+              : 'Interview Tips'
+            }
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-            {(interviewType==='system-design'
-              ? ['Start with requirements clarification','Draw the high-level architecture first','Discuss trade-offs for every decision','Address bottlenecks and failure modes']
-              : interviewType==='behavioral'
-              ? ['Use the STAR method: Situation, Task, Action, Result','Be specific — use "I" not "we"','Quantify your impact whenever possible','Show self-awareness and growth']
-              : interviewType==='technical-screening'
-              ? ['Walk through your resume confidently','Use STAR for behavioral questions','Name complexity even if not asked','Ask smart questions at the end']
-              : interviewType==='frontend'
-              ? ['Start with semantic HTML before CSS','Explain browser rendering trade-offs','Show accessibility awareness','Discuss bundle size and performance']
-              : interviewType==='ai-fluency'
-              ? ['Show you know AI tool limitations','Discuss when NOT to use AI','Give real examples from your workflow','Talk about prompt iteration process']
-              : interviewType==='personalized'
-              ? ['Review the JD before starting','Connect every answer to JD requirements','Show specific relevant experience','Prepare a smart question to ask back']
-              : interviewType==='voice'
-              ? ['Speak clearly and at a natural pace','Structure answers with STAR','Pause before answering — it\'s okay','Treat it like a real phone screen']
+            {(
+              interviewType === 'system-design'
+                ? ['Start with requirements clarification','Draw the high-level architecture first','Discuss trade-offs for every decision','Address bottlenecks and failure modes']
+              : interviewType === 'behavioral'
+                ? ['Use the STAR method: Situation, Task, Action, Result','Be specific — use "I" not "we"','Quantify your impact whenever possible','Show self-awareness and growth']
+              : interviewType === 'technical-screening'
+                ? ['Walk through your resume confidently','Use STAR for behavioral questions','Name complexity even if not asked','Ask smart questions at the end']
+              : interviewType === 'frontend'
+                ? ['Start with semantic HTML before CSS','Explain browser rendering trade-offs','Show accessibility awareness','Discuss bundle size and performance']
+              : interviewType === 'ai-fluency'
+                ? ['Show you know AI tool limitations','Discuss when NOT to use AI','Give real examples from your workflow','Talk about prompt iteration process']
+              : interviewType === 'personalized'
+                ? ['Review the JD before starting','Connect every answer to JD requirements','Show specific relevant experience','Prepare a smart question to ask back']
+              : interviewType === 'voice'
+                ? ['Speak clearly and at a natural pace','Structure answers with STAR','Pause before answering — it is okay','Treat it like a real phone screen']
+              : interviewType === 'autonomous'
+                ? ['Think out loud — the AI is listening','Be specific with examples','It is okay to say "I am not sure" honestly','Ask clarifying questions freely']
+              : interviewType === 'ai-native'
+                ? ['Read all files before writing','Run tests early and often','Use Agent mode for boilerplate','Copilot will not give the full answer']
+              : interviewType === 'db-debug'
+                ? ['Start with the symptom and root cause','Ask what EXPLAIN would show','Think indexes, joins, and lock order','Mention trade-offs before rewriting']
+              : interviewType === 'api-integration'
+                ? ['Design the contract first','Always think idempotency','Handle retries and duplicate events','Secure every boundary']
+              : interviewType === 'cloud-arch'
+                ? ['Start with SLA and constraints','Discuss cost at scale','Design for region failure','Prefer managed services when justified']
+              : interviewType === 'distributed-systems'
+                ? ['Be precise about consistency','Explain partition behavior step by step','Discuss failure modes first','Every design has trade-offs']
               : ['Think out loud — interviewers want to hear your process','Start with brute force, then optimize','Always discuss time & space complexity','Ask clarifying questions before coding']
-              ? ['Think out loud — the AI is listening','Be specific with examples','It\'s okay to say "I\'m not sure" honestly','Ask clarifying questions freely']
-              : interviewType==='autonomous'
-              ? ['Read all files before writing','Run tests early and often','Use Agent mode for boilerplate','Copilot won\'t give the full answer']
-              : interviewType==='ai-native'
             ).map(tip => (
               <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
                 <span style={{ color:activeColor, flexShrink:0 }}>•</span>{tip}
@@ -472,34 +748,72 @@ function CompanySelector({ onStart, error }) {
           </div>
         )}
 
-        <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
+        <motion.button
+          whileHover={{ scale:1.02 }}
+          whileTap={{ scale:0.98 }}
           onClick={async () => {
             setStarting(true);
-            const companyToSend = ['technical-screening','ai-fluency','frontend','personalized','voice', 'autonomous', 'ai-native'].includes(interviewType)
-              ? interviewType : selected;
-            await onStart(companyToSend, topics, interviewType, jdText, realWorld, aiAssistEnabled);
+            const companyToSend = [
+              'technical-screening',
+              'ai-fluency',
+              'frontend',
+              'personalized',
+              'voice',
+              'autonomous',
+              'ai-native',
+              'db-debug',
+              'api-integration',
+              'cloud-arch',
+              'distributed-systems',
+            ].includes(interviewType)
+              ? interviewType
+              : selected;
+
+            await onStart(
+              companyToSend,
+              topics,
+              interviewType,
+              jdText,
+              realWorld,
+              aiAssistEnabled
+            );
+
             setStarting(false);
           }}
-          disabled={starting || (interviewType==='personalized' && jdText.length < 50)}
-          style={{ width:'100%', background:starting?'#1e2a3a':`linear-gradient(135deg, ${activeColor}, ${activeColor}88)`, border:'none', borderRadius:14, color:starting?'#444':'#fff', cursor:(starting||(interviewType==='personalized'&&jdText.length<50))?'not-allowed':'pointer', fontSize:16, fontWeight:900, padding:'16px 0', boxShadow:starting?'none':`0 0 30px ${activeColor}44` }}
+          disabled={starting || (interviewType === 'personalized' && jdText.length < 50)}
+          style={{
+            width:'100%',
+            background:starting ? '#1e2a3a' : `linear-gradient(135deg, ${activeColor}, ${activeColor}88)`,
+            border:'none',
+            borderRadius:14,
+            color:starting ? '#444' : '#fff',
+            cursor:(starting || (interviewType === 'personalized' && jdText.length < 50)) ? 'not-allowed' : 'pointer',
+            fontSize:16,
+            fontWeight:900,
+            padding:'16px 0',
+            boxShadow:starting ? 'none' : `0 0 30px ${activeColor}44`,
+          }}
         >
           {starting ? '⏳ Setting up interview...'
-            : interviewType==='system-design'      ? '🏗️ Start System Design Interview'
-            : interviewType==='behavioral'          ? '🎙️ Start Behavioral Interview'
-            : interviewType==='technical-screening' ? '📋 Start Technical Screening'
-            : interviewType==='frontend'            ? '🖥️ Start Frontend Interview'
-            : interviewType==='ai-fluency'          ? '🤖 Start AI Fluency Interview'
-            : interviewType==='personalized'        ? (jdText.length<50 ? '📄 Paste a Job Description first' : '📄 Start Personalized Interview')
-            : interviewType==='voice'               ? '🎤 Start Voice Interview'
-            : interviewType==='autonomous'          ? '🧠 Start Autonomous Interview'
-            : interviewType==='ai-native'            ? '⚡ Start AI-Native Interview'
+            : interviewType === 'system-design'       ? '🏗️ Start System Design Interview'
+            : interviewType === 'behavioral'           ? '🎙️ Start Behavioral Interview'
+            : interviewType === 'technical-screening'  ? '📋 Start Technical Screening'
+            : interviewType === 'frontend'             ? '🖥️ Start Frontend Interview'
+            : interviewType === 'ai-fluency'           ? '🤖 Start AI Fluency Interview'
+            : interviewType === 'personalized'         ? (jdText.length < 50 ? '📄 Paste a Job Description first' : '📄 Start Personalized Interview')
+            : interviewType === 'voice'                ? '🎤 Start Voice Interview'
+            : interviewType === 'autonomous'           ? '🧠 Start Autonomous Interview'
+            : interviewType === 'ai-native'            ? '⚡ Start AI-Native Interview'
+            : interviewType === 'db-debug'             ? '🗄️ Start Database Debug Interview'
+            : interviewType === 'api-integration'      ? '🔌 Start API Integration Interview'
+            : interviewType === 'cloud-arch'           ? '☁️ Start Cloud Architecture Interview'
+            : interviewType === 'distributed-systems'  ? '🌐 Start Distributed Systems Interview'
             : `🚀 Start ${config.company} Coding Interview`}
         </motion.button>
       </motion.div>
     </div>
   );
 }
-
 // ── Interview Result Screen ───────────────────────────────────────────────────
 function InterviewResult({ result, company, onRedo, onHome }) {
   const config     = CONFIGS[company] || CONFIGS.general;
@@ -532,7 +846,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
   const diffColors = { Easy:'#00c896', Medium:'#f5c542', Hard:'#ff4d4d' };
   const statusIcon  = { solved:'✓', attempted:'✗', skipped:'⊘' };
   const statusColor = { solved:'#00c896', attempted:'#ff4d4d', skipped:'#555' };
-  const typeColors  = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b' };
+  const typeColors  = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b', autonomous:'#00c896', 'ai-native':'#06b6d4', 'db-debug':'#06b6d4', 'api-integration':'#f97316', 'cloud-arch':'#8b5cf6', 'distributed-systems':'#ec4899' };
   const displayColor = typeColors[result.interviewType] || config.color;
 
   return (
@@ -615,7 +929,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             <div style={{ color:'#c8c8c8', fontSize:12, lineHeight:1.7 }}>{result.feedback}</div>
           </div>
         )}
-        {/* AI Hiring Report */}
+
         {result.hiringReport && (
           <>
             <HiringReportPanel
@@ -634,7 +948,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
             </div>
           </>
         )}
-        {/* AI Usage Report */}
+
         {result.aiUsageLog && result.aiUsageLog.length > 0 && (
           <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
             <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>✨ AI Usage Report</div>
@@ -665,58 +979,172 @@ function InterviewResult({ result, company, onRedo, onHome }) {
           </div>
         )}
 
-        {/* AI Integrity Report */}
         <IntegrityReport sessionId={result.sessionId} displayColor={displayColor} />
-        {/* Session Replay */}
         <InterviewReplay sessionId={result.sessionId} displayColor={displayColor} />
-
-        {/* Follow-up Chat */}
+                {/* Follow-up Chat */}
         <div style={{ marginBottom:24 }}>
-          <button onClick={() => setFollowUpOpen(o => !o)}
-            style={{ width:'100%', background:followUpOpen?`${displayColor}11`:'#060910', border:`1px solid ${followUpOpen?displayColor+'44':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
+          <button
+            onClick={() => setFollowUpOpen(o => !o)}
+            style={{
+              width:'100%',
+              background:followUpOpen ? `${displayColor}11` : '#060910',
+              border:`1px solid ${followUpOpen ? displayColor + '44' : '#1e2a3a'}`,
+              borderRadius:12,
+              padding:'12px 16px',
+              cursor:'pointer',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'space-between',
+              transition:'all 0.2s',
+            }}
           >
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <span style={{ fontSize:18 }}>💬</span>
               <div style={{ textAlign:'left' }}>
-                <div style={{ color:followUpOpen?displayColor:'#e8e8e8', fontSize:13, fontWeight:700 }}>Follow-up Chat</div>
-                <div style={{ color:'#555', fontSize:10, marginTop:1 }}>Ask the AI coach about your feedback or weak areas</div>
+                <div style={{ color:followUpOpen ? displayColor : '#e8e8e8', fontSize:13, fontWeight:700 }}>
+                  Follow-up Chat
+                </div>
+                <div style={{ color:'#555', fontSize:10, marginTop:1 }}>
+                  Ask the AI coach about your feedback or weak areas
+                </div>
               </div>
             </div>
             <span style={{ color:'#555', fontSize:12 }}>{followUpOpen ? '▲' : '▼'}</span>
           </button>
+
           {followUpOpen && (
-            <div style={{ border:`1px solid ${displayColor}33`, borderTop:'none', borderRadius:'0 0 12px 12px', background:'#060910', overflow:'hidden' }}>
-              <div style={{ maxHeight:320, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{
+              border:`1px solid ${displayColor}33`,
+              borderTop:'none',
+              borderRadius:'0 0 12px 12px',
+              background:'#060910',
+              overflow:'hidden',
+            }}>
+              <div style={{
+                maxHeight:320,
+                overflowY:'auto',
+                padding:'12px 14px',
+                display:'flex',
+                flexDirection:'column',
+                gap:8,
+              }}>
                 {followUpMsgs.length === 0 && (
                   <div style={{ color:'#333', fontSize:12, textAlign:'center', padding:16 }}>
                     Ask anything about your performance — "Why did I fail test cases?", "What should I study?", "Walk me through the optimal solution"
                   </div>
                 )}
+
                 {followUpMsgs.map((m, i) => (
-                  <div key={i} style={{ alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'85%', background:m.role==='user'?`${displayColor}18`:'#1e2a3a', border:`1px solid ${m.role==='user'?displayColor+'33':'#2a3645'}`, borderRadius:m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px', padding:'8px 12px', color:m.role==='user'?'#e8e8e8':'#c8c8c8', fontSize:12, lineHeight:1.6 }}>
-                    {m.role==='coach' && <div style={{ color:displayColor, fontSize:9, fontWeight:700, marginBottom:3, textTransform:'uppercase' }}>🎓 AI Coach</div>}
+                  <div
+                    key={i}
+                    style={{
+                      alignSelf:m.role === 'user' ? 'flex-end' : 'flex-start',
+                      maxWidth:'85%',
+                      background:m.role === 'user' ? `${displayColor}18` : '#1e2a3a',
+                      border:`1px solid ${m.role === 'user' ? displayColor + '33' : '#2a3645'}`,
+                      borderRadius:m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                      padding:'8px 12px',
+                      color:m.role === 'user' ? '#e8e8e8' : '#c8c8c8',
+                      fontSize:12,
+                      lineHeight:1.6,
+                    }}
+                  >
+                    {m.role === 'coach' && (
+                      <div style={{
+                        color:displayColor,
+                        fontSize:9,
+                        fontWeight:700,
+                        marginBottom:3,
+                        textTransform:'uppercase',
+                      }}>
+                        🎓 AI Coach
+                      </div>
+                    )}
                     {m.text}
                   </div>
                 ))}
-                {followUpLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🎓 Coach is thinking...</div>}
+
+                {followUpLoading && (
+                  <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>
+                    🎓 Coach is thinking...
+                  </div>
+                )}
+
                 <div ref={followUpEndRef} />
               </div>
+
               <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6 }}>
-                <input value={followUpInput} onChange={e => setFollowUpInput(e.target.value)}
+                <input
+                  value={followUpInput}
+                  onChange={e => setFollowUpInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') sendFollowUp(); }}
                   placeholder="Ask about your feedback, weak areas, or solutions..."
-                  style={{ flex:1, background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }}
+                  style={{
+                    flex:1,
+                    background:'#0d1117',
+                    border:'1px solid #1e2a3a',
+                    borderRadius:8,
+                    padding:'8px 12px',
+                    color:'#e8e8e8',
+                    fontSize:12,
+                    outline:'none',
+                  }}
                 />
-                <button onClick={sendFollowUp} disabled={followUpLoading || !followUpInput.trim() || !result.sessionId}
-                  style={{ background:displayColor, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:followUpLoading||!followUpInput.trim()?0.4:1 }}>Ask</button>
+                <button
+                  onClick={sendFollowUp}
+                  disabled={followUpLoading || !followUpInput.trim() || !result.sessionId}
+                  style={{
+                    background:displayColor,
+                    border:'none',
+                    borderRadius:8,
+                    color:'#fff',
+                    cursor:'pointer',
+                    fontSize:12,
+                    fontWeight:700,
+                    padding:'8px 14px',
+                    opacity:followUpLoading || !followUpInput.trim() ? 0.4 : 1,
+                  }}
+                >
+                  Ask
+                </button>
               </div>
             </div>
           )}
         </div>
 
         <div style={{ display:'flex', gap:10 }}>
-          <button onClick={onRedo} style={{ flex:1, background:'#1e2a3a', border:'1px solid #1e2a3a', borderRadius:10, color:'#888', cursor:'pointer', fontSize:13, fontWeight:600, padding:'10px 0' }}>Try Again</button>
-          <button onClick={onHome} style={{ flex:1, background:`linear-gradient(135deg, ${displayColor}, ${displayColor}88)`, border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 0' }}>Back to World →</button>
+          <button
+            onClick={onRedo}
+            style={{
+              flex:1,
+              background:'#1e2a3a',
+              border:'1px solid #1e2a3a',
+              borderRadius:10,
+              color:'#888',
+              cursor:'pointer',
+              fontSize:13,
+              fontWeight:600,
+              padding:'10px 0',
+            }}
+          >
+            Try Again
+          </button>
+          <button
+            onClick={onHome}
+            style={{
+              flex:1,
+              background:`linear-gradient(135deg, ${displayColor}, ${displayColor}88)`,
+              border:'none',
+              borderRadius:10,
+              color:'#fff',
+              cursor:'pointer',
+              fontSize:13,
+              fontWeight:700,
+              padding:'10px 0',
+            }}
+          >
+            Back to World →
+          </button>
         </div>
       </motion.div>
     </div>
@@ -759,736 +1187,1181 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (!session?.sessionId) return;
     try {
       await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/integrity-event`, { type, data });
-    } catch (e) { /* non-blocking */ }
-  }, [session?.sessionId]);
-
-  // Start webcam
-  useEffect(() => {
-    if (phase !== 'active') return;
-    let stopped = false;
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { width:160, height:120 }, audio: false });
-        streamRef.current = stream;
-        if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
-        if (!stopped) setWebcamOn(true);
-      } catch (e) { console.warn('Webcam unavailable:', e.message); }
-    })();
-    return () => {
-      stopped = true;
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      setWebcamOn(false);
-    };
-  }, [phase]);
-
-  // Webcam snapshot every 30s
-  useEffect(() => {
-    if (phase !== 'active' || !webcamOn) return;
-    const capture = async () => {
-      if (!videoRef.current || !canvasRef.current) return;
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0, 160, 120);
-      const img = canvasRef.current.toDataURL('image/jpeg', 0.4);
-      const imgData = ctx.getImageData(40, 20, 80, 80);
-      let skinPixels = 0;
-      for (let i = 0; i < imgData.data.length; i += 4) {
-        const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
-        if (r > 60 && g > 40 && b > 20 && r > g && r > b && r - b > 15) skinPixels++;
-      }
-      const faceDetected = skinPixels > 200;
-      await sendIntegrityEvent('webcam_snapshot', { img, faceDetected });
-    };
-    capture();
-    const timer = setInterval(capture, 30000);
-    return () => clearInterval(timer);
-  }, [phase, webcamOn, sendIntegrityEvent]);
-
-  // Keystroke timing
-  useEffect(() => {
-    if (phase !== 'active') return;
-    const onKey = () => {
-      const now = Date.now();
-      if (lastKeyRef.current) {
-        const interval = now - lastKeyRef.current;
-        keystrokesRef.current.push(interval);
-        if (keystrokesRef.current.length > 100) keystrokesRef.current.shift();
-        const recent = keystrokesRef.current.slice(-8);
-        if (recent.length === 8 && recent.every(i => i < 80)) {
-          burstCountRef.current += 1;
-          const idleBeforeBurst = keystrokesRef.current.slice(-10, -8);
-          if (idleBeforeBurst.some(i => i > 2000)) idleBurstRef.current += 1;
-          sendIntegrityEvent('burst_event', { burstCount: burstCountRef.current });
-        }
-      }
-      lastKeyRef.current = now;
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [phase, sendIntegrityEvent]);
-
-  // Keystroke summary every 60s
-  useEffect(() => {
-    if (phase !== 'active') return;
-    const timer = setInterval(() => {
-      const intervals = keystrokesRef.current;
-      if (!intervals.length) return;
-      const avg = Math.round(intervals.reduce((a,b)=>a+b,0) / intervals.length);
-      sendIntegrityEvent('keystroke_stats', { avgInterval:avg, burstCount:burstCountRef.current, idleBursts:idleBurstRef.current, sampleSize:intervals.length });
-    }, 60000);
-    return () => clearInterval(timer);
-  }, [phase, sendIntegrityEvent]);
-
-  // Screen blur tracking
-  useEffect(() => {
-    if (phase !== 'active') return;
-    let blurTs = null;
-    const onBlur  = () => { blurTs = Date.now(); };
-    const onFocus = () => {
-      if (blurTs) {
-        const duration = Math.round((Date.now() - blurTs) / 1000);
-        if (duration > 2) sendIntegrityEvent('screen_blur', { duration });
-        blurTs = null;
-      }
-    };
-    window.addEventListener('blur',  onBlur);
-    window.addEventListener('focus', onFocus);
-    return () => { window.removeEventListener('blur', onBlur); window.removeEventListener('focus', onFocus); };
-  }, [phase, sendIntegrityEvent]);
-
-  // ── AI IDE state ────────────────────────────────────────────────────────────
-  const [aiPanelOpen,   setAiPanelOpen]   = useState(false);
-  const [aiPanelTab,    setAiPanelTab]    = useState('chat');
-  const [aiChatMsgs,    setAiChatMsgs]    = useState([]);
-  const [aiChatInput,   setAiChatInput]   = useState('');
-  const [aiLoading,     setAiLoading]     = useState(false);
-  const [aiCompletion,  setAiCompletion]  = useState('');
-  const [lastTimestamp, setLastTimestamp] = useState(null);
-  const aiPanelEndRef = useRef(null);
-
-  useEffect(() => { aiPanelEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [aiChatMsgs]);
-
-  const requestAiAssist = async (type, question = '') => {
-    if (!session?.sessionId || aiLoading) return;
-    setAiLoading(true);
-    const problem = session.problems?.[probIdx];
-    const ts = new Date().toISOString();
-    setLastTimestamp(ts);
-    try {
-      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist`, {
-        userId: user.uid, type, code: '', language: 'python3', question,
-        problemTitle: problem?.title || '', problemDescription: problem?.description || '',
-      });
-      if (type === 'chat') setAiChatMsgs(prev => [...prev, { role:'assistant', text:res.data.result }]);
-      else setAiCompletion(res.data.result);
-    } catch (e) { console.error('AI assist error:', e); }
-    finally { setAiLoading(false); }
-  };
-
-  const acceptCompletion = async () => {
-    if (!lastTimestamp || !session?.sessionId) return;
-    try { await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-assist/accept`, { timestamp: lastTimestamp }); }
-    catch (e) { /* non-blocking */ }
-    setAiCompletion('');
-  };
-
-  // ── AI Interviewer ──────────────────────────────────────────────────────────
-  const askInterviewer = useCallback(async (userMsg) => {
-    if (!session?.sessionId) return;
-    const problem = session.problems?.[probIdx];
-    if (!problem) return;
-    setChatLoading(true);
-    const conversation = [...chatMsgs];
-    if (userMsg) conversation.push({ role:'candidate', text:userMsg });
-    try {
-      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
-        userId: user.uid, problemId: problem.id, code: '', language: 'python3', conversation,
-      });
-      if (res.data.question) setChatMsgs([...conversation, { role:'interviewer', text:res.data.question }]);
-    } catch (e) { console.error('AI interviewer error:', e); }
-    finally { setChatLoading(false); }
-  }, [session, probIdx, chatMsgs, user.uid]);
-
-  // Auto-ask opening question
-  useEffect(() => {
-    if (phase !== 'active' || !session?.sessionId) return;
-    const problem = session.problems?.[probIdx];
-    if (!problem) return;
-    setChatMsgs([]);
-    const timer = setTimeout(async () => {
-      try {
-        setChatLoading(true);
-        const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
-          userId: user.uid, problemId: problem.id, code: '', language: 'python3', conversation: [],
-        });
-        if (res.data.question) { setChatMsgs([{ role:'interviewer', text:res.data.question }]); setChatOpen(true); }
-      } catch (e) {
-        console.error('AI auto-question failed:', e);
-        setChatMsgs([{ role:'interviewer', text:'⚠ Interviewer unavailable — check GROQ_API_KEY on Render.' }]);
-      } finally { setChatLoading(false); }
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [phase, probIdx, session?.sessionId]);
-
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [chatMsgs]);
-
-  // Tab switch + paste tracking
-  useEffect(() => {
-    if (phase !== 'active') return;
-    const onVisChange = () => { if (document.hidden) setTabSwitches(c => c+1); };
-    const onPaste     = () => setPasteCount(c => c+1);
-    document.addEventListener('visibilitychange', onVisChange);
-    document.addEventListener('paste', onPaste);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisChange);
-      document.removeEventListener('paste', onPaste);
-    };
-  }, [phase]);
-
-  const config = CONFIGS[company] || CONFIGS.general;
-
-  const startInterview = async (selectedCompany, selectedTopics = [], selectedType = 'coding', jdText = '', realWorld = false, aiAssistEnabled = false) => {
-    setCompany(selectedCompany);
-    setStartError(null);
-    try {
-      const res = await axios.post(`${API_BASE}/mock-interview/start`, {
-        userId: user.uid, company: selectedCompany, topics: selectedTopics,
-        interviewType: selectedType, jdText, realWorld, aiAssistEnabled,
-      });
-      const data = res.data;
-      if (!data || !Array.isArray(data.problems) || data.problems.length === 0) {
-        setStartError('Could not load interview problems. Please try again in a moment.');
-        return;
-      }
-      setSession(data);
-      setRemaining((data.duration || 60) * 60);
-      setPhase('active');
-    } catch (err) {
-      console.error('Failed to start interview:', err);
-      setStartError('Failed to start interview. Please check your connection and try again.');
+    } catch (e) {
+      // non-blocking
     }
-  };
+  }, [session?.sessionId]);
+    useEffect(() => {
+    if (!session?.sessionId || phase !== 'interview') return;
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        setTabSwitches(t => t + 1);
+        sendIntegrityEvent('screen_blur', { duration: 0 });
+      }
+    };
+
+    const onPaste = () => {
+      setPasteCount(p => p + 1);
+    };
+
+    const onKeyDown = (e) => {
+      const now = Date.now();
+      const last = lastKeyRef.current;
+
+      if (last && now - last < 80) {
+        burstCountRef.current += 1;
+      } else {
+        idleBurstRef.current += 1;
+      }
+
+      lastKeyRef.current = now;
+
+      keystrokesRef.current.push({
+        key: e.key.length === 1 ? 'char' : e.key,
+        ts: now,
+      });
+
+      if (keystrokesRef.current.length > 200) {
+        keystrokesRef.current.shift();
+      }
+
+      if (burstCountRef.current >= 25) {
+        sendIntegrityEvent('burst_event', {
+          burstCount: burstCountRef.current,
+          recentKeys: keystrokesRef.current.slice(-30),
+        });
+        burstCountRef.current = 0;
+      }
+
+      if (keystrokesRef.current.length % 50 === 0) {
+        sendIntegrityEvent('keystroke_stats', {
+          total: keystrokesRef.current.length,
+          burstCount: burstCountRef.current,
+          idleCount: idleBurstRef.current,
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('paste', onPaste);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('paste', onPaste);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [session?.sessionId, phase, sendIntegrityEvent]);
 
   useEffect(() => {
-    if (phase !== 'active') return;
+    if (!webcamOn || !session?.sessionId || phase !== 'interview') return;
+
+    let cancelled = false;
+    let intervalId;
+
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+        if (cancelled) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+
+        intervalId = setInterval(() => {
+          try {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+
+            if (!video || !canvas || !video.videoWidth) return;
+
+            canvas.width = 180;
+            canvas.height = 120;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const img = canvas.toDataURL('image/jpeg', 0.35);
+
+            sendIntegrityEvent('webcam_snapshot', {
+              img,
+              faceDetected: true,
+            });
+          } catch (e) {
+            // ignore
+          }
+        }, 30000);
+      } catch (e) {
+        setWebcamOn(false);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      streamRef.current?.getTracks()?.forEach(t => t.stop());
+      streamRef.current = null;
+    };
+  }, [webcamOn, session?.sessionId, phase, sendIntegrityEvent]);
+
+  useEffect(() => {
+    if (phase !== 'interview' || !session) return;
+
+    setRemaining((session.duration || 45) * 60);
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
     timerRef.current = setInterval(() => {
-      setRemaining(r => {
-        if (r <= 1) { clearInterval(timerRef.current); completeInterview(true); return 0; }
-        return r - 1;
+      setRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          completeInterview();
+          return 0;
+        }
+        return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(timerRef.current);
-  }, [phase]);
+  }, [phase, session]);
 
-  const completeInterview = useCallback(async (autoSubmit = false) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    try {
-      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, { userId: user.uid });
-      setResult({ ...res.data, totalProbs: session.problems?.length || 2, interviewType: session.interviewType, sessionId: session.sessionId, userId: user.uid, aiUsageLog: res.data.aiUsageLog || [], hiringReport: res.data.hiringReport || null });
-      setPhase('complete');
-    } catch {
-      setPhase('complete');
-      setResult({ pct:0, totalScore:0, maxScore:100, solvedCount:0, feedback:'Interview ended.', totalProbs:2 });
-    }
-  }, [session, user.uid]);
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior:'smooth' });
+  }, [chatMsgs]);
 
-  const handleSubmit = async (code, langId, testResults) => {
-    const problem = session?.problems?.[probIdx];
-    if (!problem) return { passed:false };
-    const passed    = testResults.filter(r => r.passed).length;
-    const total     = testResults.length;
-    const allPassed = passed === total && total > 0;
+  const currentProblem = session?.problems?.[probIdx];
+  const iType = session?.interviewType || 'coding';
+
+  const askInterviewer = useCallback(async (answerText) => {
+    if (!session?.sessionId || !currentProblem || chatLoading) return;
+
+    setChatLoading(true);
+
     try {
-      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/submit`, {
-        userId: user.uid, problemId: problem.id, code, language: langId,
-        passed, total, allPassed, tabSwitches, pasteCount,
+      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
+        userId: user?.uid,
+        problemId: currentProblem.id,
+        code: '',
+        language: 'javascript',
+        conversation: chatMsgs,
+        userAnswer: answerText,
       });
-      if (allPassed) {
-        setSolved(prev => [...new Set([...prev, problem.id])]);
-        const next = session.problems.findIndex((p, i) => i > probIdx && !solved.includes(p.id));
-        if (next !== -1) setTimeout(() => setProbIdx(next), 800);
+
+      if (res.data.question) {
+        setChatMsgs(prev => [...prev, { role:'interviewer', text:res.data.question }]);
       }
-      return { passed:allPassed, passedCount:passed, total, xp:0, credits:0 };
-    } catch {
-      return { passed:false, passedCount:passed, total };
+    } catch (e) {
+      console.error('AI question error:', e);
+      setChatMsgs(prev => [...prev, {
+        role:'interviewer',
+        text:'I had trouble generating the next question. Please continue with your approach.',
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  }, [session?.sessionId, currentProblem, chatLoading, user?.uid, chatMsgs]);
+
+  const sendChatMsg = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+
+    const msg = chatInput.trim();
+    setChatInput('');
+    setChatMsgs(prev => [...prev, { role:'candidate', text:msg }]);
+    await askInterviewer(msg);
+  };
+
+  const startInterview = async (
+    selectedCompany,
+    selectedTopics = [],
+    interviewType = 'coding',
+    jdText = '',
+    realWorld = false,
+    aiAssistEnabled = false
+  ) => {
+    setStartError(null);
+
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/start`, {
+        userId: user?.uid,
+        company: selectedCompany,
+        topics: selectedTopics,
+        interviewType,
+        jdText,
+        realWorld,
+        aiAssistEnabled,
+      });
+
+      if (!res.data.success) {
+        throw new Error(res.data.error || 'Failed to start interview');
+      }
+
+      setCompany(selectedCompany);
+      setSession(res.data);
+      setProbIdx(0);
+      setSolved([]);
+      setTabSwitches(0);
+      setPasteCount(0);
+      setChatMsgs([]);
+      setChatInput('');
+      setChatOpen(['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType));
+      setPhase('interview');
+
+      if (['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)) {
+        setTimeout(() => askOpeningQuestion(res.data), 300);
+      }
+    } catch (e) {
+      console.error('Start interview failed:', e);
+      setStartError(e.response?.data?.error || e.message || 'Could not start interview');
     }
   };
 
-  if (phase === 'select') return <CompanySelector onStart={startInterview} error={startError} />;
-  if (phase === 'complete') return (
-    <InterviewResult result={result || {}} company={company}
-      onRedo={() => { setPhase('select'); setSession(null); setSolved([]); setProbIdx(0); }}
-      onHome={() => navigate('/world')}
-    />
-  );
+  const askOpeningQuestion = async (s) => {
+    const firstProblem = s?.problems?.[0];
+    if (!s?.sessionId || !firstProblem) return;
 
-  const problems        = session?.problems || [];
-  const currentProblem  = problems[probIdx];
-  const sessionDuration = session?.config?.duration || session?.duration || 60;
-  const pctDone         = (remaining / (sessionDuration * 60)) * 100;
-  const timeColor       = remaining < 300 ? '#ff4d4d' : remaining < 900 ? '#f5c542' : '#00c896';
-  const iType           = session?.interviewType || 'coding';
-  const typeColors = { 'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa', personalized:'#f59e0b', voice:'#ec4899', 'system-design':'#1a73e8', behavioral:'#f59e0b', autonomous:'#00c896' };
-  const headerColor     = typeColors[iType] || config.color;
+    setChatLoading(true);
 
-  const sendChatMsg = () => {
-    if (!chatInput.trim() || chatLoading) return;
-    const msg = chatInput.trim();
-    setChatMsgs(p => [...p, { role:'candidate', text:msg }]);
-    setChatInput('');
-    askInterviewer(msg);
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/${s.sessionId}/ai-question`, {
+        userId: user?.uid,
+        problemId: firstProblem.id,
+        code: '',
+        language: 'javascript',
+        conversation: [],
+      });
+
+      if (res.data.question) {
+        setChatMsgs([{ role:'interviewer', text:res.data.question }]);
+      }
+    } catch (e) {
+      console.error('Opening question failed:', e);
+    } finally {
+      setChatLoading(false);
+    }
   };
+
+  const handleSolved = async ({ code, language, passed, total, allPassed }) => {
+    if (!session?.sessionId || !currentProblem) return;
+
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/submit`, {
+        userId: user?.uid,
+        problemId: currentProblem.id,
+        code,
+        language,
+        passed,
+        total,
+        allPassed,
+        tabSwitches,
+        pasteCount,
+      });
+
+      if (res.data.success && allPassed) {
+        setSolved(prev => [...new Set([...prev, currentProblem.id])]);
+      }
+    } catch (e) {
+      console.error('Submit failed:', e);
+    }
+  };
+
+  const completeInterview = async () => {
+    if (!session?.sessionId) return;
+
+    try {
+      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, {
+        userId: user?.uid,
+      });
+
+      if (res.data.success) {
+        const finalResult = {
+          ...res.data,
+          sessionId: session.sessionId,
+          userId: user?.uid,
+          totalProbs: session.problems?.length || 0,
+          interviewType: session.interviewType,
+        };
+
+        setResult(finalResult);
+        setPhase('result');
+
+        if (setUserData && res.data.totalScore > 0) {
+          setUserData(prev => ({
+            ...(prev || {}),
+            xp: ((prev || {}).xp || 0) + Math.round(res.data.totalScore * 0.5),
+            mockInterviews: ((prev || {}).mockInterviews || 0) + 1,
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Complete interview failed:', e);
+      setPhase('result');
+      setResult({
+        sessionId: session.sessionId,
+        userId: user?.uid,
+        totalScore: 0,
+        maxScore: 0,
+        pct: 0,
+        solvedCount: solved.length,
+        totalProbs: session.problems?.length || 0,
+        feedback: 'Interview completed, but report generation failed.',
+        interviewType: session.interviewType,
+      });
+    }
+  };
+
+  const nextProblem = () => {
+    if (!session?.problems) return;
+
+    if (probIdx < session.problems.length - 1) {
+      setProbIdx(i => i + 1);
+      setChatMsgs([]);
+      setChatInput('');
+      setTimeout(() => askOpeningQuestion({ ...session, problems:[session.problems[probIdx + 1]] }), 200);
+    } else {
+      completeInterview();
+    }
+  };
+
+  const redoInterview = () => {
+    setPhase('select');
+    setSession(null);
+    setResult(null);
+    setProbIdx(0);
+    setSolved([]);
+    setChatMsgs([]);
+    setChatInput('');
+    setStartError(null);
+  };
+    const goHome = () => {
+    navigate('/world');
+  };
+
+  if (phase === 'select') {
+    return <CompanySelector onStart={startInterview} error={startError} />;
+  }
+
+  if (phase === 'result') {
+    return (
+      <InterviewResult
+        result={result}
+        company={company}
+        onRedo={redoInterview}
+        onHome={goHome}
+      />
+    );
+  }
+
+  if (!session || !currentProblem) {
+    return (
+      <div style={{
+        minHeight:'100vh',
+        background:'#0a0a14',
+        color:'#e8e8e8',
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+        fontFamily:'Arial, sans-serif',
+      }}>
+        Loading interview...
+      </div>
+    );
+  }
+
+  const isChatType = [
+    'technical-screening',
+    'ai-fluency',
+    'personalized',
+    'voice',
+    'autonomous',
+    'db-debug',
+    'api-integration',
+    'cloud-arch',
+    'distributed-systems',
+  ].includes(iType);
+
+  const isSpecialArchitectureType = [
+    'db-debug',
+    'api-integration',
+    'cloud-arch',
+    'distributed-systems',
+  ].includes(iType);
+
+  const displayConfig = CONFIGS[company] || CONFIGS.general;
+
+  const typeColors = {
+    'technical-screening':'#10b981',
+    frontend:'#f472b6',
+    'ai-fluency':'#a78bfa',
+    personalized:'#f59e0b',
+    voice:'#ec4899',
+    'system-design':'#1a73e8',
+    behavioral:'#f59e0b',
+    autonomous:'#00c896',
+    'ai-native':'#06b6d4',
+    'db-debug':'#06b6d4',
+    'api-integration':'#f97316',
+    'cloud-arch':'#8b5cf6',
+    'distributed-systems':'#ec4899',
+  };
+
+  const activeColor = typeColors[iType] || displayConfig.color;
+
+  if (iType === 'ai-native') {
+    return (
+      <AINativeIDE
+        user={user}
+        session={session}
+        currentProblem={currentProblem}
+        remaining={remaining}
+        onComplete={completeInterview}
+        onNext={nextProblem}
+        tabSwitches={tabSwitches}
+        pasteCount={pasteCount}
+        webcamOn={webcamOn}
+        setWebcamOn={setWebcamOn}
+        observeOpen={observeOpen}
+        setObserveOpen={setObserveOpen}
+      />
+    );
+  }
 
   return (
-    <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'#0a0a14', fontFamily:'Arial, sans-serif', overflow:'hidden' }}>
-      <style>{`@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }`}</style>
-      <video ref={videoRef} style={{ display:'none' }} muted playsInline />
-      <canvas ref={canvasRef} width={160} height={120} style={{ display:'none' }} />
-
+    <div style={{
+      height:'100vh',
+      background:'#0a0a14',
+      color:'#e8e8e8',
+      fontFamily:'Arial, sans-serif',
+      display:'flex',
+      flexDirection:'column',
+      overflow:'hidden',
+    }}>
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 16px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0, gap:10, flexWrap:'wrap' }}>
+      <div style={{
+        height:56,
+        background:'#0d1117',
+        borderBottom:'1px solid #1e2a3a',
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'space-between',
+        padding:'0 20px',
+        flexShrink:0,
+      }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <span style={{ fontSize:22 }}>{config.logo}</span>
+          <button
+            onClick={() => setPhase('select')}
+            style={{
+              background:'#060910',
+              border:'1px solid #1e2a3a',
+              borderRadius:8,
+              color:'#888',
+              cursor:'pointer',
+              fontSize:12,
+              padding:'6px 10px',
+            }}
+          >
+            ← Exit
+          </button>
+
+          <div style={{
+            width:34,
+            height:34,
+            borderRadius:10,
+            background:`${activeColor}18`,
+            border:`1px solid ${activeColor}44`,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            fontSize:18,
+          }}>
+            {iType === 'db-debug' ? '🗄️'
+              : iType === 'api-integration' ? '🔌'
+              : iType === 'cloud-arch' ? '☁️'
+              : iType === 'distributed-systems' ? '🌐'
+              : iType === 'system-design' ? '🏗️'
+              : iType === 'behavioral' ? '🎙️'
+              : iType === 'technical-screening' ? '📋'
+              : iType === 'frontend' ? '🖥️'
+              : iType === 'ai-fluency' ? '🤖'
+              : iType === 'personalized' ? '📄'
+              : iType === 'voice' ? '🎤'
+              : iType === 'autonomous' ? '🧠'
+              : displayConfig.logo}
+          </div>
+
           <div>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <div style={{ color:headerColor, fontSize:10, fontWeight:700, textTransform:'uppercase' }}>{config.company} Mock Interview</div>
-              {session?.realWorld && <span style={{ background:'#f59e0b22', border:'1px solid #f59e0b44', borderRadius:6, padding:'1px 6px', color:'#f59e0b', fontSize:9, fontWeight:700 }}>🌍 REAL-WORLD</span>}
-              {session?.aiAssistEnabled && <span style={{ background:'#1a73e822', border:'1px solid #1a73e844', borderRadius:6, padding:'1px 6px', color:'#1a73e8', fontSize:9, fontWeight:700 }}>✨ AI IDE</span>}
+            <div style={{ color:'#e8e8e8', fontSize:13, fontWeight:800 }}>
+              {session.config?.company || session.company || displayConfig.company} Interview
             </div>
-            <div style={{ display:'flex', gap:5, marginTop:3 }}>
-              {problems.map((p, i) => {
-                const isSolved = solved.includes(p.id);
-                const isCurr   = i === probIdx;
-                const dc       = { Easy:'#00c896', Medium:'#f5c542', Hard:'#ff4d4d' }[p.difficulty] || '#888';
-                return (
-                  <button key={p.id} onClick={() => setProbIdx(i)}
-                    style={{ background:isCurr?dc+'22':isSolved?'#00c89611':'transparent', border:`1px solid ${isCurr?dc:isSolved?'#00c89633':'#1e2a3a'}`, borderRadius:6, color:isCurr?dc:isSolved?'#00c896':'#555', cursor:'pointer', fontSize:11, fontWeight:700, padding:'3px 10px' }}
-                  >
-                    {isSolved ? '✓' : i+1} {p.difficulty}
-                  </button>
-                );
-              })}
+            <div style={{ color:'#555', fontSize:10 }}>
+              Problem {probIdx + 1}/{session.problems?.length || 1}
+              {isChatType ? ' • Conversation mode' : ' • Coding mode'}
             </div>
           </div>
         </div>
+
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ background:'#0d1117', border:`1px solid ${timeColor}44`, borderRadius:10, padding:'6px 14px' }}>
-            <div style={{ color:timeColor, fontSize:20, fontWeight:900, fontFamily:'monospace' }}>{formatTime(remaining)}</div>
-            <div style={{ width:80, height:3, background:'#1e2a3a', borderRadius:2, marginTop:3, overflow:'hidden' }}>
-              <div style={{ width:`${pctDone}%`, height:'100%', background:timeColor, borderRadius:2, transition:'width 1s linear' }} />
-            </div>
+          <div style={{
+            background:remaining < 300 ? '#ff4d4d22' : '#060910',
+            border:`1px solid ${remaining < 300 ? '#ff4d4d55' : '#1e2a3a'}`,
+            borderRadius:10,
+            padding:'7px 12px',
+            color:remaining < 300 ? '#ff4d4d' : '#e8e8e8',
+            fontSize:13,
+            fontWeight:900,
+            fontFamily:'monospace',
+          }}>
+            ⏱ {formatTime(remaining)}
           </div>
-          <div style={{ background:'#a855f711', border:'1px solid #a855f733', borderRadius:8, padding:'6px 12px', textAlign:'center' }}>
-            <div style={{ color:'#555', fontSize:9 }}>SOLVED</div>
-            <div style={{ color:'#a855f7', fontSize:16, fontWeight:900 }}>{solved.length}/{problems.length}</div>
-          </div>
-          <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
-            onClick={() => completeInterview(false)}
-            style={{ background:`linear-gradient(135deg, ${headerColor}, ${headerColor}88)`, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 16px' }}
-          >End Interview →</motion.button>
+
+          <button
+            onClick={() => setObserveOpen(o => !o)}
+            style={{
+              background:observeOpen ? '#1a73e822' : '#060910',
+              border:`1px solid ${observeOpen ? '#1a73e855' : '#1e2a3a'}`,
+              borderRadius:8,
+              color:observeOpen ? '#1a73e8' : '#666',
+              cursor:'pointer',
+              fontSize:12,
+              padding:'7px 10px',
+              fontWeight:700,
+            }}
+          >
+            👁 Observer
+          </button>
+
+          <button
+            onClick={() => setWebcamOn(w => !w)}
+            style={{
+              background:webcamOn ? '#00c89622' : '#060910',
+              border:`1px solid ${webcamOn ? '#00c89655' : '#1e2a3a'}`,
+              borderRadius:8,
+              color:webcamOn ? '#00c896' : '#666',
+              cursor:'pointer',
+              fontSize:12,
+              padding:'7px 10px',
+              fontWeight:700,
+            }}
+          >
+            📷 {webcamOn ? 'On' : 'Off'}
+          </button>
+
+          <button
+            onClick={completeInterview}
+            style={{
+              background:`linear-gradient(135deg, ${activeColor}, ${activeColor}88)`,
+              border:'none',
+              borderRadius:8,
+              color:'#fff',
+              cursor:'pointer',
+              fontSize:12,
+              fontWeight:800,
+              padding:'8px 14px',
+            }}
+          >
+            Finish
+          </button>
         </div>
       </div>
 
-      {/* Main content */}
-      <div style={{ flex:1, overflow:'hidden' }}>
-        {(iType === 'coding' || !iType) && currentProblem && (
-          <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="python3" hideHints />
+      {/* Hidden webcam/canvas */}
+      <video ref={videoRef} style={{ display:'none' }} muted playsInline />
+      <canvas ref={canvasRef} style={{ display:'none' }} />
+
+      {/* Body */}
+      <div style={{ flex:1, display:'flex', minHeight:0 }}>
+        {observeOpen && (
+          <LiveObserverPanel
+            sessionId={session.sessionId}
+            displayColor={activeColor}
+            onClose={() => setObserveOpen(false)}
+          />
         )}
-        {iType === 'frontend' && currentProblem && (
-          <CodeEditor problem={currentProblem} user={user} onSubmit={handleSubmit} defaultLanguage="javascript" hideHints />
-        )}
-        {iType === 'system-design' && currentProblem && (
-          <div style={{ display:'flex', height:'100%' }}>
-            <div style={{ width:'50%', display:'flex', flexDirection:'column', borderRight:'1px solid #1e2a3a', overflow:'hidden' }}>
-              <div style={{ padding:'20px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-                <h2 style={{ margin:'0 0 8px', color:'#e8e8e8', fontSize:17, fontWeight:800 }}>🏗️ {currentProblem.title}</h2>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
-                  {(currentProblem.topics||currentProblem.tags||[]).map(t => (
-                    <span key={t} style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'2px 8px', color:'#1a73e8', fontSize:10 }}>{t}</span>
-                  ))}
+
+        <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column' }}>
+          {/* Voice UI */}
+          {iType === 'voice' && (
+            <VoiceInterview
+              chatMsgs={chatMsgs}
+              chatLoading={chatLoading}
+              chatEndRef={chatEndRef}
+              askInterviewer={askInterviewer}
+              setChatMsgs={setChatMsgs}
+            />
+          )}
+
+          {/* ── Database Debugging UI ── */}
+          {iType === 'db-debug' && currentProblem && (
+            <div style={{ display:'flex', height:'100%' }}>
+              <div style={{ width:'45%', display:'flex', flexDirection:'column', borderRight:'1px solid #1e2a3a', overflow:'hidden' }}>
+                <div style={{ padding:'16px 20px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                    <span style={{ background:'#06b6d422', border:'1px solid #06b6d444', borderRadius:12, padding:'2px 10px', color:'#06b6d4', fontSize:10, fontWeight:700 }}>
+                      🗄️ DB DEBUG
+                    </span>
+                    <span style={{
+                      background:({Easy:'#00c89622', Medium:'#f5c54222', Hard:'#ff4d4d22'})[currentProblem.difficulty] || '#88888822',
+                      border:`1px solid ${({Easy:'#00c89644', Medium:'#f5c54244', Hard:'#ff4d4d44'})[currentProblem.difficulty] || '#88888844'}`,
+                      borderRadius:12,
+                      padding:'2px 10px',
+                      color:({Easy:'#00c896', Medium:'#f5c542', Hard:'#ff4d4d'})[currentProblem.difficulty] || '#888',
+                      fontSize:10,
+                      fontWeight:700,
+                    }}>
+                      {currentProblem.difficulty}
+                    </span>
+                  </div>
+
+                  <h2 style={{ margin:'0 0 6px', color:'#e8e8e8', fontSize:15, fontWeight:800 }}>
+                    {currentProblem.title}
+                  </h2>
+
+                  {currentProblem.scenario && (
+                    <p style={{ margin:'0 0 8px', color:'#888', fontSize:12, lineHeight:1.6 }}>
+                      {currentProblem.scenario}
+                    </p>
+                  )}
+
+                  {currentProblem.objective && (
+                    <div style={{ background:'#06b6d408', border:'1px solid #06b6d422', borderRadius:8, padding:'8px 10px' }}>
+                      <div style={{ color:'#06b6d4', fontSize:9, fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>
+                        OBJECTIVE
+                      </div>
+                      <div style={{ color:'#999', fontSize:11, lineHeight:1.6 }}>
+                        {currentProblem.objective}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {currentProblem.requirements && (
-                  <div>
-                    <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Requirements</div>
-                    <ul style={{ margin:0, padding:'0 0 0 16px', color:'#999', fontSize:12, lineHeight:1.7 }}>
-                      {currentProblem.requirements.map((r,i) => <li key={i}>{r}</li>)}
-                    </ul>
+
+                {currentProblem.schema && (
+                  <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+                    <div style={{ padding:'8px 20px', borderBottom:'1px solid #1e2a3a', background:'#060910', flexShrink:0 }}>
+                      <span style={{ color:'#444', fontSize:10, fontWeight:700, textTransform:'uppercase' }}>
+                        📋 Schema / Code
+                      </span>
+                    </div>
+                    <pre style={{
+                      flex:1,
+                      margin:0,
+                      padding:'14px 20px',
+                      color:'#88d4ff',
+                      fontSize:11,
+                      fontFamily:'"Fira Code","Courier New",monospace',
+                      lineHeight:1.7,
+                      overflowY:'auto',
+                      overflowX:'auto',
+                      whiteSpace:'pre',
+                      background:'#060910',
+                    }}>
+                      {currentProblem.schema}
+                    </pre>
                   </div>
                 )}
               </div>
-              <div style={{ flex:1, padding:'16px', display:'flex', flexDirection:'column' }}>
-                <div style={{ color:'#555', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:6 }}>📝 Your Architecture Notes</div>
-                <textarea placeholder="Write your system design here..." style={{ flex:1, width:'100%', boxSizing:'border-box', background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'14px', color:'#e8e8e8', fontSize:13, lineHeight:1.7, outline:'none', resize:'none' }} />
-              </div>
+
+              <ChatPanel
+                color="#06b6d4"
+                icon="🗄️"
+                title="DB Engineer Interviewer"
+                subtitle="Diagnose → EXPLAIN → Index → Rewrite"
+                placeholder="What's your diagnosis? Start with your analysis..."
+                chatMsgs={chatMsgs}
+                chatLoading={chatLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                sendChatMsg={sendChatMsg}
+              />
             </div>
-            <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#0d1117' }}>
-              <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ fontSize:20 }}>🤖</span>
-                <div>
-                  <div style={{ color:'#1a73e8', fontSize:12, fontWeight:900 }}>System Design Interviewer</div>
-                  <div style={{ color:'#444', fontSize:9 }}>Discusses architecture, trade-offs, and scalability</div>
+          )}
+                    {/* ── API Integration UI ── */}
+          {iType === 'api-integration' && currentProblem && (
+            <div style={{ display:'flex', height:'100%' }}>
+              <SideRequirementPanel
+                color="#f97316"
+                icon="🔌"
+                title={currentProblem.title}
+                requirements={currentProblem.requirements}
+                probeTitle="💡 PROBE AREAS"
+                probes={['Idempotency','Error handling','Security','Scalability','Failure modes']}
+              />
+
+              <ChatPanel
+                color="#f97316"
+                icon="🔌"
+                title="API Architect Interviewer"
+                subtitle="Design → Failure cases → Security → Scale"
+                placeholder="Walk through your design approach..."
+                chatMsgs={chatMsgs}
+                chatLoading={chatLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                sendChatMsg={sendChatMsg}
+              />
+            </div>
+          )}
+
+          {/* ── Cloud Architecture UI ── */}
+          {iType === 'cloud-arch' && currentProblem && (
+            <div style={{ display:'flex', height:'100%' }}>
+              <SideRequirementPanel
+                color="#8b5cf6"
+                icon="☁️"
+                title={currentProblem.title}
+                requirements={currentProblem.requirements}
+                probeTitle="💡 ALWAYS DISCUSS"
+                probes={['Cost at scale','Failure recovery','Multi-region trade-offs','Managed vs self-hosted','Observability']}
+              />
+
+              <ChatPanel
+                color="#8b5cf6"
+                icon="☁️"
+                title="Cloud Architect Interviewer"
+                subtitle="SLA → Architecture → Cost → Failure recovery"
+                placeholder="Start with your high-level cloud architecture..."
+                chatMsgs={chatMsgs}
+                chatLoading={chatLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                sendChatMsg={sendChatMsg}
+              />
+            </div>
+          )}
+
+          {/* ── Distributed Systems UI ── */}
+          {iType === 'distributed-systems' && currentProblem && (
+            <div style={{ display:'flex', height:'100%' }}>
+              <div style={{ width:260, borderRight:'1px solid #1e2a3a', padding:'18px 16px', overflowY:'auto', flexShrink:0, background:'#0d1117' }}>
+                <div style={{ color:'#ec4899', fontSize:12, fontWeight:900, marginBottom:6 }}>
+                  🌐 {currentProblem.title}
                 </div>
-              </div>
-              <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-                {chatMsgs.map((m,i) => (
-                  <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'85%', background:m.role==='candidate'?'#1a73e822':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#1a73e844':'#2a3645'}`, borderRadius:m.role==='candidate'?'14px 14px 4px 14px':'14px 14px 14px 4px', padding:'8px 12px', color:m.role==='candidate'?'#88bbff':'#c8c8c8', fontSize:12, lineHeight:1.6 }}>{m.text}</div>
-                ))}
-                {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🤖 Thinking...</div>}
-                <div ref={chatEndRef} />
-              </div>
-              <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6 }}>
-                <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Discuss your design..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }} />
-                <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#1a73e8', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {iType === 'behavioral' && currentProblem && (
-          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
-            <div style={{ padding:'16px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                <span style={{ background:'#f59e0b22', border:'1px solid #f59e0b44', borderRadius:12, padding:'2px 10px', color:'#f59e0b', fontSize:10, fontWeight:700 }}>{currentProblem.category || 'Behavioral'}</span>
-              </div>
-              <p style={{ margin:0, color:'#e8e8e8', fontSize:14, lineHeight:1.6 }}>{currentProblem.title}</p>
-              {currentProblem.starGuide && <p style={{ margin:'8px 0 0', color:'#666', fontSize:11 }}>💡 <em>{currentProblem.starGuide}</em></p>}
-            </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'16px 24px', display:'flex', flexDirection:'column', gap:10 }}>
-              {chatMsgs.map((m,i) => (
-                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'75%', background:m.role==='candidate'?'#f59e0b11':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#f59e0b44':'#2a3645'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#fde68a':'#c8c8c8', fontSize:13, lineHeight:1.7 }}>{m.text}</div>
-              ))}
-              {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🤖 Thinking...</div>}
-              <div ref={chatEndRef} />
-            </div>
-            <div style={{ padding:'12px 24px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, flexShrink:0, background:'#0d1117' }}>
-              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Share your experience using the STAR method..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }} />
-              <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#f59e0b', border:'none', borderRadius:10, color:'#000', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 18px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-            </div>
-          </div>
-        )}
-        {iType === 'technical-screening' && (
-          <div style={{ display:'flex', height:'100%' }}>
-            <div style={{ width:240, borderRight:'1px solid #1e2a3a', padding:'20px 16px', overflowY:'auto', flexShrink:0, background:'#0d1117' }}>
-              <div style={{ color:'#10b981', fontSize:13, fontWeight:900, marginBottom:6 }}>📋 Screening Round</div>
-              <div style={{ color:'#555', fontSize:11, lineHeight:1.7, marginBottom:16 }}>Recruiter-style conversation assessing your background, CS knowledge, and role fit.</div>
-              {['Your background & experience','Big O + Data Structures','Problem-solving process','Behavioral (STAR)','Role fit & motivation'].map((item,i) => (
-                <div key={i} style={{ color:'#444', fontSize:11, marginBottom:8, display:'flex', gap:6 }}>
-                  <span style={{ color:'#10b981', flexShrink:0 }}>→</span>{item}
-                </div>
-              ))}
-              <div style={{ marginTop:16, background:'#10b98111', border:'1px solid #10b98122', borderRadius:10, padding:10 }}>
-                <div style={{ color:'#10b981', fontSize:10, fontWeight:700, marginBottom:6 }}>💡 Tips</div>
-                {['Be concise and structured','Use "I" not "we"','Quantify your impact','Ask one smart question back'].map(t => (
-                  <div key={t} style={{ color:'#555', fontSize:10, marginBottom:4 }}>• {t}</div>
-                ))}
-              </div>
-            </div>
-            <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-              <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', display:'flex', flexDirection:'column', gap:10 }}>
-                {chatMsgs.length===0 && !chatLoading && <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>🤖 Connecting to your recruiter...</div>}
-                {chatMsgs.map((m,i) => (
-                  <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'72%', background:m.role==='candidate'?'#1a73e822':'#10b98118', border:`1px solid ${m.role==='candidate'?'#1a73e844':'#10b98133'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#88bbff':'#d8d8d8', fontSize:13, lineHeight:1.65 }}>
-                    {m.role==='interviewer' && <div style={{ color:'#10b981', fontSize:10, fontWeight:700, marginBottom:4 }}>📋 RECRUITER</div>}
-                    {m.text}
+
+                {currentProblem.scenario && (
+                  <div style={{ color:'#777', fontSize:11, lineHeight:1.6, marginTop:10 }}>
+                    {currentProblem.scenario}
                   </div>
-                ))}
-                {chatLoading && <div style={{ color:'#444', fontSize:12, fontStyle:'italic' }}>📋 Recruiter is typing...</div>}
-                <div ref={chatEndRef} />
-              </div>
-              <div style={{ padding:'12px 16px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
-                <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Type your answer..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }} />
-                <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#10b981', border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {iType === 'ai-fluency' && (
-          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
-            <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ background:'#a78bfa22', border:'1px solid #a78bfa44', borderRadius:12, padding:'2px 10px', color:'#a78bfa', fontSize:10, fontWeight:700 }}>AI FLUENCY ROUND</span>
-                <span style={{ color:'#555', fontSize:11 }}>Discuss your real experience with AI tools.</span>
-              </div>
-            </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'16px 24px', display:'flex', flexDirection:'column', gap:10 }}>
-              {chatMsgs.length===0 && !chatLoading && <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>🤖 AI interviewer is ready...</div>}
-              {chatMsgs.map((m,i) => (
-                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'75%', background:m.role==='candidate'?'#a78bfa11':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#a78bfa44':'#2a3645'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#c4b5fd':'#c8c8c8', fontSize:13, lineHeight:1.7 }}>
-                  {m.role==='interviewer' && <div style={{ color:'#a78bfa', fontSize:10, fontWeight:700, marginBottom:4 }}>🤖 AI INTERVIEWER</div>}
-                  {m.text}
-                </div>
-              ))}
-              {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🤖 Thinking...</div>}
-              <div ref={chatEndRef} />
-            </div>
-            <div style={{ padding:'12px 24px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
-              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Share how you use AI in your workflow..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }} />
-              <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#a78bfa', border:'none', borderRadius:10, color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-            </div>
-          </div>
-        )}
-        {/* Autonomous AI Interviewer */}
-        {iType === 'autonomous' && (
-          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
-            <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ background:'#00c89622', border:'1px solid #00c89644', borderRadius:12, padding:'2px 10px', color:'#00c896', fontSize:10, fontWeight:700 }}>🧠 AUTONOMOUS AI INTERVIEWER</span>
-                  <span style={{ color:'#555', fontSize:11 }}>Adaptive • Evidence-based • Real-time probing</span>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{ color:'#444', fontSize:10 }}>Turn {Math.ceil(chatMsgs.length / 2) + 1}</span>
-                  <div style={{ width:60, height:4, background:'#1e2a3a', borderRadius:2, overflow:'hidden' }}>
-                    <div style={{ width:`${Math.min(100, (chatMsgs.length/22)*100)}%`, height:'100%', background:'#00c896', borderRadius:2, transition:'width 0.5s' }} />
+                )}
+
+                <div style={{ marginTop:16, background:'#ec489908', border:'1px solid #ec489922', borderRadius:10, padding:10 }}>
+                  <div style={{ color:'#ec4899', fontSize:9, fontWeight:700, marginBottom:6 }}>
+                    💡 PROBE AREAS
                   </div>
-                </div>
-              </div>
-            </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:12 }}>
-              {chatMsgs.length===0 && !chatLoading && (
-                <div style={{ textAlign:'center', padding:60 }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>🧠</div>
-                  <div style={{ color:'#444', fontSize:14, fontWeight:700, marginBottom:6 }}>Your AI Interviewer is ready</div>
-                  <div style={{ color:'#333', fontSize:12 }}>The interview will begin when you press Send or type your first message.</div>
-                </div>
-              )}
-              {chatMsgs.map((m,i) => (
-                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'78%' }}>
-                  {m.role === 'interviewer' && (
-                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-                      <span style={{ fontSize:14 }}>🧠</span>
-                      <span style={{ color:'#00c896', fontSize:9, fontWeight:700, textTransform:'uppercase' }}>AI Interviewer</span>
+                  {['Consistency model','Partition behavior','Failure recovery','Conflict resolution','Trade-offs'].map(t => (
+                    <div key={t} style={{ color:'#555', fontSize:10, marginBottom:4 }}>
+                      • {t}
                     </div>
-                  )}
-                  <div style={{ background:m.role==='candidate'?'#00c89611':'#0d1117', border:`1px solid ${m.role==='candidate'?'#00c89644':'#1e2a3a'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'12px 16px', color:m.role==='candidate'?'#a7f3d0':'#d8d8d8', fontSize:13, lineHeight:1.75 }}>
-                    {m.text}
-                  </div>
+                  ))}
                 </div>
-              ))}
-              {chatLoading && (
-                <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0' }}>
-                  <span style={{ fontSize:16 }}>🧠</span>
-                  <div style={{ display:'flex', gap:4 }}>
-                    {[0,1,2].map(i => (
-                      <span key={i} style={{ width:6, height:6, borderRadius:'50%', background:'#00c896', display:'inline-block', animation:`pulse 1.2s ${i*0.2}s infinite` }} />
+              </div>
+
+              <ChatPanel
+                color="#ec4899"
+                icon="🌐"
+                title="Distributed Systems Interviewer"
+                subtitle="CAP → Consensus → Failure modes → Trade-offs"
+                placeholder="Explain your first instinct about the system failure..."
+                chatMsgs={chatMsgs}
+                chatLoading={chatLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                sendChatMsg={sendChatMsg}
+              />
+            </div>
+          )}
+
+          {/* Generic chat-only UI */}
+          {isChatType && !isSpecialArchitectureType && iType !== 'voice' && (
+            <div style={{ display:'flex', height:'100%' }}>
+              <ChatPanel
+                color={activeColor}
+                icon={
+                  iType === 'technical-screening' ? '📋'
+                  : iType === 'ai-fluency' ? '🤖'
+                  : iType === 'personalized' ? '📄'
+                  : iType === 'autonomous' ? '🧠'
+                  : '🎙️'
+                }
+                title={
+                  iType === 'technical-screening' ? 'Technical Screener'
+                  : iType === 'ai-fluency' ? 'AI Fluency Interviewer'
+                  : iType === 'personalized' ? 'Personalized Interviewer'
+                  : iType === 'autonomous' ? 'Autonomous AI Interviewer'
+                  : 'Behavioral Interviewer'
+                }
+                subtitle="Answer naturally. The interviewer will ask follow-ups."
+                placeholder="Type your answer..."
+                chatMsgs={chatMsgs}
+                chatLoading={chatLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                sendChatMsg={sendChatMsg}
+              />
+            </div>
+          )}
+
+          {/* Coding / Frontend / System Design editor UI */}
+          {!isChatType && (
+            <div style={{ flex:1, display:'flex', minHeight:0 }}>
+              <div style={{
+                width:'36%',
+                minWidth:320,
+                background:'#0d1117',
+                borderRight:'1px solid #1e2a3a',
+                overflowY:'auto',
+                padding:'20px',
+              }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                  <span style={{
+                    background:`${activeColor}22`,
+                    border:`1px solid ${activeColor}44`,
+                    borderRadius:12,
+                    padding:'2px 10px',
+                    color:activeColor,
+                    fontSize:10,
+                    fontWeight:700,
+                  }}>
+                    {iType === 'frontend' ? '🖥️ FRONTEND' : iType === 'system-design' ? '🏗️ SYSTEM DESIGN' : '💻 CODING'}
+                  </span>
+                  {currentProblem.difficulty && (
+                    <span style={{
+                      background:({Easy:'#00c89622',Medium:'#f5c54222',Hard:'#ff4d4d22'})[currentProblem.difficulty] || '#88888822',
+                      border:`1px solid ${({Easy:'#00c89644',Medium:'#f5c54244',Hard:'#ff4d4d44'})[currentProblem.difficulty] || '#88888844'}`,
+                      borderRadius:12,
+                      padding:'2px 10px',
+                      color:({Easy:'#00c896',Medium:'#f5c542',Hard:'#ff4d4d'})[currentProblem.difficulty] || '#888',
+                      fontSize:10,
+                      fontWeight:700,
+                    }}>
+                      {currentProblem.difficulty}
+                    </span>
+                  )}
+                </div>
+
+                <h2 style={{ margin:'0 0 10px', fontSize:20, color:'#e8e8e8' }}>
+                  {currentProblem.title}
+                </h2>
+
+                {currentProblem.description && (
+                  <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>
+                    {currentProblem.description}
+                  </p>
+                )}
+
+                {currentProblem.requirements?.length > 0 && (
+                  <div style={{ marginTop:16 }}>
+                    <div style={{ color:activeColor, fontSize:11, fontWeight:800, marginBottom:8 }}>
+                      Requirements
+                    </div>
+                    {currentProblem.requirements.map((r, i) => (
+                      <div key={i} style={{ color:'#888', fontSize:12, marginBottom:6, lineHeight:1.6 }}>
+                        • {r}
+                      </div>
                     ))}
                   </div>
-                  <span style={{ color:'#444', fontSize:11, fontStyle:'italic' }}>Analyzing your response...</span>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            <div style={{ padding:'14px 24px', borderTop:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-              <div style={{ display:'flex', gap:8 }}>
-                <textarea
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMsg(); } }}
-                  placeholder="Type your answer... (Shift+Enter for new line)"
-                  rows={2}
-                  style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none', resize:'none', fontFamily:'Arial, sans-serif', lineHeight:1.5 }}
+                )}
+
+                {currentProblem.examples?.length > 0 && (
+                  <div style={{ marginTop:18 }}>
+                    <div style={{ color:activeColor, fontSize:11, fontWeight:800, marginBottom:8 }}>
+                      Examples
+                    </div>
+                    {currentProblem.examples.map((ex, i) => (
+                      <div key={i} style={{ background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:12, marginBottom:10 }}>
+                        <div style={{ color:'#888', fontSize:12, marginBottom:4 }}>
+                          <b>Input:</b> {ex.input}
+                        </div>
+                        <div style={{ color:'#888', fontSize:12, marginBottom:4 }}>
+                          <b>Output:</b> {ex.output}
+                        </div>
+                        {ex.explanation && (
+                          <div style={{ color:'#555', fontSize:11, lineHeight:1.5 }}>
+                            {ex.explanation}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ flex:1, minWidth:0 }}>
+                <CodeEditor
+                  problem={currentProblem}
+                  user={user}
+                  onSolved={handleSolved}
+                  tabSwitches={tabSwitches}
+                  pasteCount={pasteCount}
+                  mockInterview
+                  aiAssistEnabled={session.aiAssistEnabled}
+                  sessionId={session.sessionId}
                 />
-                <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()}
-                  style={{ background:chatLoading||!chatInput.trim()?'#1e2a3a':'linear-gradient(135deg, #00c896, #00c89688)', border:'none', borderRadius:10, color:chatLoading||!chatInput.trim()?'#444':'#fff', cursor:chatLoading||!chatInput.trim()?'not-allowed':'pointer', fontSize:13, fontWeight:700, padding:'0 20px', opacity:1, minWidth:80 }}>
-                  {chatLoading ? '...' : 'Send →'}
+              </div>
+            </div>
+          )}
+                    {/* Bottom navigation */}
+          <div style={{
+            height:54,
+            background:'#0d1117',
+            borderTop:'1px solid #1e2a3a',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            padding:'0 18px',
+            flexShrink:0,
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {session.problems?.map((p, i) => (
+                <button
+                  key={p.id || i}
+                  onClick={() => {
+                    setProbIdx(i);
+                    setChatMsgs([]);
+                    setChatInput('');
+                    if (isChatType) {
+                      setTimeout(() => askOpeningQuestion({ ...session, problems:[session.problems[i]] }), 200);
+                    }
+                  }}
+                  style={{
+                    width:30,
+                    height:30,
+                    borderRadius:'50%',
+                    background:i === probIdx ? activeColor : solved.includes(p.id) ? '#00c896' : '#060910',
+                    border:`1px solid ${i === probIdx ? activeColor : solved.includes(p.id) ? '#00c896' : '#1e2a3a'}`,
+                    color:i === probIdx || solved.includes(p.id) ? '#fff' : '#555',
+                    cursor:'pointer',
+                    fontSize:12,
+                    fontWeight:800,
+                  }}
+                >
+                  {solved.includes(p.id) ? '✓' : i + 1}
                 </button>
-              </div>
-              <div style={{ color:'#333', fontSize:10, marginTop:6 }}>
-                The AI interviewer adapts every question to your answers. {chatMsgs.length > 0 ? `${Math.ceil(chatMsgs.length/2)} exchanges so far.` : 'Start whenever you\'re ready.'}
-              </div>
-            </div>
-          </div>
-        )}        
-        {iType === 'personalized' && (
-          <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#0a0a14' }}>
-            <div style={{ padding:'14px 24px', borderBottom:'1px solid #1e2a3a', background:'#0d1117', flexShrink:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ background:'#f59e0b22', border:'1px solid #f59e0b44', borderRadius:12, padding:'2px 10px', color:'#f59e0b', fontSize:10, fontWeight:700 }}>PERSONALIZED INTERVIEW</span>
-                <span style={{ color:'#555', fontSize:11 }}>Questions generated from your job description.</span>
-              </div>
-            </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'16px 24px', display:'flex', flexDirection:'column', gap:10 }}>
-              {chatMsgs.length===0 && !chatLoading && <div style={{ color:'#333', fontSize:13, textAlign:'center', padding:40 }}>📄 Generating your personalized questions...</div>}
-              {chatMsgs.map((m,i) => (
-                <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'75%', background:m.role==='candidate'?'#f59e0b11':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#f59e0b44':'#2a3645'}`, borderRadius:m.role==='candidate'?'16px 16px 4px 16px':'16px 16px 16px 4px', padding:'10px 14px', color:m.role==='candidate'?'#fde68a':'#c8c8c8', fontSize:13, lineHeight:1.7 }}>
-                  {m.role==='interviewer' && <div style={{ color:'#f59e0b', fontSize:10, fontWeight:700, marginBottom:4 }}>📄 INTERVIEWER</div>}
-                  {m.text}
-                </div>
               ))}
-              {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>📄 Interviewer is thinking...</div>}
-              <div ref={chatEndRef} />
             </div>
-            <div style={{ padding:'12px 24px', borderTop:'1px solid #1e2a3a', display:'flex', gap:8, background:'#0d1117', flexShrink:0 }}>
-              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Type your answer..." style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:10, padding:'10px 14px', color:'#e8e8e8', fontSize:13, outline:'none' }} />
-              <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()} style={{ background:'#f59e0b', border:'none', borderRadius:10, color:'#000', cursor:'pointer', fontSize:13, fontWeight:700, padding:'10px 20px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
+
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <button
+                onClick={() => {
+                  if (probIdx > 0) {
+                    setProbIdx(i => i - 1);
+                    setChatMsgs([]);
+                    setChatInput('');
+                  }
+                }}
+                disabled={probIdx === 0}
+                style={{
+                  background:'#060910',
+                  border:'1px solid #1e2a3a',
+                  borderRadius:8,
+                  color:probIdx === 0 ? '#333' : '#888',
+                  cursor:probIdx === 0 ? 'not-allowed' : 'pointer',
+                  fontSize:12,
+                  padding:'8px 12px',
+                }}
+              >
+                ← Previous
+              </button>
+
+              <button
+                onClick={nextProblem}
+                style={{
+                  background:`linear-gradient(135deg, ${activeColor}, ${activeColor}88)`,
+                  border:'none',
+                  borderRadius:8,
+                  color:'#fff',
+                  cursor:'pointer',
+                  fontSize:12,
+                  fontWeight:800,
+                  padding:'8px 14px',
+                }}
+              >
+                {probIdx < session.problems.length - 1 ? 'Next →' : 'Finish Interview'}
+              </button>
             </div>
           </div>
-        )}
-        {iType === 'voice' && (
-          <VoiceInterview chatMsgs={chatMsgs} chatLoading={chatLoading} chatEndRef={chatEndRef} askInterviewer={askInterviewer} setChatMsgs={setChatMsgs} />
-        )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Shared side panel for API / Cloud modes ───────────────────────────────────
+function SideRequirementPanel({ color, icon, title, requirements = [], probeTitle, probes = [] }) {
+  return (
+    <div style={{
+      width:240,
+      borderRight:'1px solid #1e2a3a',
+      padding:'18px 16px',
+      overflowY:'auto',
+      flexShrink:0,
+      background:'#0d1117',
+    }}>
+      <div style={{ color, fontSize:12, fontWeight:900, marginBottom:6 }}>
+        {icon} {title}
       </div>
 
-      {/* Webcam indicator */}
-      {webcamOn && (
-        <div style={{ position:'fixed', top:60, left:16, zIndex:8000, display:'flex', alignItems:'center', gap:6, background:'#0d111788', border:'1px solid #00c89633', borderRadius:20, padding:'4px 10px' }}>
-          <span style={{ width:6, height:6, borderRadius:'50%', background:'#00c896', display:'inline-block', animation:'pulse 1.5s infinite' }} />
-          <span style={{ color:'#00c896', fontSize:9, fontWeight:700 }}>WEBCAM MONITORING</span>
+      {requirements && requirements.length > 0 && (
+        <div>
+          <div style={{ color:'#444', fontSize:9, fontWeight:700, textTransform:'uppercase', marginBottom:8, marginTop:12 }}>
+            Requirements
+          </div>
+          {requirements.map((r, i) => (
+            <div key={i} style={{ color:'#555', fontSize:11, marginBottom:7, display:'flex', gap:6, lineHeight:1.5 }}>
+              <span style={{ color, flexShrink:0, marginTop:1 }}>→</span>
+              {r}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Floating chat — coding + frontend only */}
-      {(iType === 'coding' || !iType || iType === 'frontend') && (
-        <>
-          <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
-            onClick={() => setChatOpen(o => !o)}
-            style={{ position:'fixed', bottom:24, right:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:`linear-gradient(135deg, ${config.color}, ${config.color}88)`, border:'none', cursor:'pointer', fontSize:22, boxShadow:`0 4px 20px ${config.color}44`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
-          >
-            {chatOpen ? '✕' : '🤖'}
-            {!chatOpen && chatMsgs.length > 0 && (
-              <span style={{ position:'absolute', top:-2, right:-2, width:14, height:14, borderRadius:'50%', background:'#ff4d4d', border:'2px solid #0a0a14', animation:'pulse 1.5s infinite' }} />
-            )}
-          </motion.button>
-          <AnimatePresence>
-            {chatOpen && (
-              <motion.div initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
-                style={{ position:'fixed', bottom:86, right:24, zIndex:9000, width:360, maxHeight:'55vh', background:'#0d1117', border:`1px solid ${config.color}44`, borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 8px 40px #00000088' }}
-              >
-                <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                  <span style={{ fontSize:20 }}>🤖</span>
-                  <div>
-                    <div style={{ color:config.color, fontSize:12, fontWeight:900 }}>{config.company} Interviewer</div>
-                    <div style={{ color:'#444', fontSize:9 }}>AI-powered • Asks follow-ups • Never gives answers</div>
-                  </div>
-                </div>
-                <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-                  {chatMsgs.length === 0 && !chatLoading && (
-                    <div style={{ color:'#333', fontSize:12, textAlign:'center', padding:20 }}>The AI interviewer will ask you questions about your approach, just like a real interview.</div>
-                  )}
-                  {chatMsgs.map((m,i) => (
-                    <div key={i} style={{ alignSelf:m.role==='candidate'?'flex-end':'flex-start', maxWidth:'85%', background:m.role==='candidate'?'#1a73e822':'#1e2a3a', border:`1px solid ${m.role==='candidate'?'#1a73e844':'#2a3645'}`, borderRadius:m.role==='candidate'?'14px 14px 4px 14px':'14px 14px 14px 4px', padding:'8px 12px', color:m.role==='candidate'?'#88bbff':'#c8c8c8', fontSize:12, lineHeight:1.6 }}>
-                      {m.text}
-                    </div>
-                  ))}
-                  {chatLoading && <div style={{ color:'#555', fontSize:12, fontStyle:'italic' }}>🤖 Thinking...</div>}
-                  <div ref={chatEndRef} />
-                </div>
-                <div style={{ padding:'8px 12px', borderTop:'1px solid #1e2a3a', display:'flex', gap:6, flexShrink:0 }}>
-                  <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendChatMsg();}} placeholder="Reply to the interviewer..."
-                    style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'8px 12px', color:'#e8e8e8', fontSize:12, outline:'none' }}
-                  />
-                  <button onClick={sendChatMsg} disabled={chatLoading||!chatInput.trim()}
-                    style={{ background:config.color, border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:12, fontWeight:700, padding:'8px 14px', opacity:chatLoading||!chatInput.trim()?0.4:1 }}>Send</button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
+      {probes.length > 0 && (
+        <div style={{ marginTop:14, background:`${color}08`, border:`1px solid ${color}22`, borderRadius:10, padding:10 }}>
+          <div style={{ color, fontSize:9, fontWeight:700, marginBottom:6 }}>
+            {probeTitle}
+          </div>
+          {probes.map(t => (
+            <div key={t} style={{ color:'#555', fontSize:10, marginBottom:4 }}>
+              • {t}
+            </div>
+          ))}
+        </div>
       )}
+    </div>
+  );
+}
 
-      {/* AI IDE Panel */}
-      {session?.aiAssistEnabled && (
-        <>
-          <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
-            onClick={() => setAiPanelOpen(o => !o)}
-            style={{ position:'fixed', bottom:24, right:(iType==='coding'||!iType||iType==='frontend')?86:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:aiPanelOpen?'#1a73e8':'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #1a73e844', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
-          >
-            {aiPanelOpen ? '✕' : '✨'}
-            {!aiPanelOpen && (aiChatMsgs.length > 0 || aiCompletion) && (
-              <span style={{ position:'absolute', top:-2, right:-2, width:14, height:14, borderRadius:'50%', background:'#1a73e8', border:'2px solid #0a0a14', animation:'pulse 1.5s infinite' }} />
-            )}
-          </motion.button>
-          <AnimatePresence>
-            {aiPanelOpen && (
-              <motion.div initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:20, scale:0.95 }}
-                style={{ position:'fixed', bottom:86, right:(iType==='coding'||!iType||iType==='frontend')?86:24, zIndex:9000, width:380, maxHeight:'60vh', background:'#0d1117', border:'1px solid #1a73e844', borderRadius:16, display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 8px 40px #00000088' }}
-              >
-                <div style={{ padding:'10px 14px', borderBottom:'1px solid #1e2a3a', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:16 }}>✨</span>
-                    <div>
-                      <div style={{ color:'#1a73e8', fontSize:12, fontWeight:900 }}>AI Assistant</div>
-                      <div style={{ color:'#444', fontSize:9 }}>All usage tracked • Never gives full solutions</div>
-                    </div>
-                  </div>
-                  <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d33', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>LOGGED</span>
-                </div>
-                <div style={{ display:'flex', borderBottom:'1px solid #1e2a3a', flexShrink:0 }}>
-                  {[{ id:'chat', label:'💬 Chat' }, { id:'complete', label:'⚡ Complete' }].map(tab => (
-                    <button key={tab.id} onClick={() => setAiPanelTab(tab.id)}
-                      style={{ flex:1, padding:'8px 0', background:aiPanelTab===tab.id?'#1a73e811':'transparent', border:'none', borderBottom:aiPanelTab===tab.id?'2px solid #1a73e8':'2px solid transparent', color:aiPanelTab===tab.id?'#1a73e8':'#555', cursor:'pointer', fontSize:11, fontWeight:700, transition:'all 0.15s' }}
-                    >{tab.label}</button>
-                  ))}
-                </div>
-                {aiPanelTab === 'chat' && (
-                  <>
-                    <div style={{ flex:1, overflowY:'auto', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                      {aiChatMsgs.length === 0 && <div style={{ color:'#333', fontSize:11, textAlign:'center', padding:16 }}>Ask about concepts, errors, or approach.<br/><span style={{ color:'#2a3645', fontSize:10 }}>Won't give the full solution.</span></div>}
-                      {aiChatMsgs.map((m,i) => (
-                        <div key={i} style={{ alignSelf:m.role==='user'?'flex-end':'flex-start', maxWidth:'88%', background:m.role==='user'?'#1a73e822':'#1e2a3a', border:`1px solid ${m.role==='user'?'#1a73e844':'#2a3645'}`, borderRadius:m.role==='user'?'12px 12px 4px 12px':'12px 12px 12px 4px', padding:'7px 10px', color:m.role==='user'?'#88bbff':'#c8c8c8', fontSize:11, lineHeight:1.6 }}>
-                          {m.role==='assistant' && <div style={{ color:'#1a73e8', fontSize:9, fontWeight:700, marginBottom:3 }}>✨ AI ASSISTANT</div>}
-                          {m.text}
-                        </div>
-                      ))}
-                      {aiLoading && aiPanelTab==='chat' && <div style={{ color:'#555', fontSize:11, fontStyle:'italic' }}>✨ Thinking...</div>}
-                      <div ref={aiPanelEndRef} />
-                    </div>
-                    <div style={{ padding:'8px 10px', borderTop:'1px solid #1e2a3a', display:'flex', gap:5, flexShrink:0 }}>
-                      <input value={aiChatInput} onChange={e=>setAiChatInput(e.target.value)}
-                        onKeyDown={e=>{if(e.key==='Enter'&&aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
-                        placeholder="Ask about concepts, errors, approach..."
-                        style={{ flex:1, background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'7px 10px', color:'#e8e8e8', fontSize:11, outline:'none' }}
-                      />
-                      <button onClick={()=>{if(aiChatInput.trim()&&!aiLoading){const msg=aiChatInput.trim();setAiChatMsgs(p=>[...p,{role:'user',text:msg}]);setAiChatInput('');requestAiAssist('chat',msg);}}}
-                        disabled={aiLoading||!aiChatInput.trim()}
-                        style={{ background:'#1a73e8', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:11, fontWeight:700, padding:'7px 12px', opacity:aiLoading||!aiChatInput.trim()?0.4:1 }}>Ask</button>
-                    </div>
-                  </>
-                )}
-                {aiPanelTab === 'complete' && (
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:10, overflowY:'auto' }}>
-                    <div style={{ color:'#666', fontSize:11, lineHeight:1.6 }}>AI will suggest the next logical lines based on your current code.</div>
-                    {aiCompletion ? (
-                      <div style={{ flex:1 }}>
-                        <div style={{ color:'#1a73e8', fontSize:10, fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>✨ Suggestion</div>
-                        <pre style={{ background:'#060910', border:'1px solid #1a73e833', borderRadius:8, padding:'10px 12px', color:'#88ffbb', fontSize:11, fontFamily:'"Fira Code", monospace', lineHeight:1.6, margin:0, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all' }}>{aiCompletion}</pre>
-                        <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                          <button onClick={acceptCompletion} style={{ flex:1, background:'#00c89622', border:'1px solid #00c89644', borderRadius:8, color:'#00c896', cursor:'pointer', fontSize:11, fontWeight:700, padding:'7px 0' }}>✓ Used it</button>
-                          <button onClick={()=>setAiCompletion('')} style={{ flex:1, background:'#1e2a3a', border:'1px solid #2a3645', borderRadius:8, color:'#555', cursor:'pointer', fontSize:11, padding:'7px 0' }}>✕ Dismiss</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
-                        onClick={() => requestAiAssist('completion')} disabled={aiLoading}
-                        style={{ background:aiLoading?'#1e2a3a':'linear-gradient(135deg, #1a73e8, #1a73e888)', border:'none', borderRadius:10, color:aiLoading?'#444':'#fff', cursor:aiLoading?'not-allowed':'pointer', fontSize:13, fontWeight:700, padding:'14px 0', boxShadow:aiLoading?'none':'0 0 20px #1a73e844' }}
-                      >
-                        {aiLoading ? '⏳ Generating...' : '⚡ Get Completion'}
-                      </motion.button>
-                    )}
-                    <div style={{ color:'#2a3645', fontSize:9, textAlign:'center' }}>This request will be logged in your interview report</div>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
+// ── Shared chat panel ─────────────────────────────────────────────────────────
+function ChatPanel({
+  color,
+  icon,
+  title,
+  subtitle,
+  placeholder,
+  chatMsgs,
+  chatLoading,
+  chatEndRef,
+  chatInput,
+  setChatInput,
+  sendChatMsg,
+}) {
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#0d1117' }}>
+      <div style={{
+        padding:'12px 16px',
+        borderBottom:'1px solid #1e2a3a',
+        display:'flex',
+        alignItems:'center',
+        gap:8,
+        flexShrink:0,
+      }}>
+        <span style={{ fontSize:18 }}>{icon}</span>
+        <div>
+          <div style={{ color, fontSize:12, fontWeight:900 }}>{title}</div>
+          <div style={{ color:'#444', fontSize:9 }}>{subtitle}</div>
+        </div>
+      </div>
 
-      {/* Live Observer Panel */}
-      <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
-        onClick={() => setObserveOpen(o => !o)}
-        title="Observation Mode"
-        style={{ position:'fixed', bottom:24, left:24, zIndex:9000, width:52, height:52, borderRadius:'50%', background:observeOpen?'#ff4d4d':'linear-gradient(135deg, #ff4d4d, #ff4d4d88)', border:'none', cursor:'pointer', fontSize:20, boxShadow:'0 4px 20px #ff4d4d44', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}
-      >
-        {observeOpen ? '✕' : '🔍'}
-      </motion.button>
-      <AnimatePresence>
-        {observeOpen && session?.sessionId && (
-          <motion.div initial={{ opacity:0, x:-20, scale:0.95 }} animate={{ opacity:1, x:0, scale:1 }} exit={{ opacity:0, x:-20, scale:0.95 }}
-            style={{ position:'fixed', bottom:86, left:24, zIndex:9000, maxHeight:'80vh', overflowY:'auto' }}
-          >
-            <LiveObserverPanel sessionId={session.sessionId} config={session.config} onClose={() => setObserveOpen(false)} />
-          </motion.div>
+      <div style={{
+        flex:1,
+        overflowY:'auto',
+        padding:'12px 16px',
+        display:'flex',
+        flexDirection:'column',
+        gap:8,
+      }}>
+        {chatMsgs.length === 0 && !chatLoading && (
+          <div style={{ color:'#333', fontSize:12, textAlign:'center', padding:32 }}>
+            {icon} Interviewer is ready. Start your answer.
+          </div>
         )}
-      </AnimatePresence>
+
+        {chatMsgs.map((m, i) => (
+          <div
+            key={i}
+            style={{
+              alignSelf:m.role === 'candidate' ? 'flex-end' : 'flex-start',
+              maxWidth:'85%',
+              background:m.role === 'candidate' ? `${color}22` : '#1e2a3a',
+              border:`1px solid ${m.role === 'candidate' ? color + '44' : '#2a3645'}`,
+              borderRadius:m.role === 'candidate' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+              padding:'8px 12px',
+              color:m.role === 'candidate' ? '#e8e8e8' : '#c8c8c8',
+              fontSize:12,
+              lineHeight:1.6,
+            }}
+          >
+            {m.role === 'interviewer' && (
+              <div style={{ color, fontSize:9, fontWeight:700, marginBottom:3 }}>
+                {icon} INTERVIEWER
+              </div>
+            )}
+            {m.text}
+          </div>
+        ))}
+
+        {chatLoading && (
+          <div style={{ color:'#444', fontSize:12, fontStyle:'italic' }}>
+            {icon} Thinking...
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      <div style={{
+        padding:'10px 14px',
+        borderTop:'1px solid #1e2a3a',
+        display:'flex',
+        gap:6,
+        background:'#0d1117',
+        flexShrink:0,
+      }}>
+        <input
+          value={chatInput}
+          onChange={e => setChatInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') sendChatMsg(); }}
+          placeholder={placeholder}
+          style={{
+            flex:1,
+            background:'#060910',
+            border:'1px solid #1e2a3a',
+            borderRadius:8,
+            padding:'9px 12px',
+            color:'#e8e8e8',
+            fontSize:12,
+            outline:'none',
+          }}
+        />
+        <button
+          onClick={sendChatMsg}
+          disabled={chatLoading || !chatInput.trim()}
+          style={{
+            background:color,
+            border:'none',
+            borderRadius:8,
+            color:'#fff',
+            cursor:'pointer',
+            fontSize:12,
+            fontWeight:700,
+            padding:'9px 16px',
+            opacity:chatLoading || !chatInput.trim() ? 0.4 : 1,
+          }}
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }
