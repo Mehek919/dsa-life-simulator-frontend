@@ -696,7 +696,7 @@ export default function GameMap({ user, userData }) {
 
   const FAANG_TOTAL      = 150;
   const ENTERPRISE_TOTAL = 145;
-  const FINTECH_TOTAL    = 157;
+  const FINTECH_TOTAL    = 177;
   const CONSULTING_TOTAL = 150;
   const totalAvailable = FAANG_TOTAL + ENTERPRISE_TOTAL + FINTECH_TOTAL + CONSULTING_TOTAL;
 
