@@ -310,7 +310,7 @@ export default function World({ user, userData, onLogout }) {
   const topZones        = ZONES.slice(0,  4);   // Row 1: Odyssey, Arena, Contest, Lab
   const middleZones     = ZONES.slice(4,  8);   // Row 2: Hub, Roadmap, Mock Interview, Submissions
   const bottomZones     = ZONES.slice(8,  12);
-  const enterpriseZones = ZONES.slice(12, 14);// Row 4: HR Portal, Visualizer
+  const enterpriseZones = ZONES.slice(12, 16);
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -438,7 +438,7 @@ export default function World({ user, userData, onLogout }) {
         </div>
 
         {/* Row 4 — Enterprise */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4">
           {enterpriseZones.map(zone => (
             <ZoneCard
               key={zone.id}
