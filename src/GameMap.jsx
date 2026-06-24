@@ -13,6 +13,7 @@ const DISTRICTS = {
   3: { name: 'The Fortress',        subtitle: 'Final Boss Gauntlet',      color: '#ff4d4d', glow: '#ff4d4d33', bg: '#ff4d4d11', difficulty: 'Hard',       emoji: '🔥' },
   4: { name: 'Enterprise Empire',   subtitle: 'Microsoft · Oracle · Salesforce · Adobe · Broadcom', color: '#a855f7', glow: '#a855f733', bg: '#a855f711', difficulty: 'Enterprise', emoji: '🏢' },
   5: { name: 'The FinTech Frontier', subtitle: 'Stripe · PayPal · Ant Group · Adyen · Wise', color: '#00D4AA', glow: '#00D4AA33', bg: '#00D4AA0d', difficulty: 'FinTech', emoji: '💳' },
+  6: { name: 'Consulting Kingdom', subtitle: 'Accenture · TCS · Infosys · Capgemini · Cognizant', emoji: '🏛️', color: '#f59e0b', glow: '#f59e0b33', bg: '#f59e0b11', difficulty: 'Consulting' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,8 +77,26 @@ const CHAPTERS = {
   41: { district: 5, company: 'Wise', title: 'The Wise Equations',                  badge: '💱', color: '#9FE870', problems: 15 },
   42: { district: 5, company: 'Wise', title: 'The Cross-Border Rails',              badge: '🌐', color: '#9FE870', problems: 15 },
   43: { district: 5, company: 'Wise', title: 'The Settlement Singularity',          badge: '⚔️', color: '#9FE870', problems: 7,  isBoss: true },
-};
+  44: { district: 6, company: 'Accenture', problems: 10, title: 'The Accenture AI Citadel', badge: '🧠', color: '#a100ff' },
+  45: { district: 6, company: 'Accenture', problems: 10, title: 'The Cloud Transformation Lab', badge: '☁️', color: '#a100ff' },
+  46: { district: 6, company: 'Accenture', title: 'The Digital Transformation Boss', badge: '⚔️', color: '#a100ff', problems: 10, isBoss: true },
 
+47: { district: 6, company: 'TCS', title: 'The Banking Systems Modernization', badge: '🏦', color: '#2563eb', problems: 10 },
+48: { district: 6, company: 'TCS', title: 'The Enterprise Integration Patterns', badge: '🔗', color: '#2563eb', problems: 10 },
+49: { district: 6, company: 'TCS', title: 'The Data Processing Boss', badge: '⚔️', color: '#2563eb', problems: 10, isBoss: true },
+
+50: { district: 6, company: 'Infosys', title: 'The AI Business Automation Lab', badge: '🤖', color: '#06b6d4', problems: 10 },
+51: { district: 6, company: 'Infosys', title: 'The ERP Optimization Arena', badge: '📊', color: '#06b6d4', problems: 10 },
+52: { district: 6, company: 'Infosys', title: 'The Sustainability Boss', badge: '⚔️', color: '#06b6d4', problems: 10, isBoss: true },
+
+53: { district: 6, company: 'Capgemini', title: 'The Customer Experience Engine', badge: '🎯', color: '#12abdb', problems: 10 },
+54: { district: 6, company: 'Capgemini', title: 'The Multi-Cloud Architecture Hub', badge: '☁️', color: '#12abdb', problems: 10 },
+55: { district: 6, company: 'Capgemini', title: 'The Smart Manufacturing Boss', badge: '⚔️', color: '#12abdb', problems: 10, isBoss: true },
+
+56: { district: 6, company: 'Cognizant', title: 'The Healthcare Technology Solutions', badge: '🏥', color: '#22c55e', problems: 10 },
+57: { district: 6, company: 'Cognizant', title: 'The Financial Analytics Platform', badge: '📈', color: '#22c55e', problems: 10 },
+58: { district: 6, company: 'Cognizant', title: 'The Enterprise Innovation Boss', badge: '⚔️', color: '#22c55e', problems: 10, isBoss: true },
+};
 const COMPANY_LOGOS = {
   Google: '🔍', Amazon: '📦', Apple: '🍎', Meta: '🌐',
   Microsoft: '🪟', Oracle: '🗄️', Salesforce: '☁️', Adobe: '🎨', Broadcom: '🔌',
