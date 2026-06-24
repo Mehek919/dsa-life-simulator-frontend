@@ -23,6 +23,8 @@ import MobileNav      from './components/MobileNav';
 import FeedbackButton from './FeedbackButton';
 import ProblemSolver from './ProblemSolver';
 import TeamSimulation from './TeamSimulation';
+import CodeReviewBattle from './CodeReviewBattle';
+import IncidentResponse from './IncidentResponse';
 const Roadmap = lazy(() => import('./Roadmap').catch(() => ({ default: () => <div>Coming soon</div> })));
 const Login                  = lazy(() => import('./Login'));
 const World                  = lazy(() => import('./World'));
@@ -433,8 +435,8 @@ const AppShell = () => {
             />
            }
          />
-        
-
+         <Route path="/code-review" element={<CodeReviewBattle user={user} userData={userData} setUserData={setUserData} />} />
+         <Route path="/incident"    element={<IncidentResponse user={user} userData={userData} setUserData={setUserData} />} />
           {/* ── Protected: Skills Profile ── */}
           <Route path="/skills" element={<Guard user={user}><LazySkillsProfile user={user} userData={userData} /></Guard>} />
 

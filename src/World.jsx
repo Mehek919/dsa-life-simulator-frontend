@@ -37,6 +37,8 @@ const ZONES = [
   // Row 4 — Enterprise
   { id: 'company',       label: '🏢 HR Portal',      path: '/company',          desc: 'Hire developers',             color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null              },
   { id: 'visualizer',    label: '🔬 Visualizer',     path: '/visualizer',       desc: 'Algo animations',             color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null              },
+  { id:'code-review', label:'🔍 Code Review', path:'/code-review', desc:'Find bugs before they ship', color:'from-red-600 to-rose-500',    glow:'#ff4d4d', badge:null },
+  { id:'incident',    label:'🚨 Incident',    path:'/incident',    desc:'Lead production response', color:'from-orange-600 to-red-500',   glow:'#f97316', badge:null },
 ];
 function timeAgo(ts) {
   if (!ts) return '';
