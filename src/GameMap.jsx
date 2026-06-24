@@ -351,7 +351,12 @@ function FinTechDistrictHeader({ district, totalSolved, totalProbs, isUnlocked, 
 // DISTRICT SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 function DistrictSection({ districtId, district, chapters, progress, unlockedChapters, onChapterClick }) {
-  const [expanded, setExpanded] = useState(districtId === 1 || districtId === 4 || districtId === 5);
+  const [expanded, setExpanded] = useState(
+  districtId === 1 ||
+  districtId === 4 ||
+  districtId === 5 ||
+  districtId === 6
+  );
   const isFinTech = districtId === 5;
 
   const districtChapters = Object.entries(chapters)
@@ -653,8 +658,7 @@ export default function GameMap({ user, userData }) {
   // ── Unlock logic ───────────────────────────────────────────────────────────
   const getUnlockedChapters = useCallback(() => {
     // Ch1 = FAANG start, Ch14 = Enterprise start, Ch29 = FinTech start
-    const unlocked = [1, 14, 29];
-
+    const unlocked = [1, 14, 29, 44];
     if (problems.length === 0) return unlocked;
 
     const ids = Object.keys(CHAPTERS).map(Number).sort((a, b) => a - b);
@@ -774,7 +778,7 @@ export default function GameMap({ user, userData }) {
             <div>
               <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, letterSpacing: '-0.5px' }}>🎮 Engineer&apos;s Odyssey</h1>
               <p style={{ margin: '6px 0 0', color: '#555', fontSize: 14 }}>
-                FAANG · Enterprise · FinTech — Google · Amazon · Apple · Meta · Microsoft · Oracle · Salesforce · Adobe · Broadcom · Stripe · PayPal · Ant Group · Adyen · Wise
+                FAANG · Enterprise · FinTech · Consulting · Google · Amazon · Apple · Meta · Microsoft · Oracle · Salesforce · Adobe · Broadcom · Stripe · PayPal · Ant Group · Adyen · Wise · Accenture · TCS · Infosys · Capgemini · Cognizant
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
