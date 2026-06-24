@@ -8,9 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from './NotificationBell';
 import axios from 'axios';
 import API_BASE from './config';
-
 const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
-
 const EVENT_META = {
   challenge_solved:    { icon: '✅', color: 'text-green-400',  label: 'solved a challenge'   },
   challenge_published: { icon: '📢', color: 'text-blue-400',   label: 'published a challenge' },
@@ -20,7 +18,6 @@ const EVENT_META = {
   problem_solved:      { icon: '💻', color: 'text-cyan-400',   label: 'solved a problem'      },
   default:             { icon: '📌', color: 'text-gray-400',   label: 'did something'         },
 };
-
 const ZONES = [
   // Row 1 — Core gameplay
   { id: 'game',          label: '🎮 Odyssey',      path: '/game',             desc: 'FAANG + Enterprise problems', color: 'from-cyan-600 to-blue-600',     glow: '#06b6d4', badge: null              },
@@ -35,12 +32,12 @@ const ZONES = [
   // Row 3 — Career
   { id: 'office',        label: '🏛️ Office',         path: '/office',           desc: 'Stats & schedule',            color: 'from-green-600 to-teal-500',    glow: '#10b981', badge: null              },
   { id: 'story',         label: '📖 Story',          path: '/story',            desc: 'Your AI life story',          color: 'from-yellow-500 to-amber-400',  glow: '#f59e0b', badge: null              },
-  { id: 'leaderboard',   label: '📊 Rankings',       path: '/leaderboard',      desc: 'Global leaderboard',          color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null              },
+  { id: 'leaderboard',   label: '📊 Rankings',       path: '/leaderboard',      desc: 'Global leaderboard',          color: 'from-pink-600 to-rose-500',     glow: '#ec4899', badge: null  },
+  { id: 'team-sim',    label: '👥 Team Sim',     path: '/team-sim',    desc: 'Collaborate with AI', color: 'from-fuchsia-600 to-violet-500', glow: '#d946ef', badge: null },
   // Row 4 — Enterprise
   { id: 'company',       label: '🏢 HR Portal',      path: '/company',          desc: 'Hire developers',             color: 'from-blue-700 to-indigo-600',   glow: '#3b82f6', badge: null              },
   { id: 'visualizer',    label: '🔬 Visualizer',     path: '/visualizer',       desc: 'Algo animations',             color: 'from-violet-600 to-indigo-500', glow: '#8b5cf6', badge: null              },
 ];
-
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts.toDate ? ts.toDate() : new Date(ts);
@@ -50,9 +47,7 @@ function timeAgo(ts) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
-
 function getMeta(type) { return EVENT_META[type] || EVENT_META.default; }
-
 // ─── Animated Background ──────────────────────────────────────────────────────
 function AnimatedBackground() {
   return (
@@ -85,7 +80,6 @@ function AnimatedBackground() {
     </div>
   );
 }
-
 // ─── Activity Feed Panel ──────────────────────────────────────────────────────
 function ActivityFeedPanel({ onClose, user }) {
   const [events,  setEvents]  = useState([]);
@@ -209,7 +203,6 @@ function ActivityFeedPanel({ onClose, user }) {
     </motion.div>
   );
 }
-
 // ─── Zone Card ────────────────────────────────────────────────────────────────
 function ZoneCard({ zone, badgeCount, onClick }) {
   const [hovered, setHovered] = useState(false);
@@ -260,7 +253,6 @@ function ZoneCard({ zone, badgeCount, onClick }) {
     </motion.button>
   );
 }
-
 // ─── World ────────────────────────────────────────────────────────────────────
 export default function World({ user, userData, onLogout }) {
   const navigate = useNavigate();
@@ -315,8 +307,8 @@ export default function World({ user, userData, onLogout }) {
   // Responsive grid — split zones into rows
   const topZones        = ZONES.slice(0,  4);   // Row 1: Odyssey, Arena, Contest, Lab
   const middleZones     = ZONES.slice(4,  8);   // Row 2: Hub, Roadmap, Mock Interview, Submissions
-  const bottomZones     = ZONES.slice(8,  11);  // Row 3: Office, Story, Rankings
-  const enterpriseZones = ZONES.slice(11, 13);  // Row 4: HR Portal, Visualizer
+  const bottomZones     = ZONES.slice(8,  12);
+  const enterpriseZones = ZONES.slice(12, 14);// Row 4: HR Portal, Visualizer
 
   return (
     <div className="relative min-h-screen bg-[#060612] text-white overflow-x-hidden font-mono select-none">
@@ -432,7 +424,7 @@ export default function World({ user, userData, onLogout }) {
         </div>
 
         {/* Row 3 — 3 zones */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
           {bottomZones.map(zone => (
             <ZoneCard
               key={zone.id}
