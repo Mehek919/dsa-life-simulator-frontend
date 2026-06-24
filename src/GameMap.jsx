@@ -441,10 +441,6 @@ function DistrictSection({ districtId, district, chapters, progress, unlockedCha
     </motion.div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CHAPTER PROBLEMS LIST
-// ─────────────────────────────────────────────────────────────────────────────
 function ChapterProblems({ chapterId, chapter, problems, userProgress, onBack }) {
   const navigate = useNavigate();
 
@@ -585,8 +581,8 @@ export default function GameMap({ user, userData }) {
     try {
       const [probRes, progRes] = await Promise.all([
         axios.get(`${API_BASE}/problems`, {
-          params: { limit: 600, source: 'odyssey' },
-        }),
+         params: { limit: 1000 },
+         }),
         axios.get(`${API_BASE}/problems/progress/${user.uid}`)
           .catch(() => ({ data: { progress: {} } })),
       ]);
@@ -601,7 +597,7 @@ export default function GameMap({ user, userData }) {
         creditReward:   Number(p.creditReward   || 20),
       })).filter(p =>
         p.chapter >= 1 &&
-        p.chapter <= 43 &&
+        p.chapter <= 58 &&
         p.district >= 1 &&
         p.problemType !== 'roadmap' &&
         p.source !== 'roadmap' &&
@@ -682,7 +678,8 @@ export default function GameMap({ user, userData }) {
   const FAANG_TOTAL      = 150;
   const ENTERPRISE_TOTAL = 145;
   const FINTECH_TOTAL    = 157;
-  const totalAvailable   = FAANG_TOTAL + ENTERPRISE_TOTAL + FINTECH_TOTAL; // 452
+  const CONSULTING_TOTAL = 150;
+  const totalAvailable = FAANG_TOTAL + ENTERPRISE_TOTAL + FINTECH_TOTAL + CONSULTING_TOTAL;
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
