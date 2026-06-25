@@ -4,20 +4,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion }                   from 'framer-motion';
 
 const NAV_ITEMS = [
-  { path: '/world',       icon: '🗺️',  label: 'World'    },
-  { path: '/home',        icon: '📅',  label: 'Daily'    },
-  { path: '/arena',       icon: '⚔️',  label: 'Arena'    },
-  { path: '/leaderboard', icon: '🏆',  label: 'Ranks'    },
-  { path: '/profile',     icon: '👤',  label: 'Profile'  },
+  { path: '/world',       icon: '🗺️',  label: 'World'   },
+  { path: '/arena',       icon: '⚔️',  label: 'Arena'   },
+  { path: '/leaderboard', icon: '🏆',  label: 'Ranks'   },
+  { path: '/profile',     icon: '👤',  label: 'Profile' },
 ];
 
 export default function MobileNav() {
-  const navigate  = useNavigate();
+  const navigate     = useNavigate();
   const { pathname } = useLocation();
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-[500]
-                    flex sm:hidden                     
+                    flex sm:hidden
                     bg-[#0a0a1a]/95 backdrop-blur-2xl
                     border-t border-white/10
                     safe-bottom pb-safe">
@@ -29,7 +28,7 @@ export default function MobileNav() {
             whileTap={{ scale: 0.88 }}
             onClick={() => navigate(item.path)}
             className={`flex-1 flex flex-col items-center justify-center
-                        py-2 gap-0.5 transition-colors
+                        py-2 gap-0.5 transition-colors relative
                         ${active ? 'text-cyan-400' : 'text-gray-600 hover:text-gray-400'}`}
           >
             <span className="text-xl leading-none">{item.icon}</span>
