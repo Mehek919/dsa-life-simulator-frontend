@@ -40,7 +40,7 @@ const DISTRICTS = [
     { id:'team-sim',       label:'Team Sim',       emoji:'👥', path:'/team-sim',       glow:'#e879f9', iconBg:'#1e0028', cardBg:'#130019', threat:2, tag:'MULTIPLAYER',  badge:null,              shape:'round'  },
   ]},
   { id:'d4', num:'04', name:'ENTERPRISE OPS', accent:'#ff6b2b', shadow:'rgba(251,146,60,0.12)', zones:[
-    { id:'company',        label:'HR Portal',      emoji:'🏢', path:'/company',        glow:'#60a5fa', iconBg:'#001428', cardBg:'#000c1a', threat:1, tag:'RECRUIT',      badge:null,              shape:'square' },
+    { id:'company',        label:'HR Portal',      emoji:'👔', path:'/company',        glow:'#60a5fa', iconBg:'#001428', cardBg:'#000c1a', threat:1, tag:'RECRUIT',      badge:null,              shape:'square' },
     { id:'visualizer',     label:'Visualizer',     emoji:'🔬', path:'/visualizer',     glow:'#a78bfa', iconBg:'#0e0020', cardBg:'#080016', threat:2, tag:'ANALYZE',      badge:null,              shape:'hex'    },
     { id:'code-review',    label:'Code Review',    emoji:'🔍', path:'/code-review',    glow:'#fb923c', iconBg:'#200a00', cardBg:'#150600', threat:3, tag:'WARNING',      badge:null,              shape:'angular' },
     { id:'incident',       label:'Incident',       emoji:'🚨', path:'/incident',       glow:'#ff0000', iconBg:'#2a0000', cardBg:'#1a0000', threat:5, tag:'EMERGENCY',    badge:null,              shape:'angular' },
