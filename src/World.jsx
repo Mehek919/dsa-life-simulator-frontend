@@ -2,307 +2,350 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import NotificationBell from './NotificationBell';
 import axios from 'axios';
 import API_BASE from './config';
 
-const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
-
+const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
 const EVENT_META = {
-  challenge_solved:    { icon: '✅', color: '#34d399', label: 'solved a challenge'   },
-  challenge_published: { icon: '📢', color: '#60a5fa', label: 'published a challenge' },
-  level_up:            { icon: '🚀', color: '#fbbf24', label: 'leveled up!'           },
-  arena_win:           { icon: '⚔️', color: '#f87171', label: 'won an arena battle'  },
-  challenge_attempted: { icon: '🎯', color: '#c084fc', label: 'attempted a challenge' },
-  problem_solved:      { icon: '💻', color: '#22d3ee', label: 'solved a problem'     },
-  default:             { icon: '📌', color: '#9ca3af', label: 'was active'           },
+  challenge_solved:    { icon:'✅', color:'#34d399', label:'solved a challenge'    },
+  challenge_published: { icon:'📢', color:'#60a5fa', label:'published a challenge'  },
+  level_up:            { icon:'🚀', color:'#fbbf24', label:'leveled up'             },
+  arena_win:           { icon:'⚔️', color:'#f87171', label:'won an arena battle'   },
+  challenge_attempted: { icon:'🎯', color:'#c084fc', label:'attempted a challenge'  },
+  problem_solved:      { icon:'💻', color:'#22d3ee', label:'solved a problem'       },
+  default:             { icon:'📌', color:'#9ca3af', label:'was active'             },
 };
 
 const DISTRICTS = [
   {
-    id: 'core', label: 'DISTRICT 01', sublabel: 'Core Gameplay',
-    accent: '#06b6d4',
-    zones: [
-      { id: 'game',          label: 'Odyssey',       emoji: '🎮', path: '/game',           desc: 'FAANG + Enterprise',  glow: '#06b6d4', gradA: '#0e7490', gradB: '#1e3a5f', badge: 'dailyChallenges' },
-      { id: 'arena',         label: 'Arena',         emoji: '⚔️', path: '/arena',          desc: '1v1 PvP battles',     glow: '#ef4444', gradA: '#991b1b', gradB: '#450a0a', badge: null },
-      { id: 'contest',       label: 'Contest',       emoji: '🏆', path: '/contest',        desc: 'Weekly competitions', glow: '#f59e0b', gradA: '#92400e', gradB: '#3d1a00', badge: null },
-      { id: 'lab',           label: 'Lab',           emoji: '🧪', path: '/lab',            desc: 'Daily challenges',    glow: '#22d3ee', gradA: '#155e75', gradB: '#0c2a3d', badge: null },
+    id:'d1', num:'01', label:'CORE GAMEPLAY', accent:'#22d3ee', dim:'#0e7490',
+    bg:'rgba(6,182,212,0.04)', border:'rgba(6,182,212,0.12)',
+    zones:[
+      { id:'game',          label:'Odyssey',       emoji:'🎮', path:'/game',           tag:'295 problems', glow:'#06b6d4', bg1:'#0c1a2e', bg2:'#071624', badge:'dailyChallenges' },
+      { id:'arena',         label:'Arena',         emoji:'⚔️', path:'/arena',          tag:'1v1 PvP',      glow:'#ef4444', bg1:'#2a0a0a', bg2:'#1a0606', badge:null },
+      { id:'contest',       label:'Contest',       emoji:'🏆', path:'/contest',        tag:'Weekly',       glow:'#f59e0b', bg1:'#271a04', bg2:'#1a1003', badge:null },
+      { id:'lab',           label:'Lab',           emoji:'🧪', path:'/lab',            tag:'Daily',        glow:'#22d3ee', bg1:'#071a24', bg2:'#041018', badge:null },
     ],
   },
   {
-    id: 'community', label: 'DISTRICT 02', sublabel: 'Community & Tools',
-    accent: '#a855f7',
-    zones: [
-      { id: 'hub',           label: 'Hub',           emoji: '🏢', path: '/hub',            desc: 'Community problems',  glow: '#a855f7', gradA: '#6b21a8', gradB: '#2e1065', badge: 'hubChallenges' },
-      { id: 'roadmap',       label: 'Roadmap',       emoji: '🗺️', path: '/roadmap',        desc: 'Learning paths',      glow: '#10b981', gradA: '#065f46', gradB: '#022c22', badge: null },
-      { id: 'mock-interview',label: 'Mock Interview',emoji: '🎤', path: '/mock-interview', desc: 'AI interviews',        glow: '#818cf8', gradA: '#3730a3', gradB: '#1e1b4b', badge: null },
-      { id: 'submissions',   label: 'Submissions',   emoji: '📋', path: '/submissions',    desc: 'Your history',        glow: '#64748b', gradA: '#334155', gradB: '#0f172a', badge: null },
+    id:'d2', num:'02', label:'COMMUNITY & TOOLS', accent:'#a855f7', dim:'#7c3aed',
+    bg:'rgba(168,85,247,0.04)', border:'rgba(168,85,247,0.12)',
+    zones:[
+      { id:'hub',           label:'Hub',           emoji:'🏢', path:'/hub',            tag:'Community',    glow:'#a855f7', bg1:'#1a0a2e', bg2:'#10061e', badge:'hubChallenges' },
+      { id:'roadmap',       label:'Roadmap',       emoji:'🗺️', path:'/roadmap',        tag:'Learning',     glow:'#10b981', bg1:'#041a14', bg2:'#02100d', badge:null },
+      { id:'mock-interview',label:'Mock Interview',emoji:'🎤', path:'/mock-interview', tag:'AI powered',   glow:'#818cf8', bg1:'#0c0e2e', bg2:'#07081e', badge:null },
+      { id:'submissions',   label:'Submissions',   emoji:'📋', path:'/submissions',    tag:'History',      glow:'#475569', bg1:'#0d1117', bg2:'#0a0d13', badge:null },
     ],
   },
   {
-    id: 'career', label: 'DISTRICT 03', sublabel: 'Career Zone',
-    accent: '#f59e0b',
-    zones: [
-      { id: 'office',      label: 'Office',      emoji: '🏛️', path: '/office',      desc: 'Stats & schedule',    glow: '#10b981', gradA: '#065f46', gradB: '#022c22', badge: null },
-      { id: 'story',       label: 'Story',       emoji: '📖', path: '/story',        desc: 'Your AI life story',  glow: '#f59e0b', gradA: '#92400e', gradB: '#3d1a00', badge: null },
-      { id: 'leaderboard', label: 'Rankings',    emoji: '📊', path: '/leaderboard',  desc: 'Global leaderboard',  glow: '#ec4899', gradA: '#9d174d', gradB: '#4a044e', badge: null },
-      { id: 'team-sim',    label: 'Team Sim',    emoji: '👥', path: '/team-sim',     desc: 'Collaborate with AI', glow: '#d946ef', gradA: '#86198f', gradB: '#3b0764', badge: null },
+    id:'d3', num:'03', label:'CAREER ZONE', accent:'#f59e0b', dim:'#d97706',
+    bg:'rgba(245,158,11,0.04)', border:'rgba(245,158,11,0.12)',
+    zones:[
+      { id:'office',      label:'Office',     emoji:'🏛️', path:'/office',     tag:'Your stats',   glow:'#10b981', bg1:'#041a0e', bg2:'#02100a', badge:null },
+      { id:'story',       label:'Story',      emoji:'📖', path:'/story',       tag:'AI narrative', glow:'#f59e0b', bg1:'#231604', bg2:'#160e02', badge:null },
+      { id:'leaderboard', label:'Rankings',   emoji:'📊', path:'/leaderboard', tag:'Global',       glow:'#ec4899', bg1:'#280a1a', bg2:'#180612', badge:null },
+      { id:'team-sim',    label:'Team Sim',   emoji:'👥', path:'/team-sim',    tag:'Multiplayer',  glow:'#d946ef', bg1:'#240a30', bg2:'#160620', badge:null },
     ],
   },
   {
-    id: 'enterprise', label: 'DISTRICT 04', sublabel: 'Enterprise',
-    accent: '#3b82f6',
-    zones: [
-      { id: 'company',     label: 'HR Portal',   emoji: '🏢', path: '/company',     desc: 'Hire developers',     glow: '#3b82f6', gradA: '#1e40af', gradB: '#172554', badge: null },
-      { id: 'visualizer',  label: 'Visualizer',  emoji: '🔬', path: '/visualizer',  desc: 'Algo animations',     glow: '#8b5cf6', gradA: '#4c1d95', gradB: '#2e1065', badge: null },
-      { id: 'code-review', label: 'Code Review', emoji: '🔍', path: '/code-review', desc: 'Find bugs first',     glow: '#f87171', gradA: '#991b1b', gradB: '#450a0a', badge: null },
-      { id: 'incident',    label: 'Incident',    emoji: '🚨', path: '/incident',     desc: 'Production response', glow: '#f97316', gradA: '#9a3412', gradB: '#431407', badge: null },
+    id:'d4', num:'04', label:'ENTERPRISE', accent:'#3b82f6', dim:'#1d4ed8',
+    bg:'rgba(59,130,246,0.04)', border:'rgba(59,130,246,0.12)',
+    zones:[
+      { id:'company',    label:'HR Portal',  emoji:'🏢', path:'/company',    tag:'Hire devs',    glow:'#3b82f6', bg1:'#071428', bg2:'#040c1a', badge:null },
+      { id:'visualizer', label:'Visualizer', emoji:'🔬', path:'/visualizer', tag:'Animations',   glow:'#8b5cf6', bg1:'#100c2e', bg2:'#09071e', badge:null },
+      { id:'code-review',label:'Code Review',emoji:'🔍', path:'/code-review',tag:'Debug',        glow:'#f87171', bg1:'#240808', bg2:'#160404', badge:null },
+      { id:'incident',   label:'Incident',   emoji:'🚨', path:'/incident',   tag:'Production',   glow:'#f97316', bg1:'#231008', bg2:'#160a04', badge:null },
     ],
   },
 ];
 
 function timeAgo(ts) {
   if (!ts) return '';
-  const date = ts.toDate ? ts.toDate() : new Date(ts);
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60)    return `${diff}s`;
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60)    return `${s}s`;
+  if (s < 3600)  return `${Math.floor(s/60)}m`;
+  if (s < 86400) return `${Math.floor(s/3600)}h`;
+  return `${Math.floor(s/86400)}d`;
 }
 
-// ─── Background ───────────────────────────────────────────────────────────────
-function Background() {
+// ─── Canvas Particle Background ──────────────────────────────────────────────
+function ParticleCanvas() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let W = c.width = window.innerWidth;
+    let H = c.height = window.innerHeight * 2;
+    const pts = Array.from({ length: 60 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5,
+      a: Math.random(),
+      col: ['#22d3ee','#8b5cf6','#f59e0b','#10b981','#ef4444'][Math.floor(Math.random()*5)],
+    }));
+    let raf;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        p.a += 0.005;
+        if (p.x < 0) p.x = W;
+        if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H;
+        if (p.y > H) p.y = 0;
+        const alpha = (Math.sin(p.a) * 0.5 + 0.5) * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.col + Math.floor(alpha * 255).toString(16).padStart(2,'0');
+        ctx.fill();
+      });
+      pts.forEach((a, i) => {
+        pts.slice(i + 1).forEach(b => {
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(100,120,200,${(1 - dist/120) * 0.06})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+      raf = requestAnimationFrame(draw);
+    }
+    draw();
+    const resize = () => { W = c.width = window.innerWidth; H = c.height = window.innerHeight * 2; };
+    window.addEventListener('resize', resize);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }, []);
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-      {/* Orbs */}
-      {[
-        { c: '#06b6d4', x: '5%',  y: '10%', s: 280 },
-        { c: '#8b5cf6', x: '85%', y: '45%', s: 220 },
-        { c: '#f59e0b', x: '50%', y: '80%', s: 160 },
-        { c: '#10b981', x: '15%', y: '70%', s: 190 },
-        { c: '#ef4444', x: '90%', y: '5%',  s: 140 },
-      ].map((o, i) => (
-        <motion.div key={i}
-          animate={{ scale: [1, 1.3, 1], opacity: [0.04, 0.09, 0.04] }}
-          transition={{ duration: 7 + i, repeat: Infinity, delay: i * 1.3, ease: 'easeInOut' }}
-          style={{
-            position: 'absolute', borderRadius: '50%',
-            width: o.s, height: o.s, background: o.c,
-            left: o.x, top: o.y, transform: 'translate(-50%,-50%)',
-            filter: 'blur(70px)',
-          }}
-        />
-      ))}
-      {/* Hex grid */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06 }}>
-        <defs>
-          <pattern id="hexgrid" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-            <polygon points="28,2 52,14 52,34 28,46 4,34 4,14"
-              fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#hexgrid)" />
-      </svg>
-      {/* Scan line */}
-      <motion.div
-        animate={{ y: ['0%', '100%'] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute', left: 0, right: 0, height: 2,
-          background: 'linear-gradient(to right, transparent, rgba(6,182,212,0.15), transparent)',
-        }}
-      />
-    </div>
+    <canvas ref={ref} style={{
+      position: 'absolute', top: 0, left: 0,
+      width: '100%', height: '100%', opacity: 0.6,
+      pointerEvents: 'none',
+    }} />
   );
 }
 
-// ─── Zone Card (2-column, large) ──────────────────────────────────────────────
-function ZoneCard({ zone, badgeCount, onClick, index }) {
-  const [pressed, setPressed] = useState(false);
+// ─── Tilt Card ────────────────────────────────────────────────────────────────
+function ZoneCard({ zone, badgeCount, onClick, i }) {
+  const [hovered, setHovered] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const ref = useRef(null);
+
+  const handleMove = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const px = e.type === 'touchmove'
+      ? e.touches[0].clientX : e.clientX;
+    const py = e.type === 'touchmove'
+      ? e.touches[0].clientY : e.clientY;
+    setTilt({ x: ((py - cy) / r.height) * 8, y: ((px - cx) / r.width) * -8 });
+  };
 
   return (
     <motion.button
+      ref={ref}
+      initial={{ opacity: 0, y: 30, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: i * 0.05, duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
+      whileTap={{ scale: 0.95 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setTilt({ x: 0, y: 0 }); }}
+      onMouseMove={handleMove}
       onClick={onClick}
-      onPointerDown={() => setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.35, ease: 'easeOut' }}
-      whileHover={{ y: -4, scale: 1.02 }}
-      whileTap={{ scale: 0.96 }}
       style={{
-        background: `linear-gradient(145deg, ${zone.gradA}cc, ${zone.gradB}ee)`,
-        border: `1px solid ${zone.glow}40`,
+        background: `linear-gradient(145deg, ${zone.bg1}, ${zone.bg2})`,
+        border: `1px solid ${hovered ? zone.glow + '70' : zone.glow + '25'}`,
         borderRadius: 20,
+        padding: 0,
         overflow: 'hidden',
         cursor: 'pointer',
         width: '100%',
         textAlign: 'left',
-        padding: 0,
         position: 'relative',
-        boxShadow: pressed
-          ? `0 0 0 2px ${zone.glow}60`
-          : `0 4px 24px ${zone.glow}20, inset 0 1px 0 rgba(255,255,255,0.08)`,
-        transition: 'box-shadow 0.2s',
+        transform: `perspective(600px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        boxShadow: hovered
+          ? `0 20px 60px ${zone.glow}30, 0 0 0 1px ${zone.glow}50, inset 0 1px 0 rgba(255,255,255,0.1)`
+          : `0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)`,
+        transition: 'border-color 0.2s, box-shadow 0.2s',
       }}
     >
-      {/* Top glow line */}
+      {/* Glow top accent */}
       <div style={{
-        height: 3,
-        background: `linear-gradient(to right, ${zone.glow}, ${zone.glow}30, transparent)`,
+        height: 2,
+        background: `linear-gradient(90deg, ${zone.glow}, ${zone.glow}60, transparent)`,
+        opacity: hovered ? 1 : 0.6,
+        transition: 'opacity 0.2s',
       }} />
 
-      {/* Card body */}
-      <div style={{ padding: '14px 16px 16px' }}>
-        {/* Icon row */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: `${zone.glow}20`,
-            border: `1px solid ${zone.glow}40`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, flexShrink: 0,
-            boxShadow: `0 0 16px ${zone.glow}30`,
-          }}>
+      <div style={{ padding: '16px 16px 14px' }}>
+        {/* Icon + badge row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <motion.div
+            animate={hovered ? { scale: 1.1, rotate: [0, -5, 5, 0] } : { scale: 1, rotate: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: `linear-gradient(135deg, ${zone.glow}25, ${zone.glow}10)`,
+              border: `1px solid ${zone.glow}40`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26,
+              boxShadow: hovered ? `0 0 20px ${zone.glow}50` : `0 0 8px ${zone.glow}20`,
+              transition: 'box-shadow 0.3s',
+            }}
+          >
             {zone.emoji}
-          </div>
+          </motion.div>
           {badgeCount > 0 && (
-            <motion.span
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity }}
+            <motion.div
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity }}
               style={{
-                background: '#ef4444',
-                border: '2px solid rgba(6,6,18,0.8)',
-                color: '#fff', borderRadius: 99,
-                fontSize: 10, fontWeight: 800,
-                padding: '2px 7px', lineHeight: 1.4,
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                borderRadius: 20, padding: '3px 8px',
+                fontSize: 10, fontWeight: 800, color: '#fff',
+                boxShadow: '0 0 12px rgba(239,68,68,0.6)',
+                border: '1.5px solid rgba(0,0,0,0.4)',
               }}
             >
-              {badgeCount > 9 ? '9+' : badgeCount}
-            </motion.span>
+              {badgeCount > 9 ? '9+' : badgeCount} NEW
+            </motion.div>
           )}
         </div>
 
         {/* Name */}
         <p style={{
-          fontSize: 14, fontWeight: 800, color: '#ffffff',
-          margin: '0 0 4px', letterSpacing: '0.02em', lineHeight: 1.2,
+          margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: '#f1f5f9',
+          letterSpacing: '0.02em', lineHeight: 1.1,
           fontFamily: "'Space Mono', monospace",
         }}>
           {zone.label}
         </p>
 
-        {/* Desc */}
-        <p style={{
-          fontSize: 11, color: `${zone.glow}cc`,
-          margin: 0, lineHeight: 1.4, fontWeight: 500,
-        }}>
-          {zone.desc}
-        </p>
-
-        {/* Bottom arrow */}
+        {/* Tag pill */}
         <div style={{
-          display: 'flex', justifyContent: 'flex-end', marginTop: 10,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          background: `${zone.glow}15`, border: `1px solid ${zone.glow}30`,
+          borderRadius: 99, padding: '2px 8px',
         }}>
-          <span style={{
-            fontSize: 10, color: `${zone.glow}99`, fontWeight: 700,
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-          }}>
-            Enter →
+          <div style={{ width: 4, height: 4, borderRadius: '50%', background: zone.glow, boxShadow: `0 0 4px ${zone.glow}` }} />
+          <span style={{ fontSize: 9, color: zone.glow, fontWeight: 700, letterSpacing: '0.08em' }}>
+            {zone.tag.toUpperCase()}
           </span>
+        </div>
+
+        {/* Enter row */}
+        <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <motion.span
+            animate={hovered ? { x: 4 } : { x: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ fontSize: 10, color: `${zone.glow}80`, fontWeight: 700, letterSpacing: '0.1em' }}
+          >
+            ENTER ›
+          </motion.span>
         </div>
       </div>
 
-      {/* Corner shimmer */}
+      {/* Hover shimmer */}
+      {hovered && (
+        <motion.div
+          initial={{ x: '-100%', opacity: 0 }}
+          animate={{ x: '300%', opacity: [0, 0.4, 0] }}
+          transition={{ duration: 0.8 }}
+          style={{
+            position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%',
+            background: `linear-gradient(105deg, transparent, ${zone.glow}20, transparent)`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* Corner orb */}
       <div style={{
-        position: 'absolute', top: -20, right: -20, width: 80, height: 80,
-        background: `radial-gradient(circle, ${zone.glow}18, transparent 70%)`,
-        borderRadius: '50%', pointerEvents: 'none',
+        position: 'absolute', bottom: -20, right: -20, width: 80, height: 80,
+        borderRadius: '50%', background: zone.glow,
+        opacity: hovered ? 0.08 : 0.04, filter: 'blur(20px)',
+        pointerEvents: 'none', transition: 'opacity 0.3s',
       }} />
     </motion.button>
   );
 }
 
-// ─── District Section ─────────────────────────────────────────────────────────
-function DistrictSection({ district, badgeMap, navigate, startIndex }) {
+// ─── District Block ───────────────────────────────────────────────────────────
+function DistrictBlock({ district, badgeMap, navigate, startIndex }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      style={{
-        marginBottom: 28,
-        padding: '18px 16px',
-        borderRadius: 20,
-        background: `linear-gradient(135deg, ${district.accent}06, transparent)`,
-        border: `1px solid ${district.accent}18`,
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Background district number */}
-      <div style={{
-        position: 'absolute', right: 12, top: 8,
-        fontSize: 72, fontWeight: 900, color: `${district.accent}08`,
-        fontFamily: "'Space Mono', monospace",
-        lineHeight: 1, pointerEvents: 'none', userSelect: 'none',
-        letterSpacing: '-4px',
-      }}>
-        {district.label.split(' ')[1]}
-      </div>
-
+    <div style={{ marginBottom: 24, position: 'relative' }}>
       {/* District header */}
-      <div style={{ marginBottom: 16, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-          <div style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: district.accent,
-            boxShadow: `0 0 8px ${district.accent}`,
-          }} />
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          marginBottom: 14, padding: '0 4px',
+        }}
+      >
+        {/* Number badge */}
+        <div style={{
+          background: `linear-gradient(135deg, ${district.accent}30, ${district.accent}10)`,
+          border: `1px solid ${district.accent}40`,
+          borderRadius: 10, padding: '4px 10px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 1, flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 7, color: district.accent, fontWeight: 800, letterSpacing: '0.15em', lineHeight: 1 }}>DIST</span>
+          <span style={{ fontSize: 16, fontWeight: 900, color: district.accent, lineHeight: 1, fontFamily: 'Space Mono, monospace' }}>{district.num}</span>
+        </div>
+
+        {/* Label + line */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
-            fontSize: 9, fontWeight: 800, color: district.accent,
-            letterSpacing: '0.18em', margin: 0,
-            fontFamily: "'Space Mono', monospace",
+            margin: '0 0 4px', fontSize: 12, fontWeight: 800, color: '#e2e8f0',
+            letterSpacing: '0.08em', lineHeight: 1,
           }}>
             {district.label}
           </p>
+          <div style={{ height: 1, background: `linear-gradient(to right, ${district.accent}60, transparent)` }} />
         </div>
-        <p style={{
-          fontSize: 15, fontWeight: 700, color: '#e5e7eb',
-          margin: '0 0 0 14px', letterSpacing: '0.01em',
-        }}>
-          {district.sublabel}
-        </p>
-      </div>
 
-      {/* 2-column grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 12,
-      }}>
+        {/* Pulse dot */}
+        <motion.div
+          animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{ width: 6, height: 6, borderRadius: '50%', background: district.accent, boxShadow: `0 0 8px ${district.accent}`, flexShrink: 0 }}
+        />
+      </motion.div>
+
+      {/* Card grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {district.zones.map((zone, i) => (
           <ZoneCard
             key={zone.id}
             zone={zone}
-            index={startIndex + i}
+            i={startIndex + i}
             badgeCount={zone.badge ? (badgeMap[zone.badge] ?? 0) : 0}
             onClick={() => navigate(zone.path)}
           />
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ─── Activity Feed Panel ──────────────────────────────────────────────────────
-function ActivityFeedPanel({ onClose, user }) {
-  const [events,  setEvents]  = useState([]);
+// ─── Feed Panel ───────────────────────────────────────────────────────────────
+function FeedPanel({ onClose, user }) {
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newIds,  setNewIds]  = useState(new Set());
   const [readIds, setReadIds] = useState(new Set());
   const isFirst = useRef(true);
 
@@ -313,95 +356,78 @@ function ActivityFeedPanel({ onClose, user }) {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user?.uid || !events.length) return;
-    const all = new Set([...readIds, ...events.map(e => e.id)]);
-    if (all.size !== readIds.size) {
-      setReadIds(all);
-      localStorage.setItem(`feed_read_${user.uid}`, JSON.stringify([...all]));
-    }
-  }, [events, user?.uid]);
-
-  useEffect(() => {
     const q = query(collection(db, 'activityFeed'), orderBy('createdAt', 'desc'), limit(20));
     return onSnapshot(q, snap => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (!isFirst.current) {
-        const fresh = new Set(snap.docChanges().filter(c => c.type === 'added').map(c => c.doc.id));
-        if (fresh.size) { setNewIds(fresh); setTimeout(() => setNewIds(new Set()), 3000); }
-      }
-      isFirst.current = false;
-      setEvents(data);
+      setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
+      if (!isFirst.current) return;
+      isFirst.current = false;
     });
   }, []);
 
   return (
     <motion.div
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-      transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 320 }}
       style={{
-        position: 'fixed', top: 0, right: 0, height: '100%',
-        width: '100%', maxWidth: 320, zIndex: 50,
-        background: 'rgba(4,4,16,0.97)',
-        backdropFilter: 'blur(24px)',
-        borderLeft: '1px solid rgba(6,182,212,0.2)',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: '-24px 0 80px rgba(0,0,0,0.6)',
+        position: 'fixed', top: 0, right: 0, height: '100%', width: '100%', maxWidth: 320,
+        background: '#030309', borderLeft: '1px solid rgba(34,211,238,0.15)',
+        zIndex: 50, display: 'flex', flexDirection: 'column',
+        boxShadow: '-30px 0 80px rgba(0,0,0,0.8)',
       }}
     >
-      <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#22d3ee', letterSpacing: '0.1em', fontFamily: 'Space Mono, monospace' }}>LIVE FEED</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-            <span style={{ fontSize: 10, color: '#34d399', fontWeight: 600 }}>Real-time updates</span>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#22d3ee', letterSpacing: '0.16em', fontFamily: 'Space Mono,monospace' }}>📡 LIVE FEED</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
+            <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.5, repeat: Infinity }}
+              style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', display: 'inline-block' }} />
+            <span style={{ fontSize: 10, color: '#34d399', fontWeight: 600 }}>Real-time</span>
           </div>
         </div>
-        <button onClick={onClose} style={{ color: '#6b7280', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 16, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</button>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {loading && [...Array(5)].map((_, i) => <div key={i} style={{ height: 60, background: 'rgba(255,255,255,0.04)', borderRadius: 12, animation: 'pulse 1.5s infinite' }} />)}
-        {!loading && events.length === 0 && <p style={{ color: '#4b5563', textAlign: 'center', marginTop: 40, fontSize: 13 }}>No activity yet 🌱</p>}
-        <AnimatePresence>
-          {events.map(ev => {
-            const meta = EVENT_META[ev.type] || EVENT_META.default;
-            const isNew = newIds.has(ev.id);
-            const isUnread = !readIds.has(ev.id);
-            return (
-              <motion.div key={ev.id} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 12, fontSize: 12, border: `1px solid ${isNew ? 'rgba(34,211,238,0.3)' : isUnread ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)'}`, background: isNew ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.03)' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {ev.photoURL ? <img src={ev.photoURL} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : meta.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, color: '#d1d5db', lineHeight: 1.4 }}>
-                    <span style={{ fontWeight: 700, color: '#fff' }}>{ev.name || 'Developer'}</span>{' '}
-                    <span style={{ color: meta.color }}>{meta.label}</span>
-                  </p>
-                  <p style={{ margin: '3px 0 0', color: '#374151', fontSize: 10 }}>
-                    {timeAgo(ev.createdAt)} ago
-                    {isNew && <span style={{ marginLeft: 6, color: '#22d3ee', fontWeight: 700 }}>● LIVE</span>}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+        {loading && [...Array(4)].map((_,i) => <div key={i} style={{ height: 64, background: 'rgba(255,255,255,0.04)', borderRadius: 12 }} />)}
+        {events.filter(e => e.name && e.name !== 'Unknown').map(ev => {
+          const m = EVENT_META[ev.type] || EVENT_META.default;
+          const unread = !readIds.has(ev.id);
+          return (
+            <motion.div key={ev.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 12, background: unread ? 'rgba(34,211,238,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${unread ? 'rgba(34,211,238,0.2)' : 'rgba(255,255,255,0.06)'}` }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13 }}>
+                {ev.photoURL ? <img src={ev.photoURL} alt="" style={{ width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover' }} /> : m.icon}
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: 12, color: '#d1d5db', lineHeight: 1.4 }}>
+                  <span style={{ fontWeight: 700, color: '#fff' }}>{ev.name}</span>{' '}
+                  <span style={{ color: m.color }}>{m.label}</span>
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: 10, color: '#374151' }}>{timeAgo(ev.createdAt)} ago</p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );
 }
 
-// ─── World ────────────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function World({ user, userData, onLogout }) {
   const navigate = useNavigate();
-
   const [showFeed,    setShowFeed]    = useState(false);
   const [dailyCount,  setDailyCount]  = useState(0);
   const [hubCount,    setHubCount]    = useState(0);
   const [feedPreview, setFeedPreview] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [readIds,     setReadIds]     = useState(new Set());
+  const [greeting,    setGreeting]    = useState('');
+
+  useEffect(() => {
+    const h = new Date().getHours();
+    setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -412,17 +438,17 @@ export default function World({ user, userData, onLogout }) {
   useEffect(() => {
     if (!user?.uid) return;
     axios.get(`${API_BASE}/daily-challenges/${user.uid}`)
-      .then(r => setDailyCount(Math.max(0, (r.data.challenges?.length ?? 0) - (r.data.completedCount ?? 0))))
-      .catch(() => {});
+      .then(r => setDailyCount(Math.max(0,(r.data.challenges?.length??0)-(r.data.completedCount??0))))
+      .catch(()=>{});
     axios.get(`${API_BASE}/challenges`)
-      .then(r => setHubCount((r.data.challenges || []).filter(c => !c.attemptedBy?.includes(user.uid)).length))
-      .catch(() => {});
+      .then(r => setHubCount((r.data.challenges||[]).filter(c=>!c.attemptedBy?.includes(user.uid)).length))
+      .catch(()=>{});
   }, [user?.uid]);
 
   useEffect(() => {
-    const q = query(collection(db, 'activityFeed'), orderBy('createdAt', 'desc'), limit(5));
+    const q = query(collection(db,'activityFeed'), orderBy('createdAt','desc'), limit(6));
     return onSnapshot(q, snap => {
-      setFeedPreview(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setFeedPreview(snap.docs.map(d=>({id:d.id,...d.data()})));
       setFeedLoading(false);
     });
   }, []);
@@ -433,216 +459,197 @@ export default function World({ user, userData, onLogout }) {
   const xpTarget    = xpLevel * 500;
   const xpPct       = Math.min(100, Math.round((xpCurrent / xpTarget) * 100));
   const levelName   = LEVEL_NAMES[Math.min(xpLevel, 5)] || 'Legend';
-  const unreadCount = feedPreview.filter(ev => !readIds.has(ev.id)).length;
+  const displayName = user?.displayName || 'Developer';
+  const unread      = feedPreview.filter(e => !readIds.has(e.id)).length;
 
-  let zoneIndex = 0;
+  let idx = 0;
 
   return (
     <div style={{
-      position: 'relative', minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 20% 20%, #0a0f1e 0%, #060612 60%, #000008 100%)',
-      color: '#fff', overflowX: 'hidden',
-      fontFamily: "'Space Mono', 'Courier New', monospace",
-      paddingBottom: 80,
+      minHeight: '100vh',
+      background: '#030309',
+      color: '#fff',
+      fontFamily: "'Space Mono','Courier New',monospace",
+      position: 'relative',
+      overflowX: 'hidden',
+      paddingBottom: 90,
     }}>
-      <Background />
 
-      {/* ── HERO HEADER ──────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative', zIndex: 10 }}>
+      {/* Background */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <ParticleCanvas />
+        {/* Ambient light pools */}
+        <div style={{ position:'absolute', top:'5%',  left:'5%',  width:300, height:300, background:'#06b6d4', opacity:0.04, borderRadius:'50%', filter:'blur(80px)' }} />
+        <div style={{ position:'absolute', top:'40%', right:'0%', width:280, height:280, background:'#8b5cf6', opacity:0.05, borderRadius:'50%', filter:'blur(80px)' }} />
+        <div style={{ position:'absolute', bottom:'20%',left:'20%',width:240, height:240, background:'#f59e0b', opacity:0.04, borderRadius:'50%', filter:'blur(80px)' }} />
+      </div>
 
-        {/* Top bar */}
-        <div style={{ padding: '14px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <div style={{ position:'relative', zIndex:10 }}>
 
-          {/* Avatar */}
-          <button onClick={() => navigate('/profile')} style={{
-            position: 'relative', flexShrink: 0,
-            width: 46, height: 46, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #f97316, #ec4899, #8b5cf6)',
-            border: '2px solid rgba(249,115,22,0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(249,115,22,0.4)',
-            cursor: 'pointer', padding: 0,
-          }}>
-            <span style={{ fontSize: 22 }}>👤</span>
-            {/* Level ring indicator */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        {/* Top nav bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 16px 10px', gap: 10,
+        }}>
+          {/* Left: avatar + info */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
+            <motion.button
+              onClick={() => navigate('/profile')}
+              whileTap={{ scale: 0.92 }}
               style={{
-                position: 'absolute', inset: -4, borderRadius: '50%',
-                border: '2px solid transparent',
-                borderTopColor: '#22d3ee',
-                borderRightColor: '#8b5cf6',
+                position:'relative', flexShrink:0,
+                width:44, height:44, borderRadius:'50%',
+                background:'linear-gradient(135deg,#f97316,#ec4899,#8b5cf6)',
+                border:'none', display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:20, cursor:'pointer', padding:0,
               }}
-            />
-            <span style={{
-              position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)',
-              background: '#1d4ed8', border: '1.5px solid #060612',
-              borderRadius: 6, fontSize: 8, fontWeight: 800, color: '#93c5fd',
-              padding: '1px 5px', whiteSpace: 'nowrap', letterSpacing: '0.05em',
-            }}>
-              LV.{xpLevel}
-            </span>
-          </button>
+            >
+              👤
+              {/* Spinning ring */}
+              <motion.div
+                animate={{ rotate:360 }}
+                transition={{ duration:6, repeat:Infinity, ease:'linear' }}
+                style={{
+                  position:'absolute', inset:-3, borderRadius:'50%',
+                  border:'1.5px solid transparent',
+                  borderTopColor:'#22d3ee', borderRightColor:'#8b5cf6',
+                }}
+              />
+              <span style={{
+                position:'absolute', bottom:-7, left:'50%', transform:'translateX(-50%)',
+                background:'#1e3a8a', borderRadius:5, fontSize:8, fontWeight:800,
+                color:'#93c5fd', padding:'1px 5px', whiteSpace:'nowrap',
+                border:'1px solid rgba(6,6,18,0.8)',
+              }}>
+                LV {xpLevel}
+              </span>
+            </motion.button>
 
-          {/* Name + title */}
-          <div style={{ flex: 1, minWidth: 0, paddingLeft: 4 }}>
-            <h1 style={{
-              margin: 0, fontSize: 14, fontWeight: 800,
-              color: '#22d3ee', letterSpacing: '0.12em', lineHeight: 1,
-            }}>
-              DSA LIFE SIMULATOR
-            </h1>
-            <p style={{
-              margin: '4px 0 0', fontSize: 9, color: '#374151',
-              letterSpacing: '0.08em',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>
-              {(user?.displayName || 'DEVELOPER').toUpperCase()} · {levelName.toUpperCase()} · {userData?.elo ?? 1000} ELO
-            </p>
+            <div style={{ minWidth:0 }}>
+              <p style={{ margin:0, fontSize:9, color:'#374151', letterSpacing:'0.12em', marginBottom:2 }}>
+                {greeting.toUpperCase()},
+              </p>
+              <p style={{
+                margin:0, fontSize:13, fontWeight:800, color:'#f1f5f9',
+                letterSpacing:'0.04em', lineHeight:1.1,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+              }}>
+                {displayName.toUpperCase()}
+              </p>
+              <p style={{ margin:'2px 0 0', fontSize:8, color:'#4b5563', letterSpacing:'0.06em' }}>
+                {levelName.toUpperCase()} · {userData?.elo ?? 1000} ELO
+              </p>
+            </div>
           </div>
 
-          {/* Action icons */}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-            {/* XP chip */}
-            <div style={{
-              background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)',
-              borderRadius: 8, padding: '4px 8px',
-              fontSize: 11, fontWeight: 800, color: '#fbbf24', whiteSpace: 'nowrap',
-            }}>
+          {/* Right: chips + icons */}
+          <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
+            <div style={{ background:'rgba(251,191,36,0.1)', border:'1px solid rgba(251,191,36,0.2)', borderRadius:8, padding:'5px 8px', fontSize:10, fontWeight:800, color:'#fbbf24', whiteSpace:'nowrap' }}>
               ⚡ {xpCurrent}
             </div>
-            {/* Credits chip */}
-            <div style={{
-              background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.2)',
-              borderRadius: 8, padding: '4px 8px',
-              fontSize: 11, fontWeight: 800, color: '#a3e635', whiteSpace: 'nowrap',
-            }}>
+            <div style={{ background:'rgba(163,230,53,0.08)', border:'1px solid rgba(163,230,53,0.18)', borderRadius:8, padding:'5px 8px', fontSize:10, fontWeight:800, color:'#a3e635', whiteSpace:'nowrap' }}>
               💰 {userData?.credits ?? 0}
             </div>
             <NotificationBell user={user} />
-            {/* Feed */}
-            <button onClick={() => setShowFeed(p => !p)} style={{
-              position: 'relative', background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
-              padding: '6px 8px', fontSize: 14, cursor: 'pointer', color: '#fff',
-            }}>
+            <button
+              onClick={() => setShowFeed(p=>!p)}
+              style={{ position:'relative', background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:8, padding:'6px 8px', color:'#22d3ee', cursor:'pointer', fontSize:14 }}
+            >
               📡
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5, width: 16, height: 16,
-                  borderRadius: '50%', background: '#f59e0b',
-                  color: '#000', fontSize: 9, fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {unreadCount}
+              {unread > 0 && (
+                <span style={{ position:'absolute', top:-5, right:-5, width:16, height:16, borderRadius:'50%', background:'#f59e0b', color:'#000', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {unread}
                 </span>
               )}
             </button>
-            {/* Logout */}
-            <button onClick={onLogout} style={{
-              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-              color: '#f87171', borderRadius: 8, padding: '6px 8px',
-              fontSize: 14, cursor: 'pointer',
-            }}>
-              🚪
-            </button>
+            <button onClick={onLogout} style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)', color:'#f87171', borderRadius:8, padding:'6px 8px', cursor:'pointer', fontSize:14 }}>🚪</button>
           </div>
         </div>
 
         {/* XP bar */}
-        <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ fontSize: 8, color: '#1f2937', letterSpacing: '0.12em' }}>LEVEL {xpLevel}</span>
-            <span style={{ fontSize: 8, color: '#1f2937', letterSpacing: '0.08em' }}>{xpPct}% → LEVEL {xpLevel + 1}</span>
+        <div style={{ padding:'0 16px 10px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+            <span style={{ fontSize:8, color:'#1e293b', letterSpacing:'0.12em' }}>XP LEVEL {xpLevel}</span>
+            <span style={{ fontSize:8, color:'#1e293b', letterSpacing:'0.08em' }}>{xpPct}% → LEVEL {xpLevel+1}</span>
           </div>
-          <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ height:5, background:'rgba(255,255,255,0.05)', borderRadius:99, overflow:'hidden', position:'relative' }}>
             <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${xpPct}%` }}
-              transition={{ duration: 1.6, ease: [0.34, 1.56, 0.64, 1] }}
+              initial={{ width:0 }}
+              animate={{ width:`${xpPct}%` }}
+              transition={{ duration:1.8, type:'spring', stiffness:60, damping:20 }}
               style={{
-                height: '100%', borderRadius: 99,
-                background: 'linear-gradient(to right, #06b6d4, #8b5cf6, #ec4899)',
-                boxShadow: '0 0 10px rgba(139,92,246,0.8)',
+                height:'100%', borderRadius:99,
+                background:'linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899)',
+                boxShadow:'0 0 12px rgba(139,92,246,0.9)',
               }}
             />
-            {/* Shine */}
             <motion.div
-              animate={{ x: ['-100%', '400%'] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 2, ease: 'easeInOut' }}
-              style={{
-                position: 'absolute', top: 0, bottom: 0, width: '30%',
-                background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent)',
-              }}
+              animate={{ x:['0%','300%'] }}
+              transition={{ duration:2.5, repeat:Infinity, repeatDelay:3, ease:'easeInOut' }}
+              style={{ position:'absolute', top:0, bottom:0, width:'30%', background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }}
             />
           </div>
         </div>
 
-        {/* Stats HUD strip */}
-        <div style={{ padding: '12px 16px 0' }}>
+        {/* Stats HUD */}
+        <div style={{ margin:'0 16px 16px' }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 14, padding: '10px 8px',
+            display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6,
+            background:'rgba(255,255,255,0.025)',
+            border:'1px solid rgba(255,255,255,0.05)',
+            borderRadius:16, padding:'12px 8px',
           }}>
             {[
-              { icon: '🔥', val: `${userData?.currentStreak || 0}d`, col: '#f97316', label: 'STREAK' },
-              { icon: '✅', val: userData?.problemsSolved || 0,       col: '#34d399', label: 'SOLVED' },
-              { icon: '⚔️', val: userData?.arenaWins || 0,            col: '#f87171', label: 'WINS'   },
-              { icon: '🏆', val: userData?.elo || 1000,               col: '#fbbf24', label: 'ELO'    },
-              { icon: '💰', val: userData?.credits || 0,              col: '#a3e635', label: 'CREDS'  },
-              { icon: '📊', val: `#${userData?.rank || '?'}`,         col: '#c084fc', label: 'RANK'   },
+              { e:'🔥', v:`${userData?.currentStreak||0}d`, c:'#fb923c', l:'STREAK' },
+              { e:'✅', v: userData?.problemsSolved||0,      c:'#34d399', l:'SOLVED' },
+              { e:'⚔️', v: userData?.arenaWins||0,           c:'#f87171', l:'WINS'   },
+              { e:'🏆', v: userData?.elo||1000,              c:'#fbbf24', l:'ELO'    },
+              { e:'💰', v: userData?.credits||0,             c:'#a3e635', l:'CREDS'  },
+              { e:'📊', v:`#${userData?.rank||'?'}`,         c:'#c084fc', l:'RANK'   },
             ].map(s => (
-              <div key={s.label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 12, lineHeight: 1 }}>{s.icon}</div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: s.col, lineHeight: 1.3, marginTop: 3 }}>{s.val}</div>
-                <div style={{ fontSize: 7, color: '#1f2937', letterSpacing: '0.08em', marginTop: 1 }}>{s.label}</div>
+              <div key={s.l} style={{ textAlign:'center' }}>
+                <div style={{ fontSize:13, lineHeight:1 }}>{s.e}</div>
+                <div style={{ fontSize:12, fontWeight:800, color:s.c, lineHeight:1.3, marginTop:3 }}>{s.v}</div>
+                <div style={{ fontSize:7, color:'#1e293b', letterSpacing:'0.08em', marginTop:2 }}>{s.l}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Globe ──────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 8px', position: 'relative', zIndex: 10 }}>
+      {/* ── World label ───────────────────────────────────────────────────── */}
+      <div style={{ position:'relative', zIndex:10, padding:'0 16px 20px', display:'flex', alignItems:'center', gap:14 }}>
         <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ rotate:[0,360] }}
+          transition={{ duration:20, repeat:Infinity, ease:'linear' }}
           style={{
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'rgba(6,182,212,0.08)',
-            border: '1px solid rgba(6,182,212,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 40px rgba(6,182,212,0.25), 0 0 80px rgba(139,92,246,0.1)',
+            width:38, height:38, borderRadius:'50%',
+            background:'rgba(6,182,212,0.1)',
+            border:'1px solid rgba(6,182,212,0.3)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:20, flexShrink:0,
+            boxShadow:'0 0 24px rgba(6,182,212,0.2)',
           }}
         >
-          <span style={{ fontSize: 26 }}>🌐</span>
+          🌐
         </motion.div>
-        {/* Orbit ring */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-          style={{
-            position: 'absolute', width: 80, height: 80,
-            border: '1px dashed rgba(6,182,212,0.2)',
-            borderRadius: '50%',
-            top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            marginTop: 8,
-          }}
-        />
+        <div>
+          <p style={{ margin:0, fontSize:9, color:'#374151', letterSpacing:'0.16em' }}>NAVIGATE TO</p>
+          <p style={{ margin:0, fontSize:15, fontWeight:800, color:'#e2e8f0', letterSpacing:'0.04em' }}>EVOWORLD</p>
+        </div>
+        <div style={{ flex:1, height:1, background:'linear-gradient(to right, rgba(6,182,212,0.3), transparent)' }} />
       </div>
 
-      {/* ── Districts ───────────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative', zIndex: 10, padding: '8px 12px 0' }}>
-        {DISTRICTS.map(district => {
-          const si = zoneIndex;
-          zoneIndex += district.zones.length;
+      {/* ── Districts ─────────────────────────────────────────────────────── */}
+      <div style={{ position:'relative', zIndex:10, padding:'0 16px' }}>
+        {DISTRICTS.map(d => {
+          const si = idx;
+          idx += d.zones.length;
           return (
-            <DistrictSection
-              key={district.id}
-              district={district}
+            <DistrictBlock
+              key={d.id}
+              district={d}
               badgeMap={badgeMap}
               navigate={navigate}
               startIndex={si}
@@ -651,51 +658,51 @@ export default function World({ user, userData, onLogout }) {
         })}
       </div>
 
-      {/* ── Feed ticker ────────────────────────────────────────────────────── */}
-      {!showFeed && !feedLoading && feedPreview.filter(e => e.name && e.name !== 'Unknown').length > 0 && (
+      {/* ── Feed ticker ───────────────────────────────────────────────────── */}
+      {!showFeed && !feedLoading && feedPreview.filter(e=>e.name&&e.name!=='Unknown').length > 0 && (
         <div style={{
-          position: 'fixed', bottom: 60, left: 0, right: 0, zIndex: 20,
-          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(6,182,212,0.15)',
-          borderBottom: '1px solid rgba(0,0,0,0.5)',
-          padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 10,
+          position:'fixed', bottom:60, left:0, right:0, zIndex:20,
+          background:'rgba(3,3,9,0.9)', backdropFilter:'blur(20px)',
+          borderTop:'1px solid rgba(34,211,238,0.12)',
+          padding:'7px 16px', display:'flex', alignItems:'center', gap:10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-            <span style={{ fontSize: 9, color: '#22d3ee', fontWeight: 800, letterSpacing: '0.1em' }}>LIVE</span>
-          </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
+          <motion.span
+            animate={{ opacity:[0.5,1,0.5] }}
+            transition={{ duration:1.5, repeat:Infinity }}
+            style={{ width:6, height:6, borderRadius:'50%', background:'#34d399', flexShrink:0, display:'inline-block' }}
+          />
+          <div style={{ overflow:'hidden', flex:1 }}>
             <motion.div
-              animate={{ x: [0, -800] }}
-              transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-              style={{ display: 'flex', gap: 48, whiteSpace: 'nowrap', fontSize: 11 }}
+              animate={{ x:[0,-900] }}
+              transition={{ duration:28, repeat:Infinity, ease:'linear' }}
+              style={{ display:'flex', gap:48, whiteSpace:'nowrap', fontSize:11 }}
             >
-              {[...feedPreview, ...feedPreview]
-                .filter(e => e.name && e.name !== 'Unknown')
-                .map((ev, i) => {
-                  const meta = EVENT_META[ev.type] || EVENT_META.default;
+              {[...feedPreview,...feedPreview]
+                .filter(e=>e.name&&e.name!=='Unknown')
+                .map((ev,i) => {
+                  const m = EVENT_META[ev.type]||EVENT_META.default;
                   return (
                     <span key={`${ev.id}-${i}`}>
-                      <span style={{ color: '#9ca3af' }}>{meta.icon} </span>
-                      <span style={{ color: '#e5e7eb', fontWeight: 700 }}>{ev.name}</span>
-                      <span style={{ color: meta.color }}> {meta.label}</span>
-                      <span style={{ color: '#374151' }}> · {timeAgo(ev.createdAt)}</span>
+                      <span style={{ color:'#6b7280' }}>{m.icon} </span>
+                      <span style={{ color:'#e2e8f0', fontWeight:700 }}>{ev.name}</span>
+                      <span style={{ color:m.color }}> {m.label}</span>
+                      <span style={{ color:'#1e293b' }}> · {timeAgo(ev.createdAt)}</span>
                     </span>
                   );
                 })}
             </motion.div>
           </div>
-          <button onClick={() => setShowFeed(true)} style={{ color: '#22d3ee', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>→</button>
+          <button onClick={()=>setShowFeed(true)} style={{ color:'#22d3ee', background:'none', border:'none', cursor:'pointer', flexShrink:0, fontSize:14 }}>→</button>
         </div>
       )}
 
       <AnimatePresence>
         {showFeed && (
           <>
-            <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowFeed(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 40 }} />
-            <ActivityFeedPanel key="feed" onClose={() => setShowFeed(false)} user={user} />
+            <motion.div key="bd" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              onClick={()=>setShowFeed(false)}
+              style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:40 }} />
+            <FeedPanel key="fp" onClose={()=>setShowFeed(false)} user={user} />
           </>
         )}
       </AnimatePresence>
