@@ -987,14 +987,13 @@ function CompanySelector({ onStart, error }) {
                 <span style={{ color:'#e2e8f0', fontWeight:900, textAlign:'right' }}>{v}</span>
               </div>
             ))}
-
             <div className="mi-feature-box" style={{ marginTop:18, marginBottom:0 }}>
-              <h3>🔥 Viral UI Idea</h3>
+             <h3>🛡️ Interview Protocol</h3>
               <p>
-                After start, show a cinematic loading screen: “Interviewer joining”,
-                “Question encrypted”, “Offer probability initialized”.
-              </p>
-            </div>
+              Your session will track timer, answers, AI usage, problem progress,
+              and final hiring-readiness score.
+            </p>
+          </div>
           </div>
         </div>
       </div>
