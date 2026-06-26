@@ -222,595 +222,782 @@ function VoiceInterview({ chatMsgs, chatLoading, chatEndRef, askInterviewer, set
     </div>
   );
 }
-// ── Company Selector ──────────────────────────────────────────────────────────
 function CompanySelector({ onStart, error }) {
-  const [selected,        setSelected]        = useState('general');
-  const [starting,        setStarting]        = useState(false);
-  const [topics,          setTopics]          = useState([]);
-  const [interviewType,   setInterviewType]   = useState('coding');
-  const [jdText,          setJdText]          = useState('');
-  const [jdFile,          setJdFile]          = useState(null);
-  const [jdLoading,       setJdLoading]       = useState(false);
-  const [realWorld,       setRealWorld]       = useState(false);
+  const [selected, setSelected] = useState('general');
+  const [starting, setStarting] = useState(false);
+  const [topics, setTopics] = useState([]);
+  const [interviewType, setInterviewType] = useState('coding');
+  const [jdText, setJdText] = useState('');
+  const [jdFile, setJdFile] = useState(null);
+  const [jdLoading, setJdLoading] = useState(false);
+  const [realWorld, setRealWorld] = useState(false);
   const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
+
   const config = CONFIGS[selected] || CONFIGS.general;
 
-  const toggleTopic = (t) => setTopics(prev => prev.includes(t) ? prev.filter(x=>x!==t) : [...prev, t]);
-
   const TYPES = [
-    { id:'coding',              label:'💻 Coding',         desc:'DSA problems with live code editor'      },
-    { id:'system-design',       label:'🏗️ System Design',  desc:'Architecture & scalability discussions'  },
-    { id:'behavioral',          label:'🎙️ Behavioral',     desc:'STAR method • Leadership • Conflict'     },
-    { id:'technical-screening', label:'📋 Tech Screening', desc:'CS fundamentals • Resume • Role fit'     },
-    { id:'frontend',            label:'🖥️ Frontend',       desc:'UI coding • React • CSS • Architecture'  },
-    { id:'ai-fluency',          label:'🤖 AI Fluency',     desc:'Prompting • AI-assisted dev • Workflows' },
-    { id:'personalized',        label:'📄 Personalized',   desc:'JD upload • Role-specific questions'     },
-    { id:'voice',               label:'🎤 Voice',          desc:'Speak naturally • AI listens & responds' },
-    { id:'autonomous', label:'🧠 Autonomous AI', desc:'Adaptive • Self-directing • Full report' },
-    { id:'ai-native', label:'⚡ AI-Native', desc:'Multi-file • Copilot • Agent mode' },
-    { id:'db-debug',            label:'🗄️ DB Debug',       desc:'SQL · Schema · Transactions · Optimization' },
-    { id:'api-integration',     label:'🔌 API Design',      desc:'REST · GraphQL · Auth · Rate Limiting'      },
-    { id:'cloud-arch',          label:'☁️ Cloud Arch',       desc:'AWS/GCP · Serverless · K8s · Cost'          },
-    { id:'distributed-systems', label:'🌐 Distributed Sys', desc:'CAP · Consensus · Sharding · Sagas'         },
+    { id:'coding', icon:'💻', label:'Coding', desc:'DSA + live editor', tier:'Core' },
+    { id:'system-design', icon:'🏗️', label:'System Design', desc:'Architecture round', tier:'Senior' },
+    { id:'behavioral', icon:'🎙️', label:'Behavioral', desc:'STAR + HR pressure', tier:'HR' },
+    { id:'technical-screening', icon:'📋', label:'Tech Screen', desc:'CS + resume scan', tier:'Fast' },
+    { id:'frontend', icon:'🖥️', label:'Frontend', desc:'React + UI systems', tier:'UI' },
+    { id:'ai-fluency', icon:'🤖', label:'AI Fluency', desc:'AI workflow skill', tier:'Future' },
+    { id:'personalized', icon:'📄', label:'Personalized', desc:'JD-based questions', tier:'Custom' },
+    { id:'voice', icon:'🎤', label:'Voice', desc:'Speak with AI', tier:'Live' },
+    { id:'autonomous', icon:'🧠', label:'Autonomous AI', desc:'Adaptive full report', tier:'Elite' },
+    { id:'ai-native', icon:'⚡', label:'AI-Native', desc:'Agent + multi-file', tier:'Elite' },
+    { id:'db-debug', icon:'🗄️', label:'DB Debug', desc:'SQL + schema issues', tier:'Backend' },
+    { id:'api-integration', icon:'🔌', label:'API Design', desc:'REST + auth + scale', tier:'Backend' },
+    { id:'cloud-arch', icon:'☁️', label:'Cloud Arch', desc:'AWS/GCP/K8s', tier:'Cloud' },
+    { id:'distributed-systems', icon:'🌐', label:'Distributed Sys', desc:'CAP + sharding', tier:'Staff' },
   ];
 
   const typeColors = {
-    coding:'#a855f7', 'system-design':'#1a73e8', behavioral:'#f59e0b',
-    'technical-screening':'#10b981', frontend:'#f472b6', 'ai-fluency':'#a78bfa',
-    personalized:'#f59e0b', voice:'#ec4899', 'ai-native':'#06b6d4',
+    coding:'#a855f7',
+    'system-design':'#38bdf8',
+    behavioral:'#f59e0b',
+    'technical-screening':'#10b981',
+    frontend:'#f472b6',
+    'ai-fluency':'#a78bfa',
+    personalized:'#f59e0b',
+    voice:'#ec4899',
+    autonomous:'#00c896',
+    'ai-native':'#06b6d4',
     'db-debug':'#06b6d4',
     'api-integration':'#f97316',
     'cloud-arch':'#8b5cf6',
-    'distributed-systems':'#ec4899'
+    'distributed-systems':'#ec4899',
   };
+
   const activeColor = typeColors[interviewType] || config.color;
+  const selectedType = TYPES.find(t => t.id === interviewType) || TYPES[0];
+
+  const toggleTopic = (t) => {
+    setTopics(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  };
+
+  const startInterview = async () => {
+    setStarting(true);
+
+    const companyToSend = [
+      'technical-screening',
+      'ai-fluency',
+      'frontend',
+      'personalized',
+      'voice',
+      'autonomous',
+      'ai-native',
+      'db-debug',
+      'api-integration',
+      'cloud-arch',
+      'distributed-systems',
+    ].includes(interviewType) ? interviewType : selected;
+
+    await onStart(
+      companyToSend,
+      topics,
+      interviewType,
+      jdText,
+      realWorld,
+      aiAssistEnabled
+    );
+
+    setStarting(false);
+  };
+
+  const disabledStart = starting || (interviewType === 'personalized' && jdText.length < 50);
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0a0a14', display:'flex', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'Arial, sans-serif', position:'relative', overflow:'hidden' }}>
-      <div style={{ position:'fixed', inset:0, pointerEvents:'none' }}>
-        <div style={{ position:'absolute', width:400, height:400, background:activeColor, left:'50%', top:'50%', transform:'translate(-50%,-50%)', filter:'blur(120px)', opacity:0.06, borderRadius:'50%', transition:'background 0.3s' }} />
-      </div>
+    <div className="mi-page" style={{ '--accent': activeColor }}>
+      <style>{`
+        .mi-page {
+          min-height: 100vh;
+          background:
+            radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--accent) 25%, transparent), transparent 28%),
+            radial-gradient(circle at 80% 0%, rgba(56,189,248,.16), transparent 32%),
+            radial-gradient(circle at 50% 90%, rgba(168,85,247,.18), transparent 35%),
+            linear-gradient(180deg, #050611 0%, #070816 45%, #03040a 100%);
+          color: #eef2ff;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          padding: 28px;
+          overflow: hidden;
+          position: relative;
+        }
 
-      <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} style={{ maxWidth:680, width:'100%', position:'relative', zIndex:1 }}>
-        <div style={{ textAlign:'center', marginBottom:32 }}>
-          <div style={{ fontSize:48, marginBottom:8 }}>🎯</div>
-          <h1 style={{ margin:'0 0 8px', color:'#e8e8e8', fontSize:28, fontWeight:900 }}>Mock Interview</h1>
-          <p style={{ margin:0, color:'#555', fontSize:14 }}>Simulate a real FAANG interview. Timer on. Camera optional. Game face on.</p>
-        </div>
+        .mi-page:before {
+          content: "";
+          position: fixed;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+          background-size: 46px 46px;
+          mask-image: radial-gradient(circle at center, black, transparent 78%);
+          pointer-events: none;
+        }
 
-        {/* Interview type selector */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginBottom:24 }}>
-          {TYPES.map(t => {
-            const tc = typeColors[t.id] || '#a855f7';
-            return (
-              <button key={t.id} onClick={() => setInterviewType(t.id)}
-                style={{ background:interviewType===t.id?tc+'22':'#0d1117', border:`1px solid ${interviewType===t.id?tc+'66':'#1e2a3a'}`, borderRadius:12, padding:'10px 8px', cursor:'pointer', color:interviewType===t.id?tc:'#666', fontSize:11, fontWeight:700, transition:'all 0.15s', textAlign:'center' }}
-              >
-                <div>{t.label}</div>
-                <div style={{ fontSize:8, fontWeight:400, marginTop:2, opacity:0.7 }}>{t.desc}</div>
-              </button>
-            );
-          })}
-        </div>
+        .mi-shell {
+          max-width: 1180px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 1;
+        }
 
-        {/* Company grid — coding only */}
-        {interviewType === 'coding' && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:24 }}>
-            {Object.entries(CONFIGS).map(([key, c]) => (
-              <motion.button key={key} whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
-                onClick={() => setSelected(key)}
-                style={{ background:selected===key?c.color+'22':'#0d1117', border:`1px solid ${selected===key?c.color+'66':'#1e2a3a'}`, borderRadius:14, padding:'16px 12px', cursor:'pointer', textAlign:'center', transition:'all 0.2s', boxShadow:selected===key?`0 0 20px ${c.color}33`:'none' }}
-              >
-                <div style={{ fontSize:28, marginBottom:6 }}>{c.logo}</div>
-                <div style={{ color:selected===key?c.color:'#e8e8e8', fontSize:13, fontWeight:700 }}>{c.company}</div>
-                <div style={{ color:'#555', fontSize:10, marginTop:2 }}>{c.duration} min</div>
-              </motion.button>
-            ))}
-          </div>
-        )}
+        .mi-hero {
+          display: grid;
+          grid-template-columns: 1.1fr .9fr;
+          gap: 18px;
+          margin-bottom: 18px;
+        }
 
-        {/* Topic filter — coding only */}
-        {interviewType === 'coding' && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>🎯 Focus Topics (optional)</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {TOPICS.map(t => {
-                const active = topics.includes(t);
-                return (
-                  <button key={t} onClick={() => toggleTopic(t)}
-                    style={{ background:active?config.color+'22':'#0d1117', border:`1px solid ${active?config.color+'66':'#1e2a3a'}`, borderRadius:20, padding:'4px 12px', cursor:'pointer', color:active?config.color:'#555', fontSize:11, fontWeight:600, transition:'all 0.15s' }}
-                  >{t}</button>
-                );
-              })}
+        .mi-glass {
+          background: linear-gradient(180deg, rgba(15,23,42,.78), rgba(2,6,23,.72));
+          border: 1px solid rgba(148,163,184,.16);
+          box-shadow: 0 24px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+          backdrop-filter: blur(22px);
+          border-radius: 28px;
+        }
+
+        .mi-command {
+          padding: 28px;
+          min-height: 260px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .mi-command:after {
+          content: "";
+          position: absolute;
+          width: 280px;
+          height: 280px;
+          right: -90px;
+          top: -90px;
+          background: var(--accent);
+          filter: blur(85px);
+          opacity: .24;
+          border-radius: 999px;
+        }
+
+        .mi-badge {
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+          padding: 7px 11px;
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--accent) 16%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+          color: color-mix(in srgb, var(--accent) 82%, white);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+        }
+
+        .mi-title {
+          font-size: clamp(36px, 7vw, 76px);
+          line-height: .9;
+          letter-spacing: -0.08em;
+          margin: 24px 0 14px;
+          font-weight: 1000;
+        }
+
+        .mi-title span {
+          background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--accent) 70%, white));
+          -webkit-background-clip: text;
+          color: transparent;
+        }
+
+        .mi-sub {
+          color: #94a3b8;
+          max-width: 620px;
+          font-size: 14px;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        .mi-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-top: 22px;
+        }
+
+        .mi-stat {
+          padding: 13px;
+          border-radius: 18px;
+          background: rgba(15,23,42,.72);
+          border: 1px solid rgba(148,163,184,.14);
+        }
+
+        .mi-stat b {
+          display: block;
+          font-size: 18px;
+          color: #fff;
+        }
+
+        .mi-stat small {
+          color: #64748b;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+        }
+
+        .mi-holo {
+          padding: 22px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .mi-orb {
+          height: 180px;
+          border-radius: 999px;
+          background:
+            radial-gradient(circle at 35% 30%, white, color-mix(in srgb, var(--accent) 65%, white) 10%, var(--accent) 38%, transparent 68%);
+          filter: drop-shadow(0 0 45px color-mix(in srgb, var(--accent) 55%, transparent));
+          opacity: .92;
+          animation: floatOrb 4s ease-in-out infinite;
+        }
+
+        @keyframes floatOrb {
+          0%,100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-10px) scale(1.04); }
+        }
+
+        .mi-panel-title {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 22px 0 12px;
+        }
+
+        .mi-panel-title h2 {
+          margin: 0;
+          font-size: 15px;
+          letter-spacing: .12em;
+          text-transform: uppercase;
+          color: #cbd5e1;
+        }
+
+        .mi-panel-title span {
+          color: var(--accent);
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .mi-type-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 10px;
+        }
+
+        .mi-type-card, .mi-company-card, .mi-toggle, .mi-chip {
+          transition: .22s ease;
+        }
+
+        .mi-type-card {
+          min-height: 112px;
+          border-radius: 22px;
+          padding: 14px;
+          background: rgba(15,23,42,.7);
+          border: 1px solid rgba(148,163,184,.13);
+          color: #94a3b8;
+          cursor: pointer;
+          text-align: left;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .mi-type-card.active {
+          color: #fff;
+          border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+          background:
+            linear-gradient(180deg, color-mix(in srgb, var(--accent) 20%, transparent), rgba(15,23,42,.74));
+          box-shadow: 0 0 42px color-mix(in srgb, var(--accent) 22%, transparent);
+          transform: translateY(-3px);
+        }
+
+        .mi-type-card:hover, .mi-company-card:hover, .mi-toggle:hover {
+          transform: translateY(-3px);
+          border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+        }
+
+        .mi-type-icon {
+          font-size: 22px;
+          margin-bottom: 10px;
+        }
+
+        .mi-type-label {
+          font-size: 12px;
+          font-weight: 950;
+          margin-bottom: 4px;
+        }
+
+        .mi-type-desc {
+          font-size: 10px;
+          color: #64748b;
+          line-height: 1.4;
+        }
+
+        .mi-tier {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          font-size: 8px;
+          font-weight: 900;
+          color: var(--accent);
+          background: color-mix(in srgb, var(--accent) 14%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+          padding: 3px 6px;
+          border-radius: 999px;
+        }
+
+        .mi-company-grid {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 12px;
+        }
+
+        .mi-company-card {
+          border: 1px solid rgba(148,163,184,.14);
+          background: rgba(15,23,42,.72);
+          color: #e2e8f0;
+          border-radius: 24px;
+          padding: 18px 12px;
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .mi-company-card.active {
+          border-color: var(--company);
+          box-shadow: 0 0 36px color-mix(in srgb, var(--company) 26%, transparent);
+          background: linear-gradient(180deg, color-mix(in srgb, var(--company) 18%, transparent), rgba(15,23,42,.8));
+        }
+
+        .mi-company-logo {
+          font-size: 30px;
+          margin-bottom: 10px;
+        }
+
+        .mi-company-name {
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .mi-company-time {
+          font-size: 10px;
+          color: #64748b;
+          margin-top: 3px;
+        }
+
+        .mi-layout {
+          display: grid;
+          grid-template-columns: 1.4fr .75fr;
+          gap: 18px;
+          margin-top: 18px;
+        }
+
+        .mi-card {
+          padding: 20px;
+        }
+
+        .mi-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .mi-chip {
+          border: 1px solid rgba(148,163,184,.14);
+          background: rgba(15,23,42,.72);
+          color: #94a3b8;
+          border-radius: 999px;
+          padding: 8px 12px;
+          font-size: 11px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .mi-chip.active {
+          background: color-mix(in srgb, var(--accent) 16%, transparent);
+          border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+          color: #fff;
+          box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 18%, transparent);
+        }
+
+        .mi-toggle {
+          width: 100%;
+          border: 1px solid rgba(148,163,184,.14);
+          background: rgba(15,23,42,.72);
+          color: #e2e8f0;
+          border-radius: 22px;
+          padding: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          margin-bottom: 12px;
+          text-align: left;
+        }
+
+        .mi-switch {
+          width: 46px;
+          height: 26px;
+          background: #1e293b;
+          border-radius: 999px;
+          position: relative;
+          flex-shrink: 0;
+        }
+
+        .mi-switch.on {
+          background: var(--accent);
+          box-shadow: 0 0 25px color-mix(in srgb, var(--accent) 36%, transparent);
+        }
+
+        .mi-switch i {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          background: white;
+          border-radius: 999px;
+          top: 3px;
+          left: 3px;
+          transition: .22s ease;
+        }
+
+        .mi-switch.on i {
+          left: 23px;
+        }
+
+        .mi-feature-box {
+          border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+          background: color-mix(in srgb, var(--accent) 9%, transparent);
+          border-radius: 24px;
+          padding: 18px;
+          margin-bottom: 14px;
+        }
+
+        .mi-feature-box h3 {
+          margin: 0 0 8px;
+          color: color-mix(in srgb, var(--accent) 82%, white);
+          font-size: 17px;
+        }
+
+        .mi-feature-box p {
+          margin: 0;
+          color: #94a3b8;
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        .mi-textarea {
+          width: 100%;
+          min-height: 160px;
+          resize: vertical;
+          box-sizing: border-box;
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(2,6,23,.8);
+          color: #e2e8f0;
+          border: 1px solid rgba(148,163,184,.18);
+          outline: none;
+          font-size: 12px;
+          line-height: 1.7;
+        }
+
+        .mi-start {
+          width: 100%;
+          border: none;
+          border-radius: 24px;
+          padding: 18px;
+          cursor: pointer;
+          color: white;
+          font-size: 16px;
+          font-weight: 1000;
+          background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #ffffff));
+          box-shadow: 0 0 42px color-mix(in srgb, var(--accent) 36%, transparent);
+          margin-top: 14px;
+        }
+
+        .mi-start:disabled {
+          opacity: .45;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .mi-error {
+          color: #fecaca;
+          background: rgba(239,68,68,.12);
+          border: 1px solid rgba(239,68,68,.35);
+          padding: 12px 14px;
+          border-radius: 18px;
+          font-size: 12px;
+          margin-top: 12px;
+        }
+
+        @media (max-width: 980px) {
+          .mi-hero, .mi-layout { grid-template-columns: 1fr; }
+          .mi-type-grid { grid-template-columns: repeat(2, 1fr); }
+          .mi-company-grid { grid-template-columns: repeat(2, 1fr); }
+          .mi-page { padding: 16px; }
+        }
+      `}</style>
+
+      <div className="mi-shell">
+        <div className="mi-hero">
+          <motion.div
+            className="mi-glass mi-command"
+            initial={{ opacity:0, y:22 }}
+            animate={{ opacity:1, y:0 }}
+          >
+            <div className="mi-badge">🎯 AI Interview Chamber</div>
+            <h1 className="mi-title">
+              Crack the <span>{selectedType.label}</span> round.
+            </h1>
+            <p className="mi-sub">
+              A cinematic mock interview room with company-specific pressure, AI observation,
+              real-world mode, tracked AI assistance, voice rounds, and hiring-report style feedback.
+            </p>
+
+            <div className="mi-stats">
+              <div className="mi-stat">
+                <b>{selectedType.icon} {selectedType.tier}</b>
+                <small>Interview mode</small>
+              </div>
+              <div className="mi-stat">
+                <b>{interviewType === 'coding' ? config.duration : interviewType.includes('cloud') || interviewType.includes('distributed') ? 60 : 45} min</b>
+                <small>Pressure timer</small>
+              </div>
+              <div className="mi-stat">
+                <b>{aiAssistEnabled ? 'Tracked' : 'Clean'}</b>
+                <small>AI usage</small>
+              </div>
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div
+            className="mi-glass mi-holo"
+            initial={{ opacity:0, y:22 }}
+            animate={{ opacity:1, y:0 }}
+            transition={{ delay:.08 }}
+          >
+            <div className="mi-badge">LIVE SIMULATION</div>
+            <div className="mi-orb" />
+            <div className="mi-feature-box" style={{ marginBottom:0 }}>
+              <h3>{selectedType.icon} {selectedType.label} Round</h3>
+              <p>{selectedType.desc}. Current theme is powered by {interviewType === 'coding' ? config.company : selectedType.label} mode.</p>
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="mi-panel-title">
+          <h2>Choose Interview Arena</h2>
+          <span>{TYPES.length} modes unlocked</span>
+        </div>
+
+        <div className="mi-type-grid">
+          {TYPES.map(t => (
+            <button
+              key={t.id}
+              className={`mi-type-card ${interviewType === t.id ? 'active' : ''}`}
+              onClick={() => setInterviewType(t.id)}
+            >
+              <span className="mi-tier">{t.tier}</span>
+              <div className="mi-type-icon">{t.icon}</div>
+              <div className="mi-type-label">{t.label}</div>
+              <div className="mi-type-desc">{t.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {interviewType === 'coding' && (
+          <>
+            <div className="mi-panel-title">
+              <h2>Select Company Battle</h2>
+              <span>{config.company} selected</span>
+            </div>
+
+            <div className="mi-company-grid">
+              {Object.entries(CONFIGS).map(([key, c]) => (
+                <button
+                  key={key}
+                  className={`mi-company-card ${selected === key ? 'active' : ''}`}
+                  style={{ '--company': c.color }}
+                  onClick={() => setSelected(key)}
+                >
+                  <div className="mi-company-logo">{c.logo}</div>
+                  <div className="mi-company-name" style={{ color:selected === key ? c.color : '#e2e8f0' }}>
+                    {c.company}
+                  </div>
+                  <div className="mi-company-time">{c.duration} min • {key === 'microsoft' ? 3 : 2} problems</div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Real-world mode toggle — coding only */}
-        {interviewType === 'coding' && (
-          <div style={{ marginBottom:20 }}>
-            <button onClick={() => setRealWorld(r => !r)}
-              style={{ width:'100%', background:realWorld?'#f59e0b11':'#0d1117', border:`1px solid ${realWorld?'#f59e0b66':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontSize:20 }}>🌍</span>
-                <div style={{ textAlign:'left' }}>
-                  <div style={{ color:realWorld?'#f59e0b':'#e8e8e8', fontSize:13, fontWeight:700 }}>Real-World Mode</div>
-                  <div style={{ color:'#555', fontSize:10, marginTop:2 }}>AI generates actual {CONFIGS[selected]?.company || 'company'} interview problems on-demand</div>
+        <div className="mi-layout">
+          <div className="mi-glass mi-card">
+            {interviewType === 'coding' && (
+              <>
+                <div className="mi-panel-title" style={{ marginTop:0 }}>
+                  <h2>Focus Topics</h2>
+                  <span>{topics.length || 'Optional'}</span>
                 </div>
-              </div>
-              <div style={{ width:40, height:22, background:realWorld?'#f59e0b':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
-                <div style={{ position:'absolute', top:3, left:realWorld?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
-              </div>
-            </button>
-            {realWorld && (
-              <div style={{ background:'#f59e0b08', border:'1px solid #f59e0b22', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11 }}>
-                ⚡ The AI will generate fresh {CONFIGS[selected]?.company || 'company'}-style problems each session. Generation takes ~5 seconds.
+
+                <div className="mi-chips">
+                  {TOPICS.map(t => (
+                    <button
+                      key={t}
+                      className={`mi-chip ${topics.includes(t) ? 'active' : ''}`}
+                      onClick={() => toggleTopic(t)}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {interviewType === 'personalized' && (
+              <>
+                <div className="mi-feature-box">
+                  <h3>📄 JD Scanner Mode</h3>
+                  <p>Paste a job description. The AI will turn it into a role-specific interview with targeted questions.</p>
+                </div>
+
+                <textarea
+                  className="mi-textarea"
+                  value={jdText}
+                  onChange={e => setJdText(e.target.value)}
+                  placeholder="Paste full job description here..."
+                />
+
+                <label className="mi-toggle" style={{ marginTop:12 }}>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.doc,.docx"
+                    style={{ display:'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      setJdFile(file);
+                      setJdLoading(true);
+                      try {
+                        if (file.type === 'text/plain') {
+                          const text = await file.text();
+                          setJdText(text);
+                        } else {
+                          setJdText(`[File: ${file.name}] Please paste the JD text here for best results.`);
+                        }
+                      } finally {
+                        setJdLoading(false);
+                      }
+                    }}
+                  />
+                  <div>
+                    <b>{jdLoading ? 'Reading file...' : jdFile ? `✓ ${jdFile.name}` : '📎 Upload JD file'}</b>
+                    <div style={{ color:'#64748b', fontSize:11, marginTop:3 }}>
+                      TXT works directly. PDF/DOC should also be pasted.
+                    </div>
+                  </div>
+                </label>
+              </>
+            )}
+
+            {interviewType !== 'coding' && interviewType !== 'personalized' && (
+              <div className="mi-feature-box">
+                <h3>{selectedType.icon} {selectedType.label} Interview</h3>
+                <p>
+                  This mode creates a focused {selectedType.label.toLowerCase()} simulation with adaptive AI probing,
+                  timed pressure, live notes, and a final hiring-style performance report.
+                </p>
               </div>
             )}
-          </div>
-        )}
 
-        {/* AI IDE toggle — all types */}
-        <div style={{ marginBottom:20 }}>
-          <button onClick={() => setAiAssistEnabled(a => !a)}
-            style={{ width:'100%', background:aiAssistEnabled?'#1a73e811':'#0d1117', border:`1px solid ${aiAssistEnabled?'#1a73e866':'#1e2a3a'}`, borderRadius:12, padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all 0.2s' }}
-          >
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:20 }}>✨</span>
-              <div style={{ textAlign:'left' }}>
-                <div style={{ color:aiAssistEnabled?'#1a73e8':'#e8e8e8', fontSize:13, fontWeight:700 }}>AI-Assisted IDE</div>
-                <div style={{ color:'#555', fontSize:10, marginTop:2 }}>Enable AI chat + inline completions • All usage tracked</div>
-              </div>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {aiAssistEnabled && <span style={{ background:'#ff4d4d22', border:'1px solid #ff4d4d44', borderRadius:6, padding:'1px 6px', color:'#ff4d4d', fontSize:9, fontWeight:700 }}>TRACKED</span>}
-              <div style={{ width:40, height:22, background:aiAssistEnabled?'#1a73e8':'#1e2a3a', borderRadius:11, position:'relative', transition:'background 0.2s', flexShrink:0 }}>
-                <div style={{ position:'absolute', top:3, left:aiAssistEnabled?19:3, width:16, height:16, background:'#fff', borderRadius:'50%', transition:'left 0.2s' }} />
-              </div>
-            </div>
-          </button>
-          {aiAssistEnabled && (
-            <div style={{ background:'#1a73e808', border:'1px solid #1a73e822', borderRadius:8, padding:'8px 12px', marginTop:6, color:'#888', fontSize:11 }}>
-              ⚠ All AI prompts, responses, and accepted suggestions are logged and visible in the interview report.
-            </div>
-          )}
-        </div>
-                {/* Info panels */}
-        {interviewType === 'system-design' && (
-          <div style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#1a73e8', fontSize:15 }}>🏗️ System Design Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              2 system design questions in 60 minutes. Discuss architecture, trade-offs, and scalability with the AI interviewer.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['API Design','Database','Caching','Load Balancing','Message Queues','CDN','Scalability'].map(t => (
-                <span key={t} style={{ background:'#1a73e811', border:'1px solid #1a73e833', borderRadius:12, padding:'2px 10px', color:'#1a73e8', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'behavioral' && (
-          <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#f59e0b', fontSize:15 }}>🎙️ Behavioral Interview (STAR Method)</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              4 behavioral questions in 30 minutes. The AI will probe using the STAR framework.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['Leadership','Conflict Resolution','Ownership','Teamwork','Innovation','Time Management'].map(t => (
-                <span key={t} style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:12, padding:'2px 10px', color:'#f59e0b', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'technical-screening' && (
-          <div style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#10b981', fontSize:15 }}>📋 Technical Screening Round</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              30-minute recruiter-style screening. CS fundamentals, resume walkthrough, and role fit evaluation.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['Background','Big O','Data Structures','Problem Solving','Behaviorals','Role Fit'].map(t => (
-                <span key={t} style={{ background:'#10b98111', border:'1px solid #10b98133', borderRadius:12, padding:'2px 10px', color:'#10b981', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'frontend' && (
-          <div style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#f472b6', fontSize:15 }}>🖥️ Frontend Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              45-minute frontend coding round. JavaScript, React patterns, CSS, and architecture trade-offs.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['JavaScript','React','CSS','DOM','Performance','Accessibility','Component Design'].map(t => (
-                <span key={t} style={{ background:'#f472b611', border:'1px solid #f472b633', borderRadius:12, padding:'2px 10px', color:'#f472b6', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'ai-fluency' && (
-          <div style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#a78bfa', fontSize:15 }}>🤖 AI Fluency Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              30-minute assessment of AI collaboration skills — prompting strategies, tool usage, and limitations awareness.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['Prompt Engineering','AI Tools','Copilot Usage','Limitations','Debugging with AI','Evaluation'].map(t => (
-                <span key={t} style={{ background:'#a78bfa11', border:'1px solid #a78bfa33', borderRadius:12, padding:'2px 10px', color:'#a78bfa', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'personalized' && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:14, padding:'16px 20px', marginBottom:12 }}>
-              <h3 style={{ margin:'0 0 6px', color:'#f59e0b', fontSize:15 }}>📄 Personalized Interview</h3>
-              <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:0 }}>
-                Paste a job description and the AI will generate 5 role-specific interview questions just for you.
-              </p>
+            <div className="mi-panel-title">
+              <h2>Interview Boosters</h2>
+              <span>Optional</span>
             </div>
 
-            <div style={{ background:'#0d1117', border:'1px solid #1e2a3a', borderRadius:12, padding:'16px' }}>
-              <div style={{ color:'#888', fontSize:10, fontWeight:700, textTransform:'uppercase', marginBottom:8 }}>
-                Paste Job Description
-              </div>
-              <textarea
-                value={jdText}
-                onChange={e => setJdText(e.target.value)}
-                placeholder="Paste the full job description here — requirements, responsibilities, tech stack..."
-                style={{
-                  width:'100%',
-                  boxSizing:'border-box',
-                  height:140,
-                  background:'#060910',
-                  border:`1px solid ${jdText.length > 100 ? '#f59e0b44' : '#1e2a3a'}`,
-                  borderRadius:8,
-                  padding:'10px 12px',
-                  color:'#e8e8e8',
-                  fontSize:12,
-                  fontFamily:'Arial, sans-serif',
-                  lineHeight:1.6,
-                  outline:'none',
-                  resize:'vertical',
-                }}
-              />
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:10 }}>
-                <div style={{ flex:1, height:1, background:'#1e2a3a' }} />
-                <span style={{ color:'#333', fontSize:11 }}>or</span>
-                <div style={{ flex:1, height:1, background:'#1e2a3a' }} />
-              </div>
-              <label style={{
-                display:'flex',
-                alignItems:'center',
-                justifyContent:'center',
-                gap:8,
-                marginTop:10,
-                background:'#060910',
-                border:`1px solid ${jdFile ? '#f59e0b44' : '#1e2a3a'}`,
-                borderRadius:8,
-                padding:'10px',
-                cursor:'pointer',
-                color:jdFile ? '#f59e0b' : '#555',
-                fontSize:12,
-                fontWeight:600,
-                transition:'all 0.15s',
-              }}>
-                <input
-                  type="file"
-                  accept=".pdf,.txt,.doc,.docx"
-                  style={{ display:'none' }}
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    setJdFile(file);
-                    setJdLoading(true);
-                    try {
-                      if (file.type === 'text/plain') {
-                        const text = await file.text();
-                        setJdText(text);
-                      } else {
-                        setJdText(`[File: ${file.name}] — PDF text extraction requires manual paste. Please also paste the JD text above.`);
-                      }
-                    } finally {
-                      setJdLoading(false);
-                    }
-                  }}
-                />
-                {jdLoading ? '⏳ Reading file...' : jdFile ? `✓ ${jdFile.name}` : '📎 Upload PDF or TXT'}
-              </label>
-              {jdText.length > 0 && (
-                <div style={{ marginTop:8, color:'#f59e0b', fontSize:10, textAlign:'right' }}>
-                  {jdText.length} characters — ready to generate questions
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'voice' && (
-          <div style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#ec4899', fontSize:15 }}>🎤 Voice Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              Speak naturally with an AI recruiter. Your voice is transcribed in real time. The AI reads questions aloud.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
-              {['Speech-to-Text','Text-to-Speech','Real-time','No Typing'].map(t => (
-                <span key={t} style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-            <div style={{ background:'#ec489908', borderRadius:8, padding:'10px 12px', color:'#888', fontSize:11 }}>
-              ⚠ Uses browser's built-in speech recognition. Works best in Chrome. Allow microphone access when prompted.
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'autonomous' && (
-          <div style={{ background:'#00c89611', border:'1px solid #00c89633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#00c896', fontSize:15 }}>🧠 Autonomous AI Interviewer</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              A fully adaptive AI interviewer drives the entire session. No fixed questions — it responds to your answers, probes weak areas, and generates a comprehensive AI hiring report.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
-              {['Adaptive Questioning','Real-time Probing','Multi-domain','Behavioral + Technical','AI Hiring Report','PDF Export'].map(t => (
-                <span key={t} style={{ background:'#00c89611', border:'1px solid #00c89633', borderRadius:12, padding:'2px 10px', color:'#00c896', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-            <div style={{ background:'#00c89608', borderRadius:8, padding:'8px 12px', color:'#888', fontSize:11 }}>
-              💡 The AI adjusts every question based on your previous answer. Stronger answers lead to harder follow-ups. Weaker answers trigger deeper probing.
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'db-debug' && (
-          <div style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#06b6d4', fontSize:15 }}>🗄️ Database Debugging Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              2 real-world database problems in 45 minutes. Debug slow queries, deadlocks, N+1 issues, and schema design problems with a senior DB engineer.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['SQL Optimization','EXPLAIN Plans','Indexing','Transactions','Schema Design','Replication','Deadlocks'].map(t => (
-                <span key={t} style={{ background:'#06b6d411', border:'1px solid #06b6d433', borderRadius:12, padding:'2px 10px', color:'#06b6d4', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'api-integration' && (
-          <div style={{ background:'#f9731611', border:'1px solid #f9731633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#f97316', fontSize:15 }}>🔌 API Integration Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              45-minute deep dive into API design and integration engineering. Webhooks, OAuth, GraphQL, rate limiting, circuit breakers, and versioning.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['REST Design','GraphQL','OAuth 2.0','Webhooks','Rate Limiting','Circuit Breaker','Versioning'].map(t => (
-                <span key={t} style={{ background:'#f9731611', border:'1px solid #f9731633', borderRadius:12, padding:'2px 10px', color:'#f97316', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'cloud-arch' && (
-          <div style={{ background:'#8b5cf611', border:'1px solid #8b5cf633', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#8b5cf6', fontSize:15 }}>☁️ Cloud Architecture Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              60-minute cloud architecture session. Design serverless pipelines, multi-region systems, Kubernetes deployments, observability stacks, and cost-optimized infrastructure.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['AWS/GCP/Azure','Serverless','Kubernetes','Multi-region','Cost Optimization','CI/CD','Observability'].map(t => (
-                <span key={t} style={{ background:'#8b5cf611', border:'1px solid #8b5cf633', borderRadius:12, padding:'2px 10px', color:'#8b5cf6', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {interviewType === 'distributed-systems' && (
-          <div style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:14, padding:'16px 20px', marginBottom:20 }}>
-            <h3 style={{ margin:'0 0 8px', color:'#ec4899', fontSize:15 }}>🌐 Distributed Systems Interview</h3>
-            <p style={{ color:'#888', fontSize:12, lineHeight:1.6, margin:'0 0 10px' }}>
-              60-minute senior-level distributed systems deep dive. CAP theorem, Raft consensus, eventual consistency, distributed transactions, sharding, and clock synchronization.
-            </p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {['CAP Theorem','Raft/Paxos','Eventual Consistency','Sagas','Consistent Hashing','Vector Clocks','CRDTs'].map(t => (
-                <span key={t} style={{ background:'#ec489911', border:'1px solid #ec489933', borderRadius:12, padding:'2px 10px', color:'#ec4899', fontSize:10 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-                {/* Selected config details — coding only */}
-        {interviewType === 'coding' && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selected}
-              initial={{ opacity:0, y:8 }}
-              animate={{ opacity:1, y:0 }}
-              exit={{ opacity:0 }}
-              style={{
-                background:'#0d1117',
-                border:`1px solid ${config.color}44`,
-                borderRadius:16,
-                padding:'20px 24px',
-                marginBottom:24,
-                position:'relative',
-                overflow:'hidden',
-              }}
-            >
-              <div style={{
-                position:'absolute',
-                top:0,
-                left:0,
-                right:0,
-                height:2,
-                background:`linear-gradient(90deg, transparent, ${config.color}, transparent)`,
-              }} />
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                <span style={{ fontSize:32 }}>{config.logo}</span>
+            {interviewType === 'coding' && (
+              <button className="mi-toggle" onClick={() => setRealWorld(r => !r)}>
                 <div>
-                  <h2 style={{ margin:0, color:config.color, fontSize:18, fontWeight:900 }}>
-                    {config.company} Interview
-                  </h2>
-                  <p style={{ margin:'3px 0 0', color:'#666', fontSize:12 }}>
-                    {config.desc}
-                  </p>
+                  <b>🌍 Real-World Mode</b>
+                  <div style={{ color:'#64748b', fontSize:11, marginTop:3 }}>
+                    Fresh company-style problems generated on demand.
+                  </div>
+                </div>
+                <div className={`mi-switch ${realWorld ? 'on' : ''}`}><i /></div>
+              </button>
+            )}
+
+            <button className="mi-toggle" onClick={() => setAiAssistEnabled(a => !a)}>
+              <div>
+                <b>✨ AI-Assisted IDE</b>
+                <div style={{ color:'#64748b', fontSize:11, marginTop:3 }}>
+                  AI usage gets tracked in the final report.
                 </div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
-                {[
-                  { icon:'⏱', label:'Duration', value:`${config.duration} min` },
-                  { icon:'📝', label:'Problems', value:`${selected === 'microsoft' ? 3 : 2} problems` },
-                  { icon:'🎯', label:'Focus',    value:selected === 'general' ? 'Mixed' : config.company },
-                ].map(d => (
-                  <div
-                    key={d.label}
-                    style={{
-                      background:'#060910',
-                      border:'1px solid #1e2a3a',
-                      borderRadius:10,
-                      padding:'10px',
-                      textAlign:'center',
-                    }}
-                  >
-                    <div style={{ fontSize:18, marginBottom:4 }}>{d.icon}</div>
-                    <div style={{ color:'#e8e8e8', fontSize:13, fontWeight:700 }}>{d.value}</div>
-                    <div style={{ color:'#444', fontSize:9, textTransform:'uppercase', letterSpacing:'0.06em' }}>{d.label}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        )}
+              <div className={`mi-switch ${aiAssistEnabled ? 'on' : ''}`}><i /></div>
+            </button>
 
-        {/* Tips */}
-        <div style={{ background:`${activeColor}11`, border:`1px solid ${activeColor}22`, borderRadius:12, padding:'14px 18px', marginBottom:24 }}>
-          <div style={{ color:activeColor, fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>
-            💡 {
-              interviewType === 'behavioral' ? 'Behavioral Tips'
-              : interviewType === 'system-design' ? 'System Design Tips'
-              : interviewType === 'technical-screening' ? 'Screening Tips'
-              : interviewType === 'frontend' ? 'Frontend Tips'
-              : interviewType === 'ai-fluency' ? 'AI Fluency Tips'
-              : interviewType === 'personalized' ? 'Personalized Tips'
-              : interviewType === 'voice' ? 'Voice Tips'
-              : interviewType === 'autonomous' ? 'Autonomous Tips'
-              : interviewType === 'ai-native' ? 'AI-Native Tips'
-              : interviewType === 'db-debug' ? 'Database Debug Tips'
-              : interviewType === 'api-integration' ? 'API Integration Tips'
-              : interviewType === 'cloud-arch' ? 'Cloud Architecture Tips'
-              : interviewType === 'distributed-systems' ? 'Distributed Systems Tips'
-              : 'Interview Tips'
-            }
+            {error && <div className="mi-error">⚠ {error}</div>}
+
+            <button
+              className="mi-start"
+              disabled={disabledStart}
+              onClick={startInterview}
+            >
+              {starting
+                ? '⏳ Building interview room...'
+                : interviewType === 'personalized' && jdText.length < 50
+                  ? '📄 Paste job description first'
+                  : `🚀 Start ${selectedType.label} Interview`}
+            </button>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-            {(
-              interviewType === 'system-design'
-                ? ['Start with requirements clarification','Draw the high-level architecture first','Discuss trade-offs for every decision','Address bottlenecks and failure modes']
-              : interviewType === 'behavioral'
-                ? ['Use the STAR method: Situation, Task, Action, Result','Be specific — use "I" not "we"','Quantify your impact whenever possible','Show self-awareness and growth']
-              : interviewType === 'technical-screening'
-                ? ['Walk through your resume confidently','Use STAR for behavioral questions','Name complexity even if not asked','Ask smart questions at the end']
-              : interviewType === 'frontend'
-                ? ['Start with semantic HTML before CSS','Explain browser rendering trade-offs','Show accessibility awareness','Discuss bundle size and performance']
-              : interviewType === 'ai-fluency'
-                ? ['Show you know AI tool limitations','Discuss when NOT to use AI','Give real examples from your workflow','Talk about prompt iteration process']
-              : interviewType === 'personalized'
-                ? ['Review the JD before starting','Connect every answer to JD requirements','Show specific relevant experience','Prepare a smart question to ask back']
-              : interviewType === 'voice'
-                ? ['Speak clearly and at a natural pace','Structure answers with STAR','Pause before answering — it is okay','Treat it like a real phone screen']
-              : interviewType === 'autonomous'
-                ? ['Think out loud — the AI is listening','Be specific with examples','It is okay to say "I am not sure" honestly','Ask clarifying questions freely']
-              : interviewType === 'ai-native'
-                ? ['Read all files before writing','Run tests early and often','Use Agent mode for boilerplate','Copilot will not give the full answer']
-              : interviewType === 'db-debug'
-                ? ['Start with the symptom and root cause','Ask what EXPLAIN would show','Think indexes, joins, and lock order','Mention trade-offs before rewriting']
-              : interviewType === 'api-integration'
-                ? ['Design the contract first','Always think idempotency','Handle retries and duplicate events','Secure every boundary']
-              : interviewType === 'cloud-arch'
-                ? ['Start with SLA and constraints','Discuss cost at scale','Design for region failure','Prefer managed services when justified']
-              : interviewType === 'distributed-systems'
-                ? ['Be precise about consistency','Explain partition behavior step by step','Discuss failure modes first','Every design has trade-offs']
-              : ['Think out loud — interviewers want to hear your process','Start with brute force, then optimize','Always discuss time & space complexity','Ask clarifying questions before coding']
-            ).map(tip => (
-              <div key={tip} style={{ color:'#888', fontSize:11, display:'flex', gap:6 }}>
-                <span style={{ color:activeColor, flexShrink:0 }}>•</span>{tip}
+
+          <div className="mi-glass mi-card">
+            <div className="mi-panel-title" style={{ marginTop:0 }}>
+              <h2>Session Preview</h2>
+              <span>AI Ready</span>
+            </div>
+
+            {[
+              ['Mode', `${selectedType.icon} ${selectedType.label}`],
+              ['Company', interviewType === 'coding' ? config.company : 'Adaptive'],
+              ['Timer', interviewType === 'coding' ? `${config.duration} min` : 'Adaptive'],
+              ['Problems', interviewType === 'coding' ? `${selected === 'microsoft' ? 3 : 2}` : 'AI-generated'],
+              ['Topics', topics.length ? topics.join(', ') : 'Mixed'],
+              ['AI IDE', aiAssistEnabled ? 'Enabled + tracked' : 'Disabled'],
+              ['Real World', realWorld ? 'Enabled' : 'Disabled'],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  display:'flex',
+                  justifyContent:'space-between',
+                  gap:14,
+                  padding:'13px 0',
+                  borderBottom:'1px solid rgba(148,163,184,.11)',
+                  fontSize:12,
+                }}
+              >
+                <span style={{ color:'#64748b', fontWeight:800 }}>{k}</span>
+                <span style={{ color:'#e2e8f0', fontWeight:900, textAlign:'right' }}>{v}</span>
               </div>
             ))}
+
+            <div className="mi-feature-box" style={{ marginTop:18, marginBottom:0 }}>
+              <h3>🔥 Viral UI Idea</h3>
+              <p>
+                After start, show a cinematic loading screen: “Interviewer joining”,
+                “Question encrypted”, “Offer probability initialized”.
+              </p>
+            </div>
           </div>
         </div>
-
-        {error && (
-          <div style={{ background:'#ff4d4d11', border:'1px solid #ff4d4d44', borderRadius:12, padding:'12px 16px', marginBottom:16, color:'#ff6b6b', fontSize:13, textAlign:'center' }}>
-            ⚠ {error}
-          </div>
-        )}
-
-        <motion.button
-          whileHover={{ scale:1.02 }}
-          whileTap={{ scale:0.98 }}
-          onClick={async () => {
-            setStarting(true);
-            const companyToSend = [
-              'technical-screening',
-              'ai-fluency',
-              'frontend',
-              'personalized',
-              'voice',
-              'autonomous',
-              'ai-native',
-              'db-debug',
-              'api-integration',
-              'cloud-arch',
-              'distributed-systems',
-            ].includes(interviewType)
-              ? interviewType
-              : selected;
-
-            await onStart(
-              companyToSend,
-              topics,
-              interviewType,
-              jdText,
-              realWorld,
-              aiAssistEnabled
-            );
-
-            setStarting(false);
-          }}
-          disabled={starting || (interviewType === 'personalized' && jdText.length < 50)}
-          style={{
-            width:'100%',
-            background:starting ? '#1e2a3a' : `linear-gradient(135deg, ${activeColor}, ${activeColor}88)`,
-            border:'none',
-            borderRadius:14,
-            color:starting ? '#444' : '#fff',
-            cursor:(starting || (interviewType === 'personalized' && jdText.length < 50)) ? 'not-allowed' : 'pointer',
-            fontSize:16,
-            fontWeight:900,
-            padding:'16px 0',
-            boxShadow:starting ? 'none' : `0 0 30px ${activeColor}44`,
-          }}
-        >
-          {starting ? '⏳ Setting up interview...'
-            : interviewType === 'system-design'       ? '🏗️ Start System Design Interview'
-            : interviewType === 'behavioral'           ? '🎙️ Start Behavioral Interview'
-            : interviewType === 'technical-screening'  ? '📋 Start Technical Screening'
-            : interviewType === 'frontend'             ? '🖥️ Start Frontend Interview'
-            : interviewType === 'ai-fluency'           ? '🤖 Start AI Fluency Interview'
-            : interviewType === 'personalized'         ? (jdText.length < 50 ? '📄 Paste a Job Description first' : '📄 Start Personalized Interview')
-            : interviewType === 'voice'                ? '🎤 Start Voice Interview'
-            : interviewType === 'autonomous'           ? '🧠 Start Autonomous Interview'
-            : interviewType === 'ai-native'            ? '⚡ Start AI-Native Interview'
-            : interviewType === 'db-debug'             ? '🗄️ Start Database Debug Interview'
-            : interviewType === 'api-integration'      ? '🔌 Start API Integration Interview'
-            : interviewType === 'cloud-arch'           ? '☁️ Start Cloud Architecture Interview'
-            : interviewType === 'distributed-systems'  ? '🌐 Start Distributed Systems Interview'
-            : `🚀 Start ${config.company} Coding Interview`}
-        </motion.button>
-      </motion.div>
+      </div>
     </div>
   );
 }
