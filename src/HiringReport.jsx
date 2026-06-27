@@ -227,9 +227,9 @@ function RedFlagPanel({ report }) {
 
 // ─── Main Hiring Report Panel ─────────────────────────────────────────────────
 export function HiringReportPanel({ report, company, interviewType, sessionId }) {
-  if (!report) return null;
-
   const [tab, setTab] = useState('overview');
+
+  if (!report) return null;
   const recColor = REC_COLORS[report.hiringRecommendation] || '#a855f7';
 
   const scoreDims = [
