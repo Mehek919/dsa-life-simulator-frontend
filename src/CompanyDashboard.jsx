@@ -112,9 +112,20 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
     notifications:{ emailOnCompletion:true, slackWebhook:'', dailyDigest:false, integrityAlerts:true },
   });
 
-  const [emailInput,  setEmailInput]  = useState('');
-  const [submitting,  setSubmitting]  = useState(false);
-  const [error,       setError]       = useState('');
+  const [emailInput,     setEmailInput]     = useState('');
+  const [submitting,     setSubmitting]     = useState(false);
+  const [error,          setError]          = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [editingCustom,  setEditingCustom]  = useState(null);
+
+  const BLANK_Q = () => ({
+    id: 'custom-' + Date.now(), title: '', description: '',
+    difficulty: 'Medium', tags: [], constraints: '', points: 100,
+    examples:  [{ input: '', output: '', explanation: '' }],
+    testCases: [{ input: '', output: '', hidden: true }],
+    _tagInput: '',
+  });
+  const [customDraft, setCustomDraft] = useState(BLANK_Q);
 
   const set = (path, val) => setForm(f => {
     const parts = path.split('.');
