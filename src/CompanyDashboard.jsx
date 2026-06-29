@@ -88,7 +88,7 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
   const [form, setForm] = useState({
     title:'', description:'', companyName:'', companyLogo:'💼',
     targetRole:'', template:'coding-challenge',
-    problemIds:[], durationMinutes:60,
+    problemIds:[], customProblems:[], durationMinutes:60,
     difficultyMix:{ easy:30, medium:50, hard:20 },
     skillTags:[],
     defaultLanguage:'python3',
@@ -264,12 +264,45 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
               </div>
             </div>
 
-            {/* Problem list */}
+            {/* Custom questions list */}
+            {(form.customProblems||[]).length > 0 && (
+              <div style={{ marginBottom:12 }}>
+                <div style={{ color:'#555', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>
+                  ✏️ Custom Questions ({form.customProblems.length})
+                </div>
+                {form.customProblems.map((q, qi) => (
+                  <div key={q.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'#0d1f0d', border:'1px solid #00c89630', borderRadius:8, marginBottom:5 }}>
+                    <span style={{ fontSize:12 }}>✏️</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ color:'#e8e8e8', fontSize:12, fontWeight:600 }}>{q.title || 'Untitled question'}</div>
+                      <div style={{ color:'#555', fontSize:10 }}>{q.tags.join(' · ')} · {q.points} pts</div>
+                    </div>
+                    <span style={{ color:diffColor[q.difficulty]||'#888', fontSize:9, fontWeight:700, background: diffColor[q.difficulty]+'22', padding:'2px 7px', borderRadius:99 }}>{q.difficulty}</span>
+                    <button onClick={() => { setCustomDraft({...q, _tagInput:''}); setEditingCustom(qi); setShowCustomForm(true); }}
+                      style={{ background:'none', border:'none', color:'#555', cursor:'pointer', fontSize:12, padding:'2px 5px' }}>✏️</button>
+                    <button onClick={() => set('customProblems', form.customProblems.filter((_,i)=>i!==qi))}
+                      style={{ background:'none', border:'none', color:'#ff4d4d66', cursor:'pointer', fontSize:13, padding:'2px 5px' }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Problem list from DB */}
             <div>
-              <label style={lbl}>Select Problems * ({form.problemIds.length} selected)</label>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                <label style={{ ...lbl, margin:0 }}>
+                  Select Problems ({form.problemIds.length} from library{(form.customProblems||[]).length>0?` + ${form.customProblems.length} custom`:''})
+                </label>
+                <button
+                  onClick={() => { setCustomDraft(BLANK_Q()); setEditingCustom(null); setShowCustomForm(true); }}
+                  style={{ background:'#00c89614', border:'1px solid #00c89640', borderRadius:7, color:'#00c896', cursor:'pointer', fontSize:11, fontWeight:700, padding:'4px 11px', display:'flex', alignItems:'center', gap:5 }}
+                >
+                  ✏️ Create custom question
+                </button>
+              </div>
               <div style={{ border:'1px solid #1e2a3a', borderRadius:10, maxHeight:220, overflowY:'auto', background:'#060910' }}>
                 {problems.length === 0 ? (
-                  <div style={{ padding:20, color:'#333', fontSize:13, textAlign:'center' }}>No problems available. Seed the database first.</div>
+                  <div style={{ padding:20, color:'#333', fontSize:13, textAlign:'center' }}>No problems in library yet.</div>
                 ) : problems.map((p, i) => {
                   const sel = form.problemIds.includes(p.id);
                   return (
@@ -288,6 +321,157 @@ function CreateAssessmentModal({ problems, onClose, onCreate }) {
                 })}
               </div>
             </div>
+
+            {/* ── Custom Question Form (inline overlay) ── */}
+            {showCustomForm && (
+              <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
+                style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+                onClick={e => e.target === e.currentTarget && setShowCustomForm(false)}
+              >
+                <div style={{ background:'#0d1117', border:'1px solid #00c89640', borderRadius:18, width:'100%', maxWidth:600, maxHeight:'90vh', overflowY:'auto', padding:'0 0 24px' }}>
+                  {/* Header */}
+                  <div style={{ position:'sticky', top:0, background:'#0d1117', borderBottom:'1px solid #1e2a3a', padding:'16px 22px', display:'flex', justifyContent:'space-between', alignItems:'center', borderRadius:'18px 18px 0 0', zIndex:10 }}>
+                    <div>
+                      <h3 style={{ margin:0, color:'#e8e8e8', fontSize:15, fontWeight:800 }}>✏️ {editingCustom !== null ? 'Edit' : 'Create'} Custom Question</h3>
+                      <p style={{ margin:'2px 0 0', color:'#555', fontSize:11 }}>This question will appear only in this assessment</p>
+                    </div>
+                    <button onClick={() => setShowCustomForm(false)} style={{ background:'#1e2a3a', border:'none', color:'#888', cursor:'pointer', fontSize:14, width:28, height:28, borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+                  </div>
+
+                  <div style={{ padding:'18px 22px', display:'flex', flexDirection:'column', gap:13 }}>
+                    {/* Title */}
+                    <div>
+                      <label style={lbl}>Question Title *</label>
+                      <input value={customDraft.title} onChange={e => setCustomDraft(d=>({...d,title:e.target.value}))} placeholder="e.g. Design a rate limiter for our payments API" style={inp}/>
+                    </div>
+
+                    {/* Difficulty + Points */}
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <div>
+                        <label style={lbl}>Difficulty</label>
+                        <div style={{ display:'flex', gap:6 }}>
+                          {['Easy','Medium','Hard'].map(d => (
+                            <button key={d} onClick={() => setCustomDraft(dr=>({...dr, difficulty:d, points: d==='Easy'?50:d==='Medium'?100:200}))}
+                              style={{ flex:1, padding:'7px 0', borderRadius:8, border:`1px solid ${customDraft.difficulty===d ? diffColor[d]+'80' : '#1e2a3a'}`, background: customDraft.difficulty===d ? diffColor[d]+'18' : '#060910', color: customDraft.difficulty===d ? diffColor[d] : '#555', fontSize:11, fontWeight:700, cursor:'pointer', transition:'all .15s' }}>
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label style={lbl}>Points</label>
+                        <input type="number" value={customDraft.points} onChange={e => setCustomDraft(d=>({...d,points:Number(e.target.value)}))} min={10} max={500} style={inp}/>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label style={lbl}>Problem Description *</label>
+                      <textarea value={customDraft.description} onChange={e => setCustomDraft(d=>({...d,description:e.target.value}))} placeholder="Describe the problem clearly. Include context, constraints, and what the candidate should do..." rows={4} style={{ ...inp, resize:'vertical', lineHeight:1.6 }}/>
+                    </div>
+
+                    {/* Constraints */}
+                    <div>
+                      <label style={lbl}>Constraints (optional)</label>
+                      <textarea value={customDraft.constraints} onChange={e => setCustomDraft(d=>({...d,constraints:e.target.value}))} placeholder="e.g. 1 ≤ n ≤ 10^5&#10;Time limit: 2 seconds" rows={2} style={{ ...inp, resize:'vertical' }}/>
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <label style={lbl}>Tags</label>
+                      <div style={{ display:'flex', gap:6, marginBottom:6 }}>
+                        <input value={customDraft._tagInput||''} onChange={e => setCustomDraft(d=>({...d,_tagInput:e.target.value}))}
+                          onKeyDown={e => {
+                            if (e.key==='Enter' && customDraft._tagInput?.trim()) {
+                              setCustomDraft(d=>({...d, tags:[...d.tags, d._tagInput.trim()], _tagInput:''}));
+                            }
+                          }}
+                          placeholder="Type a tag and press Enter" style={{ ...inp, flex:1, fontSize:11 }}/>
+                      </div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                        {customDraft.tags.map(t => (
+                          <span key={t} style={{ background:'#1a73e815', border:'1px solid #1a73e830', borderRadius:99, padding:'2px 8px', color:'#1a73e8', fontSize:10, display:'flex', alignItems:'center', gap:4 }}>
+                            {t}
+                            <button onClick={() => setCustomDraft(d=>({...d,tags:d.tags.filter(x=>x!==t)}))} style={{ background:'none', border:'none', color:'#1a73e880', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}>✕</button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Examples */}
+                    <div>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                        <label style={{ ...lbl, margin:0 }}>Examples (shown to candidate)</label>
+                        <button onClick={() => setCustomDraft(d=>({...d,examples:[...d.examples,{input:'',output:'',explanation:''}]}))}
+                          style={{ background:'none', border:'1px solid #1e2a3a', borderRadius:6, color:'#555', cursor:'pointer', fontSize:11, padding:'2px 8px' }}>+ Add</button>
+                      </div>
+                      {customDraft.examples.map((ex, ei) => (
+                        <div key={ei} style={{ background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, padding:'10px 12px', marginBottom:7 }}>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:6 }}>
+                            <div><label style={{ ...lbl, fontSize:9 }}>Input</label><textarea value={ex.input} onChange={e=>setCustomDraft(d=>({...d,examples:d.examples.map((x,i)=>i===ei?{...x,input:e.target.value}:x)}))} rows={2} style={{ ...inp, fontSize:11, resize:'vertical' }}/></div>
+                            <div><label style={{ ...lbl, fontSize:9 }}>Expected Output</label><textarea value={ex.output} onChange={e=>setCustomDraft(d=>({...d,examples:d.examples.map((x,i)=>i===ei?{...x,output:e.target.value}:x)}))} rows={2} style={{ ...inp, fontSize:11, resize:'vertical' }}/></div>
+                          </div>
+                          <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                            <div style={{ flex:1 }}><label style={{ ...lbl, fontSize:9 }}>Explanation (optional)</label><input value={ex.explanation} onChange={e=>setCustomDraft(d=>({...d,examples:d.examples.map((x,i)=>i===ei?{...x,explanation:e.target.value}:x)}))} style={{ ...inp, fontSize:11 }}/></div>
+                            {customDraft.examples.length > 1 && <button onClick={()=>setCustomDraft(d=>({...d,examples:d.examples.filter((_,i)=>i!==ei)}))} style={{ background:'none', border:'none', color:'#ff4d4d60', cursor:'pointer', fontSize:16, marginTop:18 }}>✕</button>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Test Cases */}
+                    <div>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                        <label style={{ ...lbl, margin:0 }}>Test Cases (hidden — used for auto-grading)</label>
+                        <button onClick={()=>setCustomDraft(d=>({...d,testCases:[...d.testCases,{input:'',output:'',hidden:true}]}))}
+                          style={{ background:'none', border:'1px solid #1e2a3a', borderRadius:6, color:'#555', cursor:'pointer', fontSize:11, padding:'2px 8px' }}>+ Add</button>
+                      </div>
+                      {customDraft.testCases.map((tc, ti) => (
+                        <div key={ti} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
+                          <input value={tc.input} onChange={e=>setCustomDraft(d=>({...d,testCases:d.testCases.map((x,i)=>i===ti?{...x,input:e.target.value}:x)}))} placeholder="Input" style={{ ...inp, flex:1, fontSize:11 }}/>
+                          <span style={{ color:'#333', flexShrink:0 }}>→</span>
+                          <input value={tc.output} onChange={e=>setCustomDraft(d=>({...d,testCases:d.testCases.map((x,i)=>i===ti?{...x,output:e.target.value}:x)}))} placeholder="Expected output" style={{ ...inp, flex:1, fontSize:11 }}/>
+                          <button onClick={()=>setCustomDraft(d=>({...d,testCases:d.testCases.map((x,i)=>i===ti?{...x,hidden:!x.hidden}:x)}))}
+                            title="Toggle hidden" style={{ background: tc.hidden?'#ff4d4d22':'#1e2a3a', border:`1px solid ${tc.hidden?'#ff4d4d44':'#1e2a3a'}`, borderRadius:6, color:tc.hidden?'#ff6b6b':'#555', cursor:'pointer', fontSize:10, padding:'5px 8px', flexShrink:0 }}>
+                            {tc.hidden ? '🔒' : '👁'}
+                          </button>
+                          {customDraft.testCases.length > 1 && <button onClick={()=>setCustomDraft(d=>({...d,testCases:d.testCases.filter((_,i)=>i!==ti)}))} style={{ background:'none', border:'none', color:'#ff4d4d50', cursor:'pointer', fontSize:14, padding:'0 2px' }}>✕</button>}
+                        </div>
+                      ))}
+                      <div style={{ color:'#444', fontSize:10, marginTop:4 }}>🔒 Hidden test cases are not shown to candidates but are used for auto-grading.</div>
+                    </div>
+
+                    {/* Save button */}
+                    <button
+                      onClick={() => {
+                        if (!customDraft.title.trim() || !customDraft.description.trim()) return;
+                        const cleaned = { ...customDraft };
+                        delete cleaned._tagInput;
+                        const prev = form.customProblems || [];
+                        if (editingCustom !== null) {
+                          set('customProblems', prev.map((q,i) => i===editingCustom ? cleaned : q));
+                        } else {
+                          set('customProblems', [...prev, cleaned]);
+                        }
+                        setShowCustomForm(false);
+                        setEditingCustom(null);
+                      }}
+                      disabled={!customDraft.title.trim() || !customDraft.description.trim()}
+                      style={{
+                        width:'100%', padding:'12px 0', borderRadius:10,
+                        background: !customDraft.title.trim()||!customDraft.description.trim() ? '#1e2a3a' : 'linear-gradient(135deg,#00c896,#059669)',
+                        border:'none', color: !customDraft.title.trim()||!customDraft.description.trim() ? '#444' : '#fff',
+                        cursor: !customDraft.title.trim()||!customDraft.description.trim() ? 'not-allowed' : 'pointer',
+                        fontSize:13, fontWeight:700,
+                        boxShadow: !customDraft.title.trim()||!customDraft.description.trim() ? 'none' : '0 0 20px #00c89630',
+                      }}
+                    >
+                      {editingCustom !== null ? '💾 Save Changes' : '✅ Add to Assessment'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AccordionSection>
 
           {/* ── INTEGRITY ── */}
