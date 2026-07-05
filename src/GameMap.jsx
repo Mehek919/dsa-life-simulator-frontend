@@ -379,7 +379,8 @@ function DistrictSection({ districtId, district, chapters, progress, unlockedCha
   districtId === 1 ||
   districtId === 4 ||
   districtId === 5 ||
-  districtId === 6
+  districtId === 6 ||
+  districtId === 7
   );
   const isFinTech = districtId === 5;
 
@@ -391,7 +392,7 @@ function DistrictSection({ districtId, district, chapters, progress, unlockedCha
   const totalProbs  = districtChapters.reduce((sum, [, ch]) => sum + (ch.problems || 0), 0);
 
   const firstChapterId = Number(districtChapters[0]?.[0]);
-  const isUnlocked = districtId === 1 || districtId === 4 || districtId === 5 || unlockedChapters.includes(firstChapterId);
+  const isUnlocked = districtId === 1 || districtId === 4 || districtId === 5 || districtId === 7 || unlockedChapters.includes(firstChapterId);
 
   return (
     <motion.div
