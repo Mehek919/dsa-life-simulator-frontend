@@ -646,7 +646,7 @@ export default function GameMap({ user, userData }) {
         creditReward:   Number(p.creditReward   || 20),
       })).filter(p =>
         p.chapter >= 1 &&
-        p.chapter <= 58 &&
+        p.chapter <= 73 &&
         p.district >= 1 &&
         p.problemType !== 'roadmap' &&
         p.source !== 'roadmap' &&
@@ -682,8 +682,8 @@ export default function GameMap({ user, userData }) {
 
   // ── Unlock logic ───────────────────────────────────────────────────────────
   const getUnlockedChapters = useCallback(() => {
-    // Ch1 = FAANG start, Ch14 = Enterprise start, Ch29 = FinTech start
-    const unlocked = [1, 14, 29, 44];
+    // Ch1 = FAANG start, Ch14 = Enterprise start, Ch29 = FinTech start, Ch44 = Consulting start, Ch59 = Silicon Frontier start
+    const unlocked = [1, 14, 29, 44, 59];
     if (problems.length === 0) return unlocked;
 
     const ids = Object.keys(CHAPTERS).map(Number).sort((a, b) => a - b);
@@ -727,7 +727,8 @@ export default function GameMap({ user, userData }) {
   const ENTERPRISE_TOTAL = 145;
   const FINTECH_TOTAL    = 177;
   const CONSULTING_TOTAL = 150;
-  const totalAvailable = FAANG_TOTAL + ENTERPRISE_TOTAL + FINTECH_TOTAL + CONSULTING_TOTAL;
+  const SILICON_FRONTIER_TOTAL = 150;
+  const totalAvailable = FAANG_TOTAL + ENTERPRISE_TOTAL + FINTECH_TOTAL + CONSULTING_TOTAL + SILICON_FRONTIER_TOTAL;
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
