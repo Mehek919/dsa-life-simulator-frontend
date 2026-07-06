@@ -25,6 +25,7 @@ import ProblemSolver from './ProblemSolver';
 import TeamSimulation from './TeamSimulation';
 import CodeReviewBattle from './CodeReviewBattle';
 import IncidentResponse from './IncidentResponse';
+import('./Mockinterview.jsx')
 const Roadmap = lazy(() => import('./Roadmap').catch(() => ({ default: () => <div>Coming soon</div> })));
 const Login                  = lazy(() => import('./Login'));
 const World                  = lazy(() => import('./World'));
