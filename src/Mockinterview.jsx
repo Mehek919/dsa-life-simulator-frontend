@@ -8,6 +8,7 @@ import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
 import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
 import AINativeIDE from './AINativeIDE';
 import InterviewReplay from './InterviewReplay';
+import ArrivalSequence from './ArrivalSequence';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -1599,7 +1600,7 @@ export default function MockInterview({ user, userData, setUserData }) {
       setChatMsgs([]);
       setChatInput('');
       setChatOpen(['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType));
-      setPhase('interview');
+      setPhase('arrival')
 
       if (['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)) {
         setTimeout(() => askOpeningQuestion(res.data), 300);
@@ -1744,6 +1745,18 @@ export default function MockInterview({ user, userData, setUserData }) {
         onHome={goHome}
       />
     );
+    if (phase === 'arrival') {
+     return (
+    <ArrivalSequence
+      company={company}
+      config={CONFIGS[company] || CONFIGS.general}
+      interviewType={session?.interviewType}
+      userName={userData?.displayName || user?.displayName || 'Candidate'}
+      sessionId={session?.sessionId}
+      onEnterInterview={() => setPhase('interview')}
+    />
+    );
+   }
   }
 
   if (!session || !currentProblem) {
