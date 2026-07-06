@@ -25,7 +25,6 @@ import ProblemSolver from './ProblemSolver';
 import TeamSimulation from './TeamSimulation';
 import CodeReviewBattle from './CodeReviewBattle';
 import IncidentResponse from './IncidentResponse';
-import('./Mockinterview.jsx')
 const Roadmap = lazy(() => import('./Roadmap').catch(() => ({ default: () => <div>Coming soon</div> })));
 const Login                  = lazy(() => import('./Login'));
 const World                  = lazy(() => import('./World'));
@@ -47,7 +46,7 @@ const SubmissionHistory = lazy(() => import('./Submissionhistory'));
 const WeeklyContest     = lazy(() => import('./WeeklyContest'));
 const AssessmentPortal  = lazy(() => import('./AssessmentPortal'));
 const CompanyDashboard  = lazy(() => import('./CompanyDashboard'));
-const MockInterview = lazy(() => import('./Mockinterview'));
+const MockInterview = lazy(() => import('./Mockinterview.jsx'));
 const WebcamMonitor   = lazy(() => import('./WebcamMonitor'));
 const SkillsProfile   = lazy(() => import('./SkillsProfile').catch(() => ({ default: () => <ComingSoon name="Skills Profile" /> })));
 const LazySkillsProfile = SkillsProfile;
