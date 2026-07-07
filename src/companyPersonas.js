@@ -1,15 +1,3 @@
-/**
- * companyPersonas.js
- *
- * Single source of truth for what makes each company's interview *feel*
- * different, not just look different. Used by:
- *   - ArrivalSequence.jsx (frontend): atmosphere flavor text
- *   - buildInterviewerSystemPrompt() (backend): actual AI behavior tuning
- *
- * pressureStyle fields are written as instructions because the model can't
- * literally "wait in silence" or "check a clock", so we describe the
- * behavioral effect in words the model can act on.
- */
 
 const COMPANY_PERSONAS = {
   google: {
@@ -307,9 +295,9 @@ function pickVariabilityAngle(seed) {
  *   const personaBlock = buildInterviewerSystemPrompt(company, interviewerName);
  *   const systemPrompt = `${personaBlock}\n\n${existingInterviewTypeInstructions}`;
  */
-function buildInterviewerSystemPrompt(company, interviewerName, sessionSeed) {
+function buildInterviewerSystemPrompt(company, interviewerName, sessionSeed, overridePersona) {
   const key = String(company || 'general').toLowerCase().trim();
-  const persona = COMPANY_PERSONAS[key] || COMPANY_PERSONAS.general;
+  const persona = overridePersona || COMPANY_PERSONAS[key] || COMPANY_PERSONAS.general;
   const angle = pickVariabilityAngle(sessionSeed);
 
   return `You are ${interviewerName || 'the interviewer'}, conducting a real interview at ${company || 'a technology company'}.
