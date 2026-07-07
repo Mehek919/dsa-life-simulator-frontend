@@ -1,30 +1,31 @@
 {
-  "short_name": "DSALife",
+  "short_name": "DSA Life Simulator",
   "name": "DSA Life Simulator",
-  "description": "Level up your coding life. Gamified DSA learning with AI challenges, arena battles, and real company problems.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0a0a14",
-  "theme_color": "#06b6d4",
-  "orientation": "portrait-primary",
-  "categories": ["education", "games", "productivity"],
   "icons": [
     {
-      "src": "/logo192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
     },
     {
-      "src": "/logo512.png",
+      "src": "favicon-96x96.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "sizes": "96x96"
+    },
+    {
+      "src": "android-chrome-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ],
-  "screenshots": [],
-  "related_applications": [],
-  "prefer_related_applications": false
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f0f1a",
+  "background_color": "#0f0f1a"
 }
-
 
