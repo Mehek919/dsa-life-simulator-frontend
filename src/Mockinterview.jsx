@@ -1731,7 +1731,9 @@ export default function MockInterview({ user, userData, setUserData }) {
     const goHome = () => {
     navigate('/world');
   };
-
+  if (phase === 'select') {
+  return <CompanySelector onStart={startInterview} error={startError} />;
+  }
   if (phase === 'result') {
   return (
     <InterviewResult
