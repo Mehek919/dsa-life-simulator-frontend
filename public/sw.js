@@ -49,9 +49,15 @@ self.addEventListener('fetch', event => {
     url.hostname.includes('render.com') ||
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('firestore') ||
-    url.hostname.includes('firebase')
+    url.hostname.includes('firebase') ||
+    request.destination === '' // XHR/fetch calls (axios) have no destination type
   ) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(() => new Response(
+        JSON.stringify({ error: 'Network request failed' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      ))
+    );
     return;
   }
 
@@ -74,15 +80,17 @@ self.addEventListener('fetch', event => {
     caches.match(request).then(cached => {
       if (cached) return cached;
 
-      return fetch(request).then(response => {
-        // Only cache valid responses
-        if (!response || response.status !== 200 || response.type === 'opaque') {
+      return fetch(request)
+        .then(response => {
+          // Only cache valid responses
+          if (!response || response.status !== 200 || response.type === 'opaque') {
+            return response;
+          }
+          const clone = response.clone();
+          caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
           return response;
-        }
-        const clone = response.clone();
-        caches.open(RUNTIME_CACHE).then(cache => cache.put(request, clone));
-        return response;
-      });
+        })
+        .catch(() => new Response('', { status: 503, statusText: 'Offline' }));
     })
   );
 });
@@ -152,7 +160,6 @@ self.addEventListener('sync', event => {
     event.waitUntil(syncOfflineProgress());
   }
 });
-
 async function syncOfflineProgress() {
   try {
     const cache = await caches.open('offline-queue');
@@ -171,4 +178,3 @@ async function syncOfflineProgress() {
     console.error('Background sync failed:', err);
   }
 }
-
