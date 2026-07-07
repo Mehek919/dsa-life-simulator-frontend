@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
+import { COMPANY_PERSONAS } from './companyPersonas';
 
 /**
  * ArrivalSequence.jsx
@@ -77,6 +78,46 @@ const ENVIRONMENTS = {
     receptionist: 'Alex',
     badgeStyle: 'INTERVIEW',
     floors: 14,
+  },
+  oracle: {
+    buildingName: 'Oracle Redwood Shores HQ',
+    lobbyLine: 'Redwood City, California',
+    wallColor: '#f80000',
+    accentColor: '#8b8b8b',
+    ambience: 'Formal, slightly dated decor. Very quiet. A framed database schema hangs on the wall like art.',
+    receptionist: 'Harold',
+    badgeStyle: 'VISITOR',
+    floors: 10,
+  },
+  adobe: {
+    buildingName: 'Adobe Almaden Tower',
+    lobbyLine: 'San Jose, California',
+    wallColor: '#ff0000',
+    accentColor: '#fbda61',
+    ambience: 'Colorful walls, gallery-style prints of past campaigns. Casual dress, warm lighting.',
+    receptionist: 'Nina',
+    badgeStyle: 'GUEST',
+    floors: 5,
+  },
+  salesforce: {
+    buildingName: 'Salesforce Tower',
+    lobbyLine: 'San Francisco, California',
+    wallColor: '#00a1e0',
+    accentColor: '#ffb800',
+    ambience: 'Bright, glass-walled, city views from every angle. Upbeat music faintly in the elevator.',
+    receptionist: 'Carlos',
+    badgeStyle: 'GUEST',
+    floors: 11,
+  },
+  nvidia: {
+    buildingName: 'NVIDIA Endeavor',
+    lobbyLine: 'Santa Clara, California',
+    wallColor: '#76b900',
+    accentColor: '#1a1a1a',
+    ambience: 'A low server-hum ambience underlies everything. Screens with live chip renders everywhere.',
+    receptionist: 'Tomas',
+    badgeStyle: 'VISITOR',
+    floors: 3,
   },
 };
 
@@ -583,6 +624,13 @@ export default function ArrivalSequence({
               }}>
               "{interviewer.entranceLine(userName)}"
             </motion.div>
+
+            {(COMPANY_PERSONAS[company]?.archetype) && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2 }}
+                style={{ color: '#444', fontSize: 11, marginTop: 16, fontStyle: 'italic' }}>
+                {COMPANY_PERSONAS[company].archetype}
+              </motion.div>
+            )}
           </motion.div>
         )}
 
