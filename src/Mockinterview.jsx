@@ -2,7 +2,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 import API_BASE from './config';
+
+// Every mock-interview backend route requires a verified Firebase ID token
+// in the Authorization header. This helper fetches a fresh token for the
+// currently signed in user and returns the header object to spread into
+// an axios or fetch call.
+async function getAuthHeaders() {
+  const auth = getAuth();
+  if (!auth.currentUser) return {};
+  const token = await auth.currentUser.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
 import CodeEditor from './CodeEditor';
 import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
 import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
@@ -1060,9 +1072,10 @@ function InterviewResult({ result, company, onRedo, onHome }) {
     setFollowUpInput('');
     setFollowUpLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await axios.post(`${API_BASE}/mock-interview/${result.sessionId}/followup`, {
         userId: result.userId, message: msg, conversation: followUpMsgs,
-      });
+      }, { headers: authHeaders });
       if (res.data.reply) setFollowUpMsgs(prev => [...prev, { role:'coach', text:res.data.reply }]);
     } catch (e) { console.error('Follow-up error:', e); }
     finally { setFollowUpLoading(false); }
@@ -1419,7 +1432,8 @@ export default function MockInterview({ user, userData, setUserData }) {
   const sendIntegrityEvent = useCallback(async (type, data) => {
     if (!session?.sessionId) return;
     try {
-      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/integrity-event`, { type, data });
+      const authHeaders = await getAuthHeaders();
+      await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/integrity-event`, { type, data }, { headers: authHeaders });
     } catch (e) {
       // non-blocking
     }
@@ -1577,9 +1591,10 @@ export default function MockInterview({ user, userData, setUserData }) {
   // Consumes the streaming ai-question-stream endpoint, calling onToken as
   // each chunk arrives so the caller can append it to a chat message live.
   const streamAiQuestion = useCallback(async (sessionId, body, onToken) => {
+    const authHeaders = await getAuthHeaders();
     const res = await fetch(`${API_BASE}/mock-interview/${sessionId}/ai-question-stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(body),
     });
     if (!res.ok || !res.body) throw new Error(`Stream request failed: ${res.status}`);
@@ -1661,6 +1676,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     setStartError(null);
 
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await axios.post(`${API_BASE}/mock-interview/start`, {
         userId: user?.uid,
         company: selectedCompany,
@@ -1669,7 +1685,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         jdText,
         realWorld,
         aiAssistEnabled,
-      });
+      }, { headers: authHeaders });
 
       if (!res.data.success) {
         throw new Error(res.data.error || 'Failed to start interview');
@@ -1723,6 +1739,7 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (!session?.sessionId || !currentProblem) return;
 
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/submit`, {
         userId: user?.uid,
         problemId: currentProblem.id,
@@ -1733,7 +1750,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         allPassed,
         tabSwitches,
         pasteCount,
-      });
+      }, { headers: authHeaders });
 
       if (res.data.success && allPassed) {
         setSolved(prev => [...new Set([...prev, currentProblem.id])]);
@@ -1747,9 +1764,10 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (!session?.sessionId) return;
 
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/complete`, {
         userId: user?.uid,
-      });
+      }, { headers: authHeaders });
 
       if (res.data.success) {
         const finalResult = {
