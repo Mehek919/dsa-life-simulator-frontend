@@ -239,6 +239,8 @@ function CompanySelector({ onStart, error }) {
   const config = CONFIGS[selected] || CONFIGS.general;
 
   const TYPES = [
+    { id:'recruiter-call', icon:'📞', label:'Recruiter Call', desc:'15-20 min screen', tier:'First' },
+    { id:'management-round', icon:'🎯', label:'Management Round', desc:'Team fit + growth', tier:'Late' },
     { id:'coding', icon:'💻', label:'Coding', desc:'DSA + live editor', tier:'Core' },
     { id:'system-design', icon:'🏗️', label:'System Design', desc:'Architecture round', tier:'Senior' },
     { id:'behavioral', icon:'🎙️', label:'Behavioral', desc:'STAR + HR pressure', tier:'HR' },
@@ -256,6 +258,8 @@ function CompanySelector({ onStart, error }) {
   ];
 
   const typeColors = {
+    'recruiter-call':'#38d9a9',
+    'management-round':'#f97316',
     coding:'#a855f7',
     'system-design':'#38bdf8',
     behavioral:'#f59e0b',
@@ -283,6 +287,8 @@ function CompanySelector({ onStart, error }) {
     setStarting(true);
 
     const companyToSend = [
+      'recruiter-call',
+      'management-round',
       'technical-screening',
       'ai-fluency',
       'frontend',
@@ -768,7 +774,7 @@ function CompanySelector({ onStart, error }) {
                 <small>Interview mode</small>
               </div>
               <div className="mi-stat">
-                <b>{interviewType === 'coding' ? config.duration : interviewType.includes('cloud') || interviewType.includes('distributed') ? 60 : 45} min</b>
+                <b>{interviewType === 'coding' ? config.duration : interviewType === 'recruiter-call' ? 18 : interviewType.includes('cloud') || interviewType.includes('distributed') ? 60 : 45} min</b>
                 <small>Pressure timer</small>
               </div>
               <div className="mi-stat">
@@ -1602,10 +1608,10 @@ export default function MockInterview({ user, userData, setUserData }) {
       setPasteCount(0);
       setChatMsgs([]);
       setChatInput('');
-      setChatOpen(['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType));
+      setChatOpen(['recruiter-call','management-round','technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType));
       setPhase('arrival');
       setPendingChatStart(
-        ['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)
+        ['recruiter-call','management-round','technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)
           ? res.data
           : null
       );
@@ -1796,6 +1802,8 @@ export default function MockInterview({ user, userData, setUserData }) {
   }
 
   const isChatType = [
+    'recruiter-call',
+    'management-round',
     'technical-screening',
     'ai-fluency',
     'personalized',
@@ -1817,6 +1825,8 @@ export default function MockInterview({ user, userData, setUserData }) {
   const displayConfig = CONFIGS[company] || CONFIGS.general;
 
   const typeColors = {
+    'recruiter-call':'#38d9a9',
+    'management-round':'#f97316',
     'technical-screening':'#10b981',
     frontend:'#f472b6',
     'ai-fluency':'#a78bfa',
@@ -1901,7 +1911,9 @@ export default function MockInterview({ user, userData, setUserData }) {
             justifyContent:'center',
             fontSize:18,
           }}>
-            {iType === 'db-debug' ? '🗄️'
+            {iType === 'recruiter-call' ? '📞'
+              : iType === 'management-round' ? '🎯'
+              : iType === 'db-debug' ? '🗄️'
               : iType === 'api-integration' ? '🔌'
               : iType === 'cloud-arch' ? '☁️'
               : iType === 'distributed-systems' ? '🌐'
@@ -2206,20 +2218,28 @@ export default function MockInterview({ user, userData, setUserData }) {
               <InterviewScene
                 color={activeColor}
                 icon={
-                  iType === 'technical-screening' ? '📋'
+                  iType === 'recruiter-call' ? '📞'
+                  : iType === 'management-round' ? '🎯'
+                  : iType === 'technical-screening' ? '📋'
                   : iType === 'ai-fluency' ? '🤖'
                   : iType === 'personalized' ? '📄'
                   : iType === 'autonomous' ? '🧠'
                   : '🎙️'
                 }
                 title={
-                  iType === 'technical-screening' ? 'Technical Screener'
+                  iType === 'recruiter-call' ? 'Recruiter'
+                  : iType === 'management-round' ? 'Hiring Manager'
+                  : iType === 'technical-screening' ? 'Technical Screener'
                   : iType === 'ai-fluency' ? 'AI Fluency Interviewer'
                   : iType === 'personalized' ? 'Personalized Interviewer'
                   : iType === 'autonomous' ? 'Autonomous AI Interviewer'
                   : 'Behavioral Interviewer'
                 }
-                subtitle="Answer naturally. The interviewer will ask follow-ups."
+                subtitle={
+                  iType === 'recruiter-call' ? 'A quick, friendly first conversation.'
+                  : iType === 'management-round' ? 'A candid conversation about fit, growth, and team dynamics.'
+                  : 'Answer naturally. The interviewer will ask follow-ups.'
+                }
                 placeholder="Type your answer..."
                 chatMsgs={chatMsgs}
                 chatLoading={chatLoading}
