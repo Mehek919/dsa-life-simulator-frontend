@@ -15,6 +15,7 @@ const TABS = [
   { id: 'companies', label: 'Companies and Personas' },
   { id: 'templates', label: 'Interview Templates' },
   { id: 'behavior', label: 'AI Behavior' },
+  { id: 'platform', label: 'Platform Configuration' },
 ];
 
 export default function AdminPanel({ user }) {
@@ -49,6 +50,7 @@ export default function AdminPanel({ user }) {
         {tab === 'companies' && <CompaniesTab userId={user?.uid} />}
         {tab === 'templates' && <TemplatesTab userId={user?.uid} />}
         {tab === 'behavior' && <BehaviorTab userId={user?.uid} />}
+        {tab === 'platform' && <PlatformTab userId={user?.uid} />}
 
       </div>
     </div>
@@ -390,6 +392,137 @@ function ToggleRow({ label, desc, value, onChange }) {
           background: value ? '#a855f7' : '#1e2a3a', position: 'relative', flexShrink: 0,
         }}>
         <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: value ? 23 : 3, transition: 'left 0.2s' }} />
+      </button>
+    </div>
+  );
+}
+
+function PlatformTab({ userId }) {
+  const [config, setConfig] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API_BASE}/admin/platform-config`)
+      .then(res => setConfig(res.data.config))
+      .catch(e => setError(e.response?.data?.error || e.message));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    setSaved(false);
+    try {
+      await axios.put(`${API_BASE}/admin/platform-config`, { userId, ...config });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setError(e.response?.data?.error || e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleType = (type) => {
+    const current = config.enabledInterviewTypes || [];
+    const next = current.includes(type) ? current.filter(t => t !== type) : [...current, type];
+    setConfig({ ...config, enabledInterviewTypes: next });
+  };
+
+  const toggleDistrict = (d) => {
+    const current = config.enabledDistricts || [];
+    const next = current.includes(d) ? current.filter(x => x !== d) : [...current, d];
+    setConfig({ ...config, enabledDistricts: next });
+  };
+
+  if (error) return <ErrorBox message={error} />;
+  if (!config) return <div style={{ color: '#555' }}>Loading...</div>;
+
+  return (
+    <div style={{ background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 14, padding: 20, maxWidth: 620 }}>
+
+      <ToggleRow
+        label="Maintenance Mode"
+        desc="Blocks all new interview starts platform-wide, shows the message below instead."
+        value={config.maintenanceMode}
+        onChange={v => setConfig({ ...config, maintenanceMode: v })}
+      />
+
+      {config.maintenanceMode && (
+        <>
+          <FieldLabel>Maintenance Message</FieldLabel>
+          <TextArea value={config.maintenanceMessage} onChange={v => setConfig({ ...config, maintenanceMessage: v })} rows={2} />
+        </>
+      )}
+
+      <ToggleRow
+        label="New Signups"
+        desc="Turn off to stop accepting new user accounts."
+        value={config.newSignupsEnabled}
+        onChange={v => setConfig({ ...config, newSignupsEnabled: v })}
+      />
+      <ToggleRow
+        label="Resume Screening"
+        desc="Enable or disable the Resume Screening feature platform-wide."
+        value={config.resumeScreeningEnabled}
+        onChange={v => setConfig({ ...config, resumeScreeningEnabled: v })}
+      />
+      <ToggleRow
+        label="Recruiter Dashboard"
+        desc="Enable or disable recruiter pipeline access platform-wide."
+        value={config.recruiterDashboardEnabled}
+        onChange={v => setConfig({ ...config, recruiterDashboardEnabled: v })}
+      />
+
+      <FieldLabel>Platform Announcement (shown to all users, leave blank for none)</FieldLabel>
+      <TextArea value={config.platformAnnouncement} onChange={v => setConfig({ ...config, platformAnnouncement: v })} rows={2} />
+
+      <div style={{ marginTop: 18 }}>
+        <div style={{ color: '#666', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Enabled Interview Types</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {INTERVIEW_TYPES.map(type => {
+            const on = (config.enabledInterviewTypes || []).includes(type);
+            return (
+              <button key={type} onClick={() => toggleType(type)}
+                style={{
+                  background: on ? '#a855f722' : '#060910',
+                  border: `1px solid ${on ? '#a855f766' : '#1e2a3a'}`,
+                  borderRadius: 20, color: on ? '#a855f7' : '#555',
+                  cursor: 'pointer', fontSize: 11, padding: '5px 12px',
+                }}>
+                {type}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <div style={{ color: '#666', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>Enabled Districts</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {[1, 2, 3, 4, 5, 6, 7].map(d => {
+            const on = (config.enabledDistricts || []).includes(d);
+            return (
+              <button key={d} onClick={() => toggleDistrict(d)}
+                style={{
+                  background: on ? '#a855f722' : '#060910',
+                  border: `1px solid ${on ? '#a855f766' : '#1e2a3a'}`,
+                  borderRadius: 20, color: on ? '#a855f7' : '#555',
+                  cursor: 'pointer', fontSize: 11, padding: '5px 12px', width: 32,
+                }}>
+                {d}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {error && <ErrorText message={error} />}
+
+      <button onClick={save} disabled={saving}
+        style={{ marginTop: 20, width: '100%', background: 'linear-gradient(135deg, #a855f7, #a855f7bb)', border: 'none', borderRadius: 10, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: '11px 0', opacity: saving ? 0.6 : 1 }}>
+        {saving ? 'Saving...' : saved ? 'Saved' : 'Save Changes'}
       </button>
     </div>
   );
