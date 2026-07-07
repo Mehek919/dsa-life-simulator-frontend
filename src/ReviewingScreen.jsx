@@ -30,16 +30,46 @@ const STEPS = [
 ];
 
 export default function ReviewingScreen({ company, onDone, durationMs = 5200 }) {
+  const [reliefDone, setReliefDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
 
   useEffect(() => {
+    const reliefTimer = setTimeout(() => setReliefDone(true), 1800);
+    return () => clearTimeout(reliefTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!reliefDone) return;
     const perStep = durationMs / STEPS.length;
     const timers = STEPS.map((_, i) =>
       setTimeout(() => setStepIdx(i), i * perStep)
     );
     const doneTimer = setTimeout(() => onDone?.(), durationMs);
     return () => { timers.forEach(clearTimeout); clearTimeout(doneTimer); };
-  }, [durationMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reliefDone, durationMs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!reliefDone) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'Arial, sans-serif', gap: 14,
+      }}>
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }}
+          style={{ fontSize: 40 }}>
+          🙌
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>
+          You made it through.
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+          style={{ color: '#555', fontSize: 12 }}>
+          Take a breath, that's the hard part done.
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

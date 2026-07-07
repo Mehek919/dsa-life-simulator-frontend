@@ -1010,6 +1010,41 @@ function CompanySelector({ onStart, error }) {
   );
 }
 // ── Interview Result Screen ───────────────────────────────────────────────────
+// ── Motivation Card: specific next-attempt encouragement, not generic praise ──
+function MotivationCard({ breakdown = [], pct, displayColor }) {
+  const weakest = [...breakdown].sort((a, b) => (a.score || 0) - (b.score || 0))[0];
+
+  let headline;
+  let subtext;
+
+  if (pct >= 80) {
+    headline = 'Strong performance. Ready to raise the bar.';
+    subtext = weakest
+      ? `Even here, "${weakest.title}" had room to tighten up, take a harder version of that pattern next.`
+      : 'Try the same company at a higher difficulty next time.';
+  } else if (weakest) {
+    headline = `Next time, focus on ${weakest.title}.`;
+    subtext = `That's where the gap showed up most today, ${weakest.testsPassed}/${weakest.testsTotal} tests passed. One more focused attempt there will move the needle more than anything else.`;
+  } else {
+    headline = 'Every attempt sharpens the next one.';
+    subtext = 'Come back and try again when ready, the goal is progress, not a perfect first pass.';
+  }
+
+  return (
+    <div style={{
+      background: `${displayColor}0c`, border: `1px solid ${displayColor}33`, borderRadius: 14,
+      padding: '16px 20px', marginBottom: 16,
+    }}>
+      <div style={{ color: displayColor, fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
+        {headline}
+      </div>
+      <div style={{ color: '#999', fontSize: 12, lineHeight: 1.6 }}>
+        {subtext}
+      </div>
+    </div>
+  );
+}
+
 function InterviewResult({ result, company, onRedo, onHome }) {
   const config     = CONFIGS[company] || CONFIGS.general;
   const [followUpOpen,    setFollowUpOpen]    = useState(false);
@@ -1307,6 +1342,8 @@ function InterviewResult({ result, company, onRedo, onHome }) {
           )}
         </div>
 
+        <MotivationCard breakdown={breakdown} pct={result.pct} displayColor={displayColor} />
+
         <div style={{ display:'flex', gap:10 }}>
           <button
             onClick={onRedo}
@@ -1537,34 +1574,72 @@ export default function MockInterview({ user, userData, setUserData }) {
   const currentProblem = session?.problems?.[probIdx];
   const iType = session?.interviewType || 'coding';
 
+  // Consumes the streaming ai-question-stream endpoint, calling onToken as
+  // each chunk arrives so the caller can append it to a chat message live.
+  const streamAiQuestion = useCallback(async (sessionId, body, onToken) => {
+    const res = await fetch(`${API_BASE}/mock-interview/${sessionId}/ai-question-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok || !res.body) throw new Error(`Stream request failed: ${res.status}`);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop(); // keep any incomplete trailing chunk for next read
+
+      for (const part of parts) {
+        if (!part.startsWith('data: ')) continue;
+        const token = part.slice(6);
+        if (token === '[DONE]') continue;
+        fullText += token;
+        onToken(fullText);
+      }
+    }
+    return fullText;
+  }, []);
+
   const askInterviewer = useCallback(async (answerText) => {
     if (!session?.sessionId || !currentProblem || chatLoading) return;
 
     setChatLoading(true);
+    setChatMsgs(prev => [...prev, { role:'interviewer', text:'' }]);
 
     try {
-      const res = await axios.post(`${API_BASE}/mock-interview/${session.sessionId}/ai-question`, {
+      await streamAiQuestion(session.sessionId, {
         userId: user?.uid,
         problemId: currentProblem.id,
-        code: '',
-        language: 'javascript',
         conversation: chatMsgs,
         userAnswer: answerText,
+      }, (partialText) => {
+        setChatMsgs(prev => {
+          const next = [...prev];
+          next[next.length - 1] = { role:'interviewer', text: partialText };
+          return next;
+        });
       });
-
-      if (res.data.question) {
-        setChatMsgs(prev => [...prev, { role:'interviewer', text:res.data.question }]);
-      }
     } catch (e) {
       console.error('AI question error:', e);
-      setChatMsgs(prev => [...prev, {
-        role:'interviewer',
-        text:'I had trouble generating the next question. Please continue with your approach.',
-      }]);
+      setChatMsgs(prev => {
+        const next = [...prev];
+        next[next.length - 1] = {
+          role:'interviewer',
+          text:'I had trouble generating the next question. Please continue with your approach.',
+        };
+        return next;
+      });
     } finally {
       setChatLoading(false);
     }
-  }, [session?.sessionId, currentProblem, chatLoading, user?.uid, chatMsgs]);
+  }, [session?.sessionId, currentProblem, chatLoading, user?.uid, chatMsgs, streamAiQuestion]);
 
   const sendChatMsg = async () => {
     if (!chatInput.trim() || chatLoading) return;
@@ -1626,21 +1701,19 @@ export default function MockInterview({ user, userData, setUserData }) {
     if (!s?.sessionId || !firstProblem) return;
 
     setChatLoading(true);
+    setChatMsgs([{ role:'interviewer', text:'' }]);
 
     try {
-      const res = await axios.post(`${API_BASE}/mock-interview/${s.sessionId}/ai-question`, {
+      await streamAiQuestion(s.sessionId, {
         userId: user?.uid,
         problemId: firstProblem.id,
-        code: '',
-        language: 'javascript',
         conversation: [],
+      }, (partialText) => {
+        setChatMsgs([{ role:'interviewer', text: partialText }]);
       });
-
-      if (res.data.question) {
-        setChatMsgs([{ role:'interviewer', text:res.data.question }]);
-      }
     } catch (e) {
       console.error('Opening question failed:', e);
+      setChatMsgs([{ role:'interviewer', text:'Ready when you are, let\'s get started.' }]);
     } finally {
       setChatLoading(false);
     }

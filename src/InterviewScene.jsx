@@ -44,9 +44,9 @@ export default function InterviewScene({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [chatMsgs, chatLoading]);
 
-  const currentLine = chatLoading
-    ? null
-    : [...chatMsgs].reverse().find(m => m.role === 'interviewer')?.text;
+  const lastInterviewerMsg = [...chatMsgs].reverse().find(m => m.role === 'interviewer');
+  const currentLine = lastInterviewerMsg?.text || null;
+  const stillWaitingForFirstToken = chatLoading && !currentLine;
 
   const transcript = chatMsgs.slice(0, -1);
 
@@ -104,7 +104,9 @@ export default function InterviewScene({
                 lineHeight: 1.7,
                 fontStyle: 'italic',
               }}>
-              "{currentLine}"
+              "{currentLine}"{chatLoading && currentLine && (
+                <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.8, repeat: Infinity }}>▍</motion.span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -116,7 +118,7 @@ export default function InterviewScene({
           </div>
         )}
 
-        {chatLoading && (
+        {stillWaitingForFirstToken && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#555', fontSize: 12, fontStyle: 'italic' }}>
             <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }}>
               considering your answer
