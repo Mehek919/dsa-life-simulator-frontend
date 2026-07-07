@@ -4,6 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import API_BASE from './config';
+import CodeEditor from './CodeEditor';
+import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
+import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
+import AINativeIDE from './AINativeIDE';
+import InterviewReplay from './InterviewReplay';
+import ArrivalSequence from './ArrivalSequence';
+import InterviewScene from './InterviewScene';
+import ReviewingScreen from './ReviewingScreen';
 
 // Every mock-interview backend route requires a verified Firebase ID token
 // in the Authorization header. This helper fetches a fresh token for the
@@ -15,14 +23,6 @@ async function getAuthHeaders() {
   const token = await auth.currentUser.getIdToken();
   return { Authorization: `Bearer ${token}` };
 }
-import CodeEditor from './CodeEditor';
-import { LiveObserverPanel, IntegrityReport } from './InterviewObserver';
-import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
-import AINativeIDE from './AINativeIDE';
-import InterviewReplay from './InterviewReplay';
-import ArrivalSequence from './ArrivalSequence';
-import InterviewScene from './InterviewScene';
-import ReviewingScreen from './ReviewingScreen';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
