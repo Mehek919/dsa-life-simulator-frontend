@@ -1732,21 +1732,19 @@ export default function MockInterview({ user, userData, setUserData }) {
     navigate('/world');
   };
 
-  if (phase === 'select') {
-    return <CompanySelector onStart={startInterview} error={startError} />;
-  }
-
   if (phase === 'result') {
-    return (
-      <InterviewResult
-        result={result}
-        company={company}
-        onRedo={redoInterview}
-        onHome={goHome}
-      />
-    );
-    if (phase === 'arrival') {
-     return (
+  return (
+    <InterviewResult
+      result={result}
+      company={company}
+      onRedo={redoInterview}
+      onHome={goHome}
+    />
+  );
+}
+
+if (phase === 'arrival') {
+  return (
     <ArrivalSequence
       company={company}
       config={CONFIGS[company] || CONFIGS.general}
@@ -1755,10 +1753,8 @@ export default function MockInterview({ user, userData, setUserData }) {
       sessionId={session?.sessionId}
       onEnterInterview={() => setPhase('interview')}
     />
-    );
-   }
-  }
-
+  );
+}
   if (!session || !currentProblem) {
     return (
       <div style={{
