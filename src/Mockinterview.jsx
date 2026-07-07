@@ -9,6 +9,8 @@ import { HiringReportPanel, downloadHiringReportPDF } from './HiringReport';
 import AINativeIDE from './AINativeIDE';
 import InterviewReplay from './InterviewReplay';
 import ArrivalSequence from './ArrivalSequence';
+import InterviewScene from './InterviewScene';
+import ReviewingScreen from './ReviewingScreen';
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
   amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
@@ -1342,6 +1344,7 @@ function InterviewResult({ result, company, onRedo, onHome }) {
 export default function MockInterview({ user, userData, setUserData }) {
   const navigate = useNavigate();
   const [phase,      setPhase]      = useState('select');
+  const [pendingChatStart, setPendingChatStart] = useState(null);
   const [session,    setSession]    = useState(null);
   const [company,    setCompany]    = useState('general');
   const [probIdx,    setProbIdx]    = useState(0);
@@ -1600,11 +1603,12 @@ export default function MockInterview({ user, userData, setUserData }) {
       setChatMsgs([]);
       setChatInput('');
       setChatOpen(['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType));
-      setPhase('arrival')
-
-      if (['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)) {
-        setTimeout(() => askOpeningQuestion(res.data), 300);
-      }
+      setPhase('arrival');
+      setPendingChatStart(
+        ['technical-screening','ai-fluency','personalized','voice','autonomous','db-debug','api-integration','cloud-arch','distributed-systems'].includes(res.data.interviewType)
+          ? res.data
+          : null
+      );
     } catch (e) {
       console.error('Start interview failed:', e);
       setStartError(e.response?.data?.error || e.message || 'Could not start interview');
@@ -1678,7 +1682,7 @@ export default function MockInterview({ user, userData, setUserData }) {
         };
 
         setResult(finalResult);
-        setPhase('result');
+        setPhase('reviewing');
 
         if (setUserData && res.data.totalScore > 0) {
           setUserData(prev => ({
@@ -1731,32 +1735,50 @@ export default function MockInterview({ user, userData, setUserData }) {
     const goHome = () => {
     navigate('/world');
   };
-  if (phase === 'select') {
-  return <CompanySelector onStart={startInterview} error={startError} />;
-  }
-  if (phase === 'result') {
-  return (
-    <InterviewResult
-      result={result}
-      company={company}
-      onRedo={redoInterview}
-      onHome={goHome}
-    />
-  );
-}
 
-if (phase === 'arrival') {
-  return (
-    <ArrivalSequence
-      company={company}
-      config={CONFIGS[company] || CONFIGS.general}
-      interviewType={session?.interviewType}
-      userName={userData?.displayName || user?.displayName || 'Candidate'}
-      sessionId={session?.sessionId}
-      onEnterInterview={() => setPhase('interview')}
-    />
-  );
-}
+  if (phase === 'select') {
+    return <CompanySelector onStart={startInterview} error={startError} />;
+  }
+
+  if (phase === 'reviewing') {
+    return (
+      <ReviewingScreen
+        company={CONFIGS[company]?.company || company}
+        onDone={() => setPhase('result')}
+      />
+    );
+  }
+
+  if (phase === 'result') {
+    return (
+      <InterviewResult
+        result={result}
+        company={company}
+        onRedo={redoInterview}
+        onHome={goHome}
+      />
+    );
+  }
+
+  if (phase === 'arrival') {
+    return (
+      <ArrivalSequence
+        company={company}
+        config={CONFIGS[company] || CONFIGS.general}
+        interviewType={session?.interviewType}
+        userName={userData?.displayName || user?.displayName || 'Candidate'}
+        sessionId={session?.sessionId}
+        onEnterInterview={() => {
+          setPhase('interview');
+          if (pendingChatStart) {
+            setTimeout(() => askOpeningQuestion(pendingChatStart), 300);
+            setPendingChatStart(null);
+          }
+        }}
+      />
+    );
+  }
+
   if (!session || !currentProblem) {
     return (
       <div style={{
@@ -2065,7 +2087,7 @@ if (phase === 'arrival') {
                 )}
               </div>
 
-              <ChatPanel
+              <InterviewScene
                 color="#06b6d4"
                 icon="🗄️"
                 title="DB Engineer Interviewer"
@@ -2092,7 +2114,7 @@ if (phase === 'arrival') {
                 probes={['Idempotency','Error handling','Security','Scalability','Failure modes']}
               />
 
-              <ChatPanel
+              <InterviewScene
                 color="#f97316"
                 icon="🔌"
                 title="API Architect Interviewer"
@@ -2120,7 +2142,7 @@ if (phase === 'arrival') {
                 probes={['Cost at scale','Failure recovery','Multi-region trade-offs','Managed vs self-hosted','Observability']}
               />
 
-              <ChatPanel
+              <InterviewScene
                 color="#8b5cf6"
                 icon="☁️"
                 title="Cloud Architect Interviewer"
@@ -2162,7 +2184,7 @@ if (phase === 'arrival') {
                 </div>
               </div>
 
-              <ChatPanel
+              <InterviewScene
                 color="#ec4899"
                 icon="🌐"
                 title="Distributed Systems Interviewer"
@@ -2181,7 +2203,7 @@ if (phase === 'arrival') {
           {/* Generic chat-only UI */}
           {isChatType && !isSpecialArchitectureType && iType !== 'voice' && (
             <div style={{ display:'flex', height:'100%' }}>
-              <ChatPanel
+              <InterviewScene
                 color={activeColor}
                 icon={
                   iType === 'technical-screening' ? '📋'
