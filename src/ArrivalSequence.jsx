@@ -6,29 +6,17 @@ import API_BASE from './config';
 /**
  * ArrivalSequence.jsx
  *
- * The cinematic onsite experience that plays between "Start Interview" and
- * the actual interview phase. Makes the user feel like they physically
- * walked into the company building and sat down across from a real person.
+ * The full physical-arrival experience between "Start Interview" and the
+ * actual interview phase. Stage order:
  *
- * Stages: arrival lobby, waiting, interviewer entrance, small talk, handoff.
+ *   exterior -> lobby -> waiting -> walk -> entrance -> smalltalk -> transition
  *
- * Usage in Mockinterview.jsx:
- *   1. Add a new phase value 'arrival' between 'select' and 'interview'
- *   2. In startInterview(), replace setPhase('interview') with setPhase('arrival')
- *      and stash the session in state as you already do
- *   3. Render:
- *      {phase === 'arrival' && (
- *        <ArrivalSequence
- *          company={company}
- *          config={CONFIGS[company] || CONFIGS.general}
- *          interviewType={session?.interviewType}
- *          userName={userData?.displayName || user?.displayName || 'Candidate'}
- *          onEnterInterview={() => setPhase('interview')}
- *        />
- *      )}
+ * IMPORTANT: every stage advances on a guaranteed setTimeout, never gated on
+ * speech synthesis finishing. Speech plays alongside the visuals as a bonus
+ * layer, if it fails silently (missing voices, browser blocks it, etc) the
+ * sequence still progresses at a natural pace.
  */
 
-// Company-specific environment theming
 const ENVIRONMENTS = {
   google: {
     buildingName: 'Googleplex, Building 43',
@@ -38,6 +26,7 @@ const ENVIRONMENTS = {
     ambience: 'Open atrium. Bikes parked inside. Someone rolls past on a scooter.',
     receptionist: 'Dana',
     badgeStyle: 'GUEST',
+    floors: 8,
   },
   amazon: {
     buildingName: 'Amazon Day 1 Tower',
@@ -47,6 +36,7 @@ const ENVIRONMENTS = {
     ambience: 'Glass everywhere. The Spheres visible through the window. Dogs in the lobby.',
     receptionist: 'Marcus',
     badgeStyle: 'VISITOR',
+    floors: 12,
   },
   meta: {
     buildingName: 'Meta MPK 21',
@@ -56,6 +46,7 @@ const ENVIRONMENTS = {
     ambience: 'A living roof garden above. Murals on every wall. Very quiet keyboards.',
     receptionist: 'Sofia',
     badgeStyle: 'GUEST',
+    floors: 4,
   },
   microsoft: {
     buildingName: 'Microsoft Building 92',
@@ -65,6 +56,7 @@ const ENVIRONMENTS = {
     ambience: 'Rain on the windows. A wall of Xbox history behind reception.',
     receptionist: 'Priya',
     badgeStyle: 'VISITOR',
+    floors: 6,
   },
   apple: {
     buildingName: 'Apple Park',
@@ -74,6 +66,7 @@ const ENVIRONMENTS = {
     ambience: 'Curved glass. Absolute silence. Everything is exactly aligned.',
     receptionist: 'James',
     badgeStyle: 'GUEST',
+    floors: 4,
   },
   general: {
     buildingName: 'TechCorp HQ, Tower B',
@@ -83,16 +76,16 @@ const ENVIRONMENTS = {
     ambience: 'Standard startup lobby. Cold brew on tap. A wall of team photos.',
     receptionist: 'Alex',
     badgeStyle: 'INTERVIEW',
+    floors: 14,
   },
 };
 
-// Interviewer personas keyed by interview type. Each persists through the session.
 const INTERVIEWERS = {
   coding: {
     name: 'Priya Sharma',
     role: 'Senior Software Engineer',
     avatar: '👩🏽‍💻',
-    style: 'quiet, watches your screen closely, asks short precise questions',
+    floor: 6,
     entranceLine: (userName) =>
       `${userName}? Hi, I'm Priya. I'll be doing your coding round today. Come on in.`,
     smallTalk: [
@@ -105,7 +98,7 @@ const INTERVIEWERS = {
     name: 'David Chen',
     role: 'Staff Engineer, Infrastructure',
     avatar: '👨🏻‍💼',
-    style: 'skeptical, pushes on tradeoffs, long pauses before responding',
+    floor: 9,
     entranceLine: (userName) =>
       `${userName}, right? David. I run the infra team here. Let's grab this room.`,
     smallTalk: [
@@ -118,7 +111,7 @@ const INTERVIEWERS = {
     name: 'Rachel Okafor',
     role: 'Engineering Manager',
     avatar: '👩🏿‍💼',
-    style: 'warm but probing, calls out vague answers, takes notes constantly',
+    floor: 3,
     entranceLine: (userName) =>
       `Hi ${userName}! Rachel, I manage one of the platform teams. So glad we could set this up.`,
     smallTalk: [
@@ -131,7 +124,7 @@ const INTERVIEWERS = {
     name: 'Sam Rivera',
     role: 'Senior Engineer',
     avatar: '🧑🏼‍💻',
-    style: 'balanced, professional, occasionally checks their notes',
+    floor: 5,
     entranceLine: (userName) =>
       `${userName}? Hey, I'm Sam. I'll be your interviewer today. Right this way.`,
     smallTalk: [
@@ -142,10 +135,9 @@ const INTERVIEWERS = {
   },
 };
 
-// Speak a line using browser TTS. Falls back silently if unsupported.
-function speak(text, onEnd) {
+function speak(text) {
   try {
-    if (!window.speechSynthesis) { onEnd?.(); return; }
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 0.95;
@@ -154,14 +146,10 @@ function speak(text, onEnd) {
     const preferred = voices.find(v => v.lang.startsWith('en') && v.name.includes('Natural'))
       || voices.find(v => v.lang.startsWith('en'));
     if (preferred) u.voice = preferred;
-    u.onend = () => onEnd?.();
-    u.onerror = () => onEnd?.();
     window.speechSynthesis.speak(u);
-  } catch { onEnd?.(); }
+  } catch { /* speech is a bonus layer, never block on it */ }
 }
 
-// Ambient office sound via Web Audio API. Subtle brown noise bed so the
-// room never feels dead silent. Cheap, no audio files needed.
 function useAmbience(enabled) {
   const ctxRef = useRef(null);
   useEffect(() => {
@@ -185,12 +173,41 @@ function useAmbience(enabled) {
       src.connect(gain).connect(ctx.destination);
       src.start();
       ctxRef.current = ctx;
-    } catch { /* no audio, fine */ }
+    } catch { /* fine without it */ }
     return () => { ctxRef.current?.close?.(); };
   }, [enabled]);
 }
 
-const STAGES = ['lobby', 'waiting', 'entrance', 'smalltalk', 'transition'];
+// Footstep tick sound for the hallway-walk stage, generated, no audio files.
+function playFootsteps(ctx, count = 6, gap = 420) {
+  if (!ctx) return;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 90 + Math.random() * 20;
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.16);
+      } catch { /* skip */ }
+    }, i * gap);
+  }
+}
+
+// Timed durations per stage (ms). This is the actual pacing contract, stages
+// advance on these timers no matter what speech/animation does internally.
+const DURATIONS = {
+  exterior: 4200,
+  lobby: 6500,
+  waiting: 9000,   // can be skipped early by user after SKIP_UNLOCK_AT
+  walk: 4600,
+  entrance: 4200,
+};
+const SKIP_UNLOCK_AT = 4000;
 
 export default function ArrivalSequence({
   company = 'general',
@@ -203,70 +220,72 @@ export default function ArrivalSequence({
   const env = ENVIRONMENTS[company] || ENVIRONMENTS.general;
   const interviewer = INTERVIEWERS[interviewType] || INTERVIEWERS.default;
 
-  const [stage, setStage] = useState('lobby');
-  const [receptionDone, setReceptionDone] = useState(false);
+  const [stage, setStage] = useState('exterior');
   const [waitSeconds, setWaitSeconds] = useState(0);
+  const [skippable, setSkippable] = useState(false);
   const [talkIdx, setTalkIdx] = useState(0);
   const [userReply, setUserReply] = useState('');
   const [aiReplies, setAiReplies] = useState([]);
   const [replyLoading, setReplyLoading] = useState(false);
-  const [skippable, setSkippable] = useState(false);
   const [muted, setMuted] = useState(false);
+  const audioCtxRef = useRef(null);
 
   useAmbience(!muted && stage !== 'transition');
+
+  useEffect(() => {
+    try {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    } catch { /* skip */ }
+    return () => { audioCtxRef.current?.close?.(); };
+  }, []);
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-  // Lobby: receptionist greets, then move to waiting
+  // ── Guaranteed stage progression, decoupled from speech ──────────────────
   useEffect(() => {
-    if (stage !== 'lobby') return;
-    const line = `Hi, welcome to ${config.company || 'the office'}. You must be ${userName}, here for the ${timeStr} interview. I'll let them know you're here. Please take a seat.`;
-    const t = setTimeout(() => {
-      if (!muted) speak(line, () => setReceptionDone(true));
-      else setReceptionDone(true);
-    }, 1400);
-    return () => clearTimeout(t);
-  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (stage === 'lobby' && receptionDone) {
-      const t = setTimeout(() => setStage('waiting'), 1600);
+    if (stage === 'exterior') {
+      const t = setTimeout(() => setStage('lobby'), DURATIONS.exterior);
       return () => clearTimeout(t);
     }
-  }, [stage, receptionDone]);
-
-  // Waiting: tick a timer, allow skip after 8s, auto-advance after 22s
-  useEffect(() => {
-    if (stage !== 'waiting') return;
-    const iv = setInterval(() => setWaitSeconds(s => s + 1), 1000);
-    const skipT = setTimeout(() => setSkippable(true), 8000);
-    const autoT = setTimeout(() => setStage('entrance'), 22000);
-    return () => { clearInterval(iv); clearTimeout(skipT); clearTimeout(autoT); };
-  }, [stage]);
-
-  // Entrance: interviewer speaks their entrance line, then small talk
-  useEffect(() => {
-    if (stage !== 'entrance') return;
-    const line = interviewer.entranceLine(userName);
-    const t = setTimeout(() => {
-      if (!muted) speak(line, () => setTimeout(() => setStage('smalltalk'), 900));
-      else setTimeout(() => setStage('smalltalk'), 2500);
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Small talk: speak current line when index changes
-  useEffect(() => {
-    if (stage !== 'smalltalk') return;
-    const line = interviewer.smallTalk[talkIdx];
-    if (line && !muted) speak(line);
+    if (stage === 'lobby') {
+      const speakT = setTimeout(() => {
+        if (!muted) speak(`Hi, welcome to ${config.company || 'the office'}. You must be ${userName}, here for the ${timeStr} interview. I'll let them know you're here. Please take a seat.`);
+      }, 900);
+      const advT = setTimeout(() => setStage('waiting'), DURATIONS.lobby);
+      return () => { clearTimeout(speakT); clearTimeout(advT); };
+    }
+    if (stage === 'waiting') {
+      const iv = setInterval(() => setWaitSeconds(s => s + 1), 1000);
+      const skipT = setTimeout(() => setSkippable(true), SKIP_UNLOCK_AT);
+      const advT = setTimeout(() => setStage('walk'), DURATIONS.waiting);
+      return () => { clearInterval(iv); clearTimeout(skipT); clearTimeout(advT); };
+    }
+    if (stage === 'walk') {
+      playFootsteps(audioCtxRef.current, 8, DURATIONS.walk / 9);
+      const advT = setTimeout(() => setStage('entrance'), DURATIONS.walk);
+      return () => clearTimeout(advT);
+    }
+    if (stage === 'entrance') {
+      const speakT = setTimeout(() => {
+        if (!muted) speak(interviewer.entranceLine(userName));
+      }, 900);
+      const advT = setTimeout(() => setStage('smalltalk'), DURATIONS.entrance);
+      return () => { clearTimeout(speakT); clearTimeout(advT); };
+    }
+    if (stage === 'smalltalk') {
+      const line = interviewer.smallTalk[talkIdx];
+      if (line && !muted) speak(line);
+      return;
+    }
+    if (stage === 'transition') {
+      if (!muted) speak(interviewer.transitionLine);
+      const t = setTimeout(() => onEnterInterview?.(), 2600);
+      return () => clearTimeout(t);
+    }
   }, [stage, talkIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Optional: send user's small-talk reply to the AI so the interviewer
-  // responds naturally instead of ignoring them. Uses the existing chat
-  // endpoint if a sessionId is available, otherwise a canned warm response.
   const sendReply = useCallback(async () => {
     const text = userReply.trim();
     if (!text) return;
@@ -278,18 +297,14 @@ export default function ArrivalSequence({
       try {
         const res = await axios.post(`${API_BASE}/mock-interview/${sessionId}/ai-question`, {
           context: 'smalltalk',
-          persona: `${interviewer.name}, ${interviewer.role}, ${interviewer.style}`,
+          persona: `${interviewer.name}, ${interviewer.role}`,
           userMessage: text,
         });
         response = res.data?.reply || res.data?.question || null;
-      } catch { /* fall through to canned */ }
+      } catch { /* fall through */ }
     }
     if (!response) {
-      const canned = [
-        `Ha, fair enough. Alright.`,
-        `Good to hear. I appreciate you making the time.`,
-        `Nice. Okay, I think we're all set here.`,
-      ];
+      const canned = [`Ha, fair enough. Alright.`, `Good to hear, thanks for making the time.`, `Nice, okay, I think we're all set here.`];
       response = canned[Math.min(talkIdx, canned.length - 1)];
     }
 
@@ -306,20 +321,11 @@ export default function ArrivalSequence({
     }
   };
 
-  // Transition: interviewer says the handoff line, then we enter the interview
-  useEffect(() => {
-    if (stage !== 'transition') return;
-    const done = () => setTimeout(() => onEnterInterview?.(), 700);
-    if (!muted) speak(interviewer.transitionLine, done);
-    else setTimeout(done, 2200);
-  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const skipAll = () => {
     window.speechSynthesis?.cancel?.();
     onEnterInterview?.();
   };
 
-  // Shared style tokens
   const S = {
     screen: {
       position: 'fixed', inset: 0, zIndex: 500,
@@ -333,13 +339,22 @@ export default function ArrivalSequence({
 
   return (
     <div style={S.screen}>
-      {/* ambient wall glow tinted by company color */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <div style={{ position: 'absolute', left: '15%', top: '10%', width: 500, height: 500, borderRadius: '50%', background: env.wallColor, filter: 'blur(160px)', opacity: 0.07 }} />
         <div style={{ position: 'absolute', right: '10%', bottom: '15%', width: 400, height: 400, borderRadius: '50%', background: env.accentColor, filter: 'blur(140px)', opacity: 0.05 }} />
       </div>
 
-      {/* controls */}
+      {/* progress dots so it never feels stuck/broken */}
+      <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, zIndex: 10 }}>
+        {['exterior','lobby','waiting','walk','entrance','smalltalk','transition'].map(s => (
+          <div key={s} style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: s === stage ? env.wallColor : '#1e2a3a',
+            transition: 'background 0.3s',
+          }} />
+        ))}
+      </div>
+
       <div style={{ position: 'absolute', top: 20, right: 24, display: 'flex', gap: 10, zIndex: 10 }}>
         <button onClick={() => { setMuted(m => !m); window.speechSynthesis?.cancel?.(); }}
           style={{ background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 8, color: '#888', cursor: 'pointer', fontSize: 12, padding: '6px 12px' }}>
@@ -353,6 +368,56 @@ export default function ArrivalSequence({
 
       <AnimatePresence mode="wait">
 
+        {/* ── STAGE: EXTERIOR ──────────────────────────────────────── */}
+        {stage === 'exterior' && (
+          <motion.div key="exterior"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            style={{ textAlign: 'center', width: '100%', maxWidth: 720, padding: 24 }}>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+              style={{ color: '#555', fontSize: 12, letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 18 }}>
+              {dateStr} · {timeStr} · Arriving now
+            </motion.div>
+
+            {/* building silhouette made of animated windows */}
+            <motion.div
+              initial={{ scale: 1.15, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 2.2, ease: 'easeOut' }}
+              style={{
+                margin: '0 auto', width: 260, height: 220, position: 'relative',
+                background: `linear-gradient(180deg, #0d1117, #06060d)`,
+                border: `1px solid ${env.wallColor}55`, borderRadius: '4px 4px 0 0',
+                boxShadow: `0 0 60px ${env.wallColor}22`,
+                display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: `repeat(${env.floors}, 1fr)`,
+                gap: 3, padding: 8,
+              }}>
+              {Array.from({ length: env.floors * 5 }).map((_, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: Math.random() > 0.4 ? [0, 0.8, 0.6] : 0 }}
+                  transition={{ delay: 0.8 + Math.random() * 1.8, duration: 0.6 }}
+                  style={{ background: env.accentColor, borderRadius: 1 }}
+                />
+              ))}
+            </motion.div>
+
+            <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.8 }}
+              style={{ margin: '22px 0 0', fontSize: 30, fontWeight: 900, color: '#fff' }}>
+              {config.logo} {env.buildingName}
+            </motion.h1>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2 }}
+              style={{ color: env.wallColor, fontSize: 13, marginTop: 6, fontWeight: 700 }}>
+              {env.lobbyLine}
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0.6] }} transition={{ delay: 2.8, duration: 1.4 }}
+              style={{ color: '#444', fontSize: 12, marginTop: 22 }}>
+              You walk toward the entrance...
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* ── STAGE: LOBBY ─────────────────────────────────────────── */}
         {stage === 'lobby' && (
           <motion.div key="lobby"
@@ -360,30 +425,14 @@ export default function ArrivalSequence({
             transition={{ duration: 1.1 }}
             style={{ textAlign: 'center', maxWidth: 640, padding: 24 }}>
 
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-              style={{ color: '#555', fontSize: 12, letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: 10 }}>
-              {dateStr} · {timeStr}
-            </motion.div>
-
-            <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-              style={{ margin: 0, fontSize: 34, fontWeight: 900, color: '#fff' }}>
-              {config.logo} {env.buildingName}
-            </motion.h1>
-
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}
-              style={{ color: env.wallColor, fontSize: 14, marginTop: 6, fontWeight: 700 }}>
-              {env.lobbyLine}
-            </motion.div>
-
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-              style={{ color: '#666', fontSize: 13, marginTop: 24, lineHeight: 1.7, fontStyle: 'italic' }}>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+              style={{ color: '#666', fontSize: 13, marginTop: 4, lineHeight: 1.7, fontStyle: 'italic' }}>
               {env.ambience}
             </motion.p>
 
-            {/* receptionist bubble */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2 }}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}
               style={{
-                marginTop: 36, background: '#0d1117', border: '1px solid #1e2a3a',
+                marginTop: 30, background: '#0d1117', border: '1px solid #1e2a3a',
                 borderRadius: 16, padding: '18px 22px', textAlign: 'left',
                 display: 'flex', gap: 14, alignItems: 'flex-start',
               }}>
@@ -399,12 +448,11 @@ export default function ArrivalSequence({
               </div>
             </motion.div>
 
-            {/* visitor badge */}
             <motion.div
               initial={{ opacity: 0, rotate: -6, y: 30 }} animate={{ opacity: 1, rotate: -2, y: 0 }}
-              transition={{ delay: 3.0, type: 'spring', stiffness: 120 }}
+              transition={{ delay: 2.2, type: 'spring', stiffness: 120 }}
               style={{
-                margin: '30px auto 0', width: 220, background: '#fff', color: '#111',
+                margin: '26px auto 0', width: 220, background: '#fff', color: '#111',
                 borderRadius: 12, padding: '14px 16px', textAlign: 'left',
                 boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
               }}>
@@ -437,7 +485,6 @@ export default function ArrivalSequence({
               A keyboard clatters. Someone laughs in a meeting room.
             </div>
 
-            {/* schedule card */}
             <div style={{
               margin: '30px auto 0', maxWidth: 420, background: '#0d1117',
               border: '1px solid #1e2a3a', borderRadius: 14, padding: 18, textAlign: 'left',
@@ -450,7 +497,7 @@ export default function ArrivalSequence({
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
                     {interviewer.role.includes('Manager') ? 'Behavioral Round' : 'Technical Round'}
                   </div>
-                  <div style={{ color: '#666', fontSize: 11 }}>{interviewer.name} · {interviewer.role}</div>
+                  <div style={{ color: '#666', fontSize: 11 }}>{interviewer.name} · {interviewer.role} · Floor {interviewer.floor}</div>
                 </div>
                 <div style={{ color: env.wallColor, fontSize: 11, fontWeight: 700 }}>{timeStr}</div>
               </div>
@@ -461,7 +508,7 @@ export default function ArrivalSequence({
 
             {skippable && (
               <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                onClick={() => setStage('entrance')}
+                onClick={() => setStage('walk')}
                 style={{
                   marginTop: 24, background: 'transparent', border: '1px solid #1e2a3a',
                   borderRadius: 10, color: '#666', cursor: 'pointer', fontSize: 12, padding: '8px 18px',
@@ -469,6 +516,45 @@ export default function ArrivalSequence({
                 I'm ready, skip the wait
               </motion.button>
             )}
+          </motion.div>
+        )}
+
+        {/* ── STAGE: WALK (hallway / elevator to the room) ────────── */}
+        {stage === 'walk' && (
+          <motion.div key="walk"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ textAlign: 'center', width: '100%', maxWidth: 640, padding: 24 }}>
+
+            <div style={{ color: '#666', fontSize: 13, marginBottom: 18 }}>
+              {env.receptionist} leads you down the hall to Floor {interviewer.floor}...
+            </div>
+
+            {/* receding hallway lines, an actual walking-forward illusion */}
+            <div style={{ position: 'relative', height: 200, overflow: 'hidden', borderRadius: 16, background: '#0a0a12', border: '1px solid #1e2a3a' }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <motion.div key={i}
+                  initial={{ scale: 0.2, opacity: 0 }}
+                  animate={{ scale: 1.8, opacity: [0, 0.5, 0] }}
+                  transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.27, ease: 'easeOut' }}
+                  style={{
+                    position: 'absolute', top: '50%', left: '50%', width: 40, height: 70,
+                    border: `1px solid ${env.wallColor}66`, borderRadius: 6,
+                    transform: 'translate(-50%,-50%)',
+                  }}
+                />
+              ))}
+              <div style={{
+                position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
+                fontSize: 11, color: '#555',
+              }}>
+                🚪 Floor {interviewer.floor} · {interviewer.name}'s room
+              </div>
+            </div>
+
+            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity }}
+              style={{ color: '#555', fontSize: 12, marginTop: 18 }}>
+              Almost there...
+            </motion.div>
           </motion.div>
         )}
 
@@ -480,17 +566,17 @@ export default function ArrivalSequence({
 
             <motion.div
               initial={{ x: -200, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 60, delay: 0.5 }}
+              transition={{ type: 'spring', stiffness: 60, delay: 0.3 }}
               style={{ fontSize: 72, marginBottom: 16 }}>
               {interviewer.avatar}
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
               <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>{interviewer.name}</div>
               <div style={{ color: env.wallColor, fontSize: 13, fontWeight: 700, marginTop: 4 }}>{interviewer.role}</div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
               style={{
                 marginTop: 26, background: '#0d1117', border: '1px solid #1e2a3a',
                 borderRadius: 16, padding: '16px 22px', color: '#ddd', fontSize: 15, lineHeight: 1.6,
@@ -506,14 +592,12 @@ export default function ArrivalSequence({
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ width: '100%', maxWidth: 640, padding: 24 }}>
 
-            {/* the room: interviewer across the table */}
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 56 }}>{interviewer.avatar}</div>
               <div style={{ color: '#fff', fontSize: 14, fontWeight: 700, marginTop: 6 }}>{interviewer.name}</div>
               <div style={{ color: '#555', fontSize: 11 }}>{interviewer.role}</div>
             </div>
 
-            {/* their current line */}
             <motion.div key={talkIdx}
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               style={{
@@ -523,7 +607,6 @@ export default function ArrivalSequence({
               "{interviewer.smallTalk[talkIdx]}"
             </motion.div>
 
-            {/* previous exchanges */}
             {aiReplies.map((ex, i) => (
               <div key={i} style={{ marginTop: 12, fontSize: 13 }}>
                 <div style={{ color: '#888', textAlign: 'right', marginBottom: 4 }}>You: {ex.user}</div>
@@ -531,7 +614,6 @@ export default function ArrivalSequence({
               </div>
             ))}
 
-            {/* reply box: optional, user can also just continue */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <input
                 value={userReply}
