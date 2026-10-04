@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 const topics = [
   { name: 'Array',               icon: '📦', color: 'border-blue-500',   hover: 'hover:shadow-blue-500/40'   },
   { name: 'Linked List',         icon: '🔗', color: 'border-red-500',    hover: 'hover:shadow-red-500/40'    },
@@ -10,7 +9,6 @@ const topics = [
   { name: 'Graph',               icon: '🕸️', color: 'border-orange-500', hover: 'hover:shadow-orange-500/40' },
   { name: 'Dynamic Programming', icon: '🧠', color: 'border-rose-500',   hover: 'hover:shadow-rose-500/40'   },
 ];
-
 function Home({ user, onLogout }) {
   const navigate = useNavigate();
 
@@ -82,7 +80,6 @@ function Home({ user, onLogout }) {
     </div>
   );
 }
-
 export default Home;
 
 
