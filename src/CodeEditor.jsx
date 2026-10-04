@@ -1,46 +1,61 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Editor from '@monaco-editor/react';
+import {
+  DRIVER_LANGS,
+  getSignature,
+  makeStarter,
+  canonicalInput,
+  buildSource,
+  splitResult,
+  sameOutput,
+  inputHint,
+} from './runner';
+
 // ── Judge0 config ──────────────────────────────────────────────────────────────
 const JUDGE0_URL  = 'https://judge0-ce.p.rapidapi.com';
 const JUDGE0_KEY  = process.env.REACT_APP_JUDGE0_KEY || '';
 const JUDGE0_HOST = 'judge0-ce.p.rapidapi.com';
-// Judge0 language IDs — https://ce.judge0.com/languages/
+
 // ── Language configs ───────────────────────────────────────────────────────────
+// monaco = language id used by the editor for syntax highlighting
 const LANGUAGES = [
-  // ── Most popular ──
-  { id: 'python3',    label: 'Python 3',       judge0Id: 71,  ext: 'py'    },
-  { id: 'python2',    label: 'Python 2',       judge0Id: 70,  ext: 'py'    },
-  { id: 'javascript', label: 'JavaScript',     judge0Id: 63,  ext: 'js'    },
-  { id: 'typescript', label: 'TypeScript',     judge0Id: 74,  ext: 'ts'    },
-  { id: 'java',       label: 'Java',           judge0Id: 62,  ext: 'java'  },
-  { id: 'cpp17',      label: 'C++ 17',         judge0Id: 54,  ext: 'cpp'   },
-  { id: 'cpp14',      label: 'C++ 14',         judge0Id: 52,  ext: 'cpp'   },
-  { id: 'c',          label: 'C',              judge0Id: 50,  ext: 'c'     },
-  { id: 'csharp',     label: 'C#',             judge0Id: 51,  ext: 'cs'    },
-  { id: 'go',         label: 'Go',             judge0Id: 60,  ext: 'go'    },
-  { id: 'rust',       label: 'Rust',           judge0Id: 73,  ext: 'rs'    },
-  { id: 'kotlin',     label: 'Kotlin',         judge0Id: 78,  ext: 'kt'    },
-  { id: 'swift',      label: 'Swift',          judge0Id: 83,  ext: 'swift' },
-  { id: 'ruby',       label: 'Ruby',           judge0Id: 72,  ext: 'rb'    },
-  { id: 'php',        label: 'PHP',            judge0Id: 68,  ext: 'php'   },
-  { id: 'scala',      label: 'Scala',          judge0Id: 81,  ext: 'scala' },
-  { id: 'r',          label: 'R',              judge0Id: 80,  ext: 'r'     },
-  { id: 'perl',       label: 'Perl',           judge0Id: 85,  ext: 'pl'    },
-  { id: 'haskell',    label: 'Haskell',        judge0Id: 61,  ext: 'hs'    },
-  { id: 'lua',        label: 'Lua',            judge0Id: 64,  ext: 'lua'   },
-  { id: 'bash',       label: 'Bash',           judge0Id: 46,  ext: 'sh'    },
-  { id: 'sql',        label: 'SQL',            judge0Id: 82,  ext: 'sql'   },
-  { id: 'dart',       label: 'Dart',           judge0Id: 90,  ext: 'dart'  },
-  { id: 'elixir',     label: 'Elixir',         judge0Id: 57,  ext: 'ex'    },
-  { id: 'clojure',    label: 'Clojure',        judge0Id: 86,  ext: 'clj'   },
-  { id: 'fsharp',     label: 'F#',             judge0Id: 87,  ext: 'fs'    },
-  { id: 'erlang',     label: 'Erlang',         judge0Id: 58,  ext: 'erl'   },
-  { id: 'ocaml',      label: 'OCaml',          judge0Id: 65,  ext: 'ml'    },
-  { id: 'pascal',     label: 'Pascal',         judge0Id: 67,  ext: 'pas'   },
-  { id: 'fortran',    label: 'Fortran',        judge0Id: 59,  ext: 'f90'   },
-  { id: 'cobol',      label: 'COBOL',          judge0Id: 77,  ext: 'cob'   },
+  { id: 'python3',    label: 'Python 3',   judge0Id: 71, ext: 'py',    monaco: 'python'     },
+  { id: 'python2',    label: 'Python 2',   judge0Id: 70, ext: 'py',    monaco: 'python'     },
+  { id: 'javascript', label: 'JavaScript', judge0Id: 63, ext: 'js',    monaco: 'javascript' },
+  { id: 'typescript', label: 'TypeScript', judge0Id: 74, ext: 'ts',    monaco: 'typescript' },
+  { id: 'java',       label: 'Java',       judge0Id: 62, ext: 'java',  monaco: 'java'       },
+  { id: 'cpp17',      label: 'C++ 17',     judge0Id: 54, ext: 'cpp',   monaco: 'cpp'        },
+  { id: 'cpp14',      label: 'C++ 14',     judge0Id: 52, ext: 'cpp',   monaco: 'cpp'        },
+  { id: 'c',          label: 'C',          judge0Id: 50, ext: 'c',     monaco: 'c'          },
+  { id: 'csharp',     label: 'C#',         judge0Id: 51, ext: 'cs',    monaco: 'csharp'     },
+  { id: 'go',         label: 'Go',         judge0Id: 60, ext: 'go',    monaco: 'go'         },
+  { id: 'rust',       label: 'Rust',       judge0Id: 73, ext: 'rs',    monaco: 'rust'       },
+  { id: 'kotlin',     label: 'Kotlin',     judge0Id: 78, ext: 'kt',    monaco: 'kotlin'     },
+  { id: 'swift',      label: 'Swift',      judge0Id: 83, ext: 'swift', monaco: 'swift'      },
+  { id: 'ruby',       label: 'Ruby',       judge0Id: 72, ext: 'rb',    monaco: 'ruby'       },
+  { id: 'php',        label: 'PHP',        judge0Id: 68, ext: 'php',   monaco: 'php'        },
+  { id: 'scala',      label: 'Scala',      judge0Id: 81, ext: 'scala', monaco: 'scala'      },
+  { id: 'r',          label: 'R',          judge0Id: 80, ext: 'r',     monaco: 'r'          },
+  { id: 'perl',       label: 'Perl',       judge0Id: 85, ext: 'pl',    monaco: 'perl'       },
+  { id: 'haskell',    label: 'Haskell',    judge0Id: 61, ext: 'hs',    monaco: 'plaintext'  },
+  { id: 'lua',        label: 'Lua',        judge0Id: 64, ext: 'lua',   monaco: 'lua'        },
+  { id: 'bash',       label: 'Bash',       judge0Id: 46, ext: 'sh',    monaco: 'shell'      },
+  { id: 'sql',        label: 'SQL',        judge0Id: 82, ext: 'sql',   monaco: 'sql'        },
+  { id: 'dart',       label: 'Dart',       judge0Id: 90, ext: 'dart',  monaco: 'dart'       },
+  { id: 'elixir',     label: 'Elixir',     judge0Id: 57, ext: 'ex',    monaco: 'elixir'     },
+  { id: 'clojure',    label: 'Clojure',    judge0Id: 86, ext: 'clj',   monaco: 'clojure'    },
+  { id: 'fsharp',     label: 'F#',         judge0Id: 87, ext: 'fs',    monaco: 'fsharp'     },
+  { id: 'erlang',     label: 'Erlang',     judge0Id: 58, ext: 'erl',   monaco: 'plaintext'  },
+  { id: 'ocaml',      label: 'OCaml',      judge0Id: 65, ext: 'ml',    monaco: 'plaintext'  },
+  { id: 'pascal',     label: 'Pascal',     judge0Id: 67, ext: 'pas',   monaco: 'pascal'     },
+  { id: 'fortran',    label: 'Fortran',    judge0Id: 59, ext: 'f90',   monaco: 'plaintext'  },
+  { id: 'cobol',      label: 'COBOL',      judge0Id: 77, ext: 'cob',   monaco: 'plaintext'  },
 ];
-// ── Starter templates ─────────────────────────────────────────────────────────
+
+// ── Full-program starters ─────────────────────────────────────────────────────
+// Used for languages without a hidden driver (see DRIVER_LANGS in runner.js) and as a
+// fallback when a problem's input/output format cannot be read.
 const STARTER = {
   python3: `def solution(nums):
     # Write your solution here
@@ -293,9 +308,6 @@ end program solution
 `,
 };
 
-// ── Syntax highlighting (simple token-based) ──────────────────────────────────
-// ── Syntax highlighting removed — using plain textarea editor ─────────────────
-
 // ── Judge0 execution ──────────────────────────────────────────────────────────
 const JUDGE0_STATUS = {
   1:  'In Queue',
@@ -325,7 +337,6 @@ function b64decode(str) {
 async function submitToJudge0(code, langConfig, stdin = '') {
   if (!JUDGE0_KEY) throw new Error('REACT_APP_JUDGE0_KEY not set in .env');
 
-  // Submit
   const submitRes = await fetch(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=false`, {
     method:  'POST',
     headers: {
@@ -334,11 +345,11 @@ async function submitToJudge0(code, langConfig, stdin = '') {
       'X-RapidAPI-Host': JUDGE0_HOST,
     },
     body: JSON.stringify({
-      language_id:       langConfig.judge0Id,
-      source_code:       b64encode(code),
-      stdin:             b64encode(stdin),
-      cpu_time_limit:    10,
-      memory_limit:      256000,
+      language_id:    langConfig.judge0Id,
+      source_code:    b64encode(code),
+      stdin:          b64encode(stdin),
+      cpu_time_limit: 10,
+      memory_limit:   256000,
     }),
   });
 
@@ -350,7 +361,6 @@ async function submitToJudge0(code, langConfig, stdin = '') {
   const { token } = await submitRes.json();
   if (!token) throw new Error('No token returned from Judge0');
 
-  // Poll for result (max 15s)
   for (let i = 0; i < 15; i++) {
     await new Promise(r => setTimeout(r, 1000));
 
@@ -367,35 +377,56 @@ async function submitToJudge0(code, langConfig, stdin = '') {
     if (!pollRes.ok) continue;
     const data = await pollRes.json();
 
-    // Still processing
     if (data.status?.id <= 2) continue;
 
     return {
-      statusId:      data.status?.id,
-      statusDesc:    JUDGE0_STATUS[data.status?.id] || data.status?.description,
-      stdout:        b64decode(data.stdout),
-      stderr:        b64decode(data.stderr) || b64decode(data.compile_output),
-      time:          data.time,
-      memory:        data.memory,
-      success:       data.status?.id === 3, // 3 = Accepted
+      statusId:   data.status?.id,
+      statusDesc: JUDGE0_STATUS[data.status?.id] || data.status?.description,
+      stdout:     b64decode(data.stdout),
+      stderr:     b64decode(data.stderr) || b64decode(data.compile_output),
+      time:       data.time,
+      memory:     data.memory,
+      success:    data.status?.id === 3,
     };
   }
 
   throw new Error('Execution timed out after 15s');
 }
 
-async function runTestCases(code, langConfig, testCases) {
+// Runs the user's code once. For function-mode languages the hidden driver is attached
+// here, the input is converted to one JSON value per line, and the returned value is
+// separated from anything the user printed.
+async function runOnce(code, langConfig, sig, rawInput) {
+  const driven = !!sig && DRIVER_LANGS.has(langConfig.id);
+  if (!driven) {
+    const data = await submitToJudge0(code, langConfig, rawInput);
+    return { ...data, userOut: data.stdout, returned: null, driven: false };
+  }
+
+  const stdin = canonicalInput(rawInput, sig);
+  if (stdin === null) {
+    throw new Error(`Could not read the input. Expected: ${inputHint(sig)}`);
+  }
+  const data = await submitToJudge0(buildSource(langConfig.id, code, sig), langConfig, stdin);
+  const { userOut, returned } = splitResult(data.stdout);
+  return { ...data, userOut, returned, driven: true };
+}
+
+async function runTestCases(code, langConfig, sig, testCases) {
   const results = [];
   for (const tc of testCases) {
     const start = Date.now();
     try {
-      const data    = await submitToJudge0(code, langConfig, tc.input);
-      const output  = (data.stdout || '').trim();
+      const data    = await runOnce(code, langConfig, sig, tc.input);
       const elapsed = Date.now() - start;
-      const passed  = output === tc.expected.trim();
+      const actual  = data.driven ? data.returned : (data.stdout || '').trim();
+      const passed  = data.driven
+        ? data.success && data.returned !== null && sameOutput(tc.expected, data.returned)
+        : sameOutput(tc.expected, actual);
       results.push({
-        ...tc, output,
-        stderr:    data.stderr,
+        ...tc,
+        output:     actual || '',
+        stderr:     data.stderr,
         elapsed,
         passed,
         statusDesc: data.statusDesc,
@@ -411,114 +442,64 @@ async function runTestCases(code, langConfig, testCases) {
   return results;
 }
 
-// ── Simple textarea-based editor with line numbers ────────────────────────────
+const defaultInputFor = (problem) =>
+  problem?.examples?.[0]?.input ?? problem?.testCases?.[0]?.input ?? '';
+
+// ── Monaco editor ─────────────────────────────────────────────────────────────
+const EDITOR_OPTIONS = {
+  fontSize:                 14,
+  fontFamily:               '"Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, monospace',
+  fontLigatures:            true,
+  minimap:                  { enabled: false },
+  tabSize:                  4,
+  insertSpaces:             true,
+  detectIndentation:        false,
+  automaticLayout:          true,
+  scrollBeyondLastLine:     false,
+  wordWrap:                 'off',
+  padding:                  { top: 12, bottom: 12 },
+  renderLineHighlight:      'line',
+  bracketPairColorization:  { enabled: true },
+  autoClosingBrackets:      'always',
+  autoIndent:               'full',
+  smoothScrolling:          true,
+  cursorBlinking:           'smooth',
+  // Interview style: no popup autocomplete. Set to true to enable suggestions.
+  quickSuggestions:         false,
+  suggestOnTriggerCharacters: false,
+  parameterHints:           { enabled: false },
+};
+
+function defineEvoTheme(monaco) {
+  monaco.editor.defineTheme('evo-dark', {
+    base:    'vs-dark',
+    inherit: true,
+    rules:   [],
+    colors:  {
+      'editor.background':                '#0d1117',
+      'editorGutter.background':          '#060910',
+      'editorLineNumber.foreground':      '#3a4a5a',
+      'editorLineNumber.activeForeground': '#22d3ee',
+      'editor.lineHighlightBackground':   '#111a27',
+      'editorCursor.foreground':          '#22d3ee',
+      'editor.selectionBackground':       '#22d3ee33',
+    },
+  });
+}
+
 function CodeEditorPane({ code, onChange, language }) {
-  const textareaRef = useRef(null);
-  const lineNumRef  = useRef(null);
-  const lines = code.split('\n');
-
-  const handleKeyDown = (e) => {
-    const ta  = e.target;
-    const val = ta.value;
-    const start = ta.selectionStart;
-    const end   = ta.selectionEnd;
-
-    // Tab → 2 spaces
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const newVal = val.slice(0, start) + '  ' + val.slice(end);
-      onChange(newVal);
-      setTimeout(() => {
-        ta.selectionStart = ta.selectionEnd = start + 2;
-      }, 0);
-    }
-
-    // Auto-close brackets
-    const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
-    if (pairs[e.key] && start === end) {
-      e.preventDefault();
-      const newVal = val.slice(0, start) + e.key + pairs[e.key] + val.slice(end);
-      onChange(newVal);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 1; }, 0);
-    }
-
-    // Enter → auto-indent
-    if (e.key === 'Enter') {
-      const lineStart = val.lastIndexOf('\n', start - 1) + 1;
-      const currentLine = val.slice(lineStart, start);
-      const indent = currentLine.match(/^(\s*)/)[1];
-      const extraIndent = /[{([:]$/.test(currentLine.trim()) ? '  ' : '';
-      e.preventDefault();
-      const newVal = val.slice(0, start) + '\n' + indent + extraIndent + val.slice(end);
-      onChange(newVal);
-      setTimeout(() => {
-        ta.selectionStart = ta.selectionEnd = start + 1 + indent.length + extraIndent.length;
-      }, 0);
-    }
-  };
-
-  const syncScroll = () => {
-    if (lineNumRef.current && textareaRef.current) {
-      lineNumRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  };
-
+  const monacoLang = (LANGUAGES.find(l => l.id === language) || LANGUAGES[0]).monaco;
   return (
-    <div style={{
-      display:    'flex',
-      flex:       1,
-      overflow:   'hidden',
-      fontFamily: '"Fira Code", "Cascadia Code", "JetBrains Mono", monospace',
-      fontSize:   14,
-      lineHeight: '1.6',
-      background: '#0d1117',
-    }}>
-      {/* Line numbers */}
-      <div
-        ref={lineNumRef}
-        style={{
-          padding:      '16px 12px',
-          background:   '#060910',
-          borderRight:  '1px solid #1e2a3a',
-          color:        '#3a4a5a',
-          textAlign:    'right',
-          userSelect:   'none',
-          overflowY:    'hidden',
-          minWidth:     '48px',
-          flexShrink:   0,
-        }}
-      >
-        {lines.map((_, i) => (
-          <div key={i} style={{ lineHeight: '1.6' }}>{i + 1}</div>
-        ))}
-      </div>
-
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
+    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', background: '#0d1117' }}>
+      <Editor
+        height="100%"
+        language={monacoLang}
         value={code}
-        onChange={e => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onScroll={syncScroll}
-        spellCheck={false}
-        autoCapitalize="none"
-        autoCorrect="off"
-        style={{
-          flex:       1,
-          padding:    '16px',
-          background: 'transparent',
-          color:      '#e8e8e8',
-          border:     'none',
-          outline:    'none',
-          resize:     'none',
-          fontFamily: 'inherit',
-          fontSize:   'inherit',
-          lineHeight: 'inherit',
-          caretColor: '#22d3ee',
-          overflowY:  'auto',
-          whiteSpace: 'pre',
-          overflowX:  'auto',
-        }}
+        theme="evo-dark"
+        beforeMount={defineEvoTheme}
+        onChange={(v) => onChange(v ?? '')}
+        options={EDITOR_OPTIONS}
+        loading={<div style={{ color: '#3a4a5a', fontSize: 13, padding: 16 }}>Loading editor...</div>}
       />
     </div>
   );
@@ -526,6 +507,23 @@ function CodeEditorPane({ code, onChange, language }) {
 
 // ── Output panel ──────────────────────────────────────────────────────────────
 function OutputPanel({ result, testResults, activeTab, onTabChange }) {
+  const blockLabel = {
+    color: '#555', fontSize: 10, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+  };
+  const blockPre = {
+    background:   '#0d1117',
+    border:       '1px solid #1e2a3a',
+    borderRadius: 8,
+    padding:      '12px',
+    color:        '#e8e8e8',
+    fontSize:     13,
+    fontFamily:   'monospace',
+    margin:       0,
+    whiteSpace:   'pre-wrap',
+    wordBreak:    'break-word',
+  };
+
   return (
     <div style={{
       display:       'flex',
@@ -535,25 +533,25 @@ function OutputPanel({ result, testResults, activeTab, onTabChange }) {
     }}>
       {/* Tabs */}
       <div style={{
-        display:    'flex',
+        display:      'flex',
         borderBottom: '1px solid #1e2a3a',
-        flexShrink: 0,
+        flexShrink:   0,
       }}>
         {['output', 'tests'].map(tab => (
           <button
             key={tab}
             onClick={() => onTabChange(tab)}
             style={{
-              padding:     '10px 20px',
-              background:  'transparent',
-              border:      'none',
-              borderBottom: activeTab === tab ? '2px solid #22d3ee' : '2px solid transparent',
-              color:       activeTab === tab ? '#22d3ee' : '#555',
-              cursor:      'pointer',
-              fontSize:    13,
-              fontWeight:  600,
+              padding:       '10px 20px',
+              background:    'transparent',
+              border:        'none',
+              borderBottom:  activeTab === tab ? '2px solid #22d3ee' : '2px solid transparent',
+              color:         activeTab === tab ? '#22d3ee' : '#555',
+              cursor:        'pointer',
+              fontSize:      13,
+              fontWeight:    600,
               textTransform: 'capitalize',
-              transition:  'all 0.2s',
+              transition:    'all 0.2s',
             }}
           >
             {tab === 'tests' && testResults
@@ -593,62 +591,41 @@ function OutputPanel({ result, testResults, activeTab, onTabChange }) {
                     {result.success ? '✓ Accepted' : `✗ ${result.statusDesc || 'Error'}`}
                   </span>
                   {result.time && (
-                    <span style={{ color: '#555', fontSize: 11 }}>
-                      ⏱ {result.time}s
-                    </span>
+                    <span style={{ color: '#555', fontSize: 11 }}>⏱ {result.time}s</span>
                   )}
                   {result.memory && (
-                    <span style={{ color: '#555', fontSize: 11 }}>
-                      💾 {(result.memory / 1024).toFixed(1)} MB
-                    </span>
+                    <span style={{ color: '#555', fontSize: 11 }}>💾 {(result.memory / 1024).toFixed(1)} MB</span>
                   )}
                   <span style={{ color: '#333', fontSize: 11 }}>
                     {result.elapsed}ms round-trip
                   </span>
                 </div>
 
-                {/* stdout */}
+                {/* Returned value (function mode) */}
+                {result.returned != null && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={blockLabel}>Returned</div>
+                    <pre style={{ ...blockPre, color: '#89ddff' }}>{result.returned}</pre>
+                  </div>
+                )}
+
+                {/* stdout (anything the user printed) */}
                 {result.stdout && (
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ color: '#555', fontSize: 10, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                      Output
-                    </div>
-                    <pre style={{
-                      background:   '#0d1117',
-                      border:       '1px solid #1e2a3a',
-                      borderRadius: 8,
-                      padding:      '12px',
-                      color:        '#e8e8e8',
-                      fontSize:     13,
-                      fontFamily:   'monospace',
-                      margin:       0,
-                      whiteSpace:   'pre-wrap',
-                      wordBreak:    'break-word',
-                    }}>
-                      {result.stdout}
-                    </pre>
+                    <div style={blockLabel}>{result.returned != null ? 'Printed' : 'Output'}</div>
+                    <pre style={blockPre}>{result.stdout}</pre>
                   </div>
                 )}
 
                 {/* stderr */}
                 {result.stderr && (
                   <div>
-                    <div style={{ color: '#ff4d4d', fontSize: 10, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                      Error
-                    </div>
+                    <div style={{ ...blockLabel, color: '#ff4d4d' }}>Error</div>
                     <pre style={{
-                      background:   '#ff4d4d11',
-                      border:       '1px solid #ff4d4d33',
-                      borderRadius: 8,
-                      padding:      '12px',
-                      color:        '#ff6b6b',
-                      fontSize:     13,
-                      fontFamily:   'monospace',
-                      margin:       0,
-                      whiteSpace:   'pre-wrap',
-                      wordBreak:    'break-word',
+                      ...blockPre,
+                      background: '#ff4d4d11',
+                      border:     '1px solid #ff4d4d33',
+                      color:      '#ff6b6b',
                     }}>
                       {result.stderr}
                     </pre>
@@ -685,11 +662,11 @@ function OutputPanel({ result, testResults, activeTab, onTabChange }) {
                       fontSize:   13, fontWeight: 700,
                     }}>
                       {tc.passed ? '✓' : '✗'} Test {i + 1}
-                      {tc.label ? ` — ${tc.label}` : ''}
+                      {tc.label ? ` - ${tc.label}` : ''}
                     </span>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {tc.time   && <span style={{ color: '#555', fontSize: 11 }}>⏱ {tc.time}s</span>}
-                      {tc.memory && <span style={{ color: '#555', fontSize: 11 }}>💾 {(tc.memory/1024).toFixed(1)}MB</span>}
+                      {tc.memory && <span style={{ color: '#555', fontSize: 11 }}>💾 {(tc.memory / 1024).toFixed(1)}MB</span>}
                       {!tc.passed && tc.statusDesc && (
                         <span style={{ color: '#ff6b6b', fontSize: 11 }}>{tc.statusDesc}</span>
                       )}
@@ -748,9 +725,12 @@ export default function CodeEditor({
   defaultLanguage = 'python3',
   hideHints = false, // when true (Mock Interview), hints button/panel are not rendered at all. Odyssey omits this prop and keeps current behavior.
 }) {
+  // Function signature read from the problem's examples/test cases (or problem.signature).
+  const sig = useMemo(() => getSignature(problem), [problem]);
+
   const [langId,      setLangId]      = useState(defaultLanguage);
-  const [code,        setCode]        = useState(STARTER[defaultLanguage]);
-  const [stdin,       setStdin]       = useState('');
+  const [code,        setCode]        = useState(() => makeStarter(defaultLanguage, getSignature(problem), STARTER));
+  const [stdin,       setStdin]       = useState(() => (getSignature(problem) ? defaultInputFor(problem) : ''));
   const [running,     setRunning]     = useState(false);
   const [submitting,  setSubmitting]  = useState(false);
   const [result,      setResult]      = useState(null);
@@ -766,33 +746,41 @@ export default function CodeEditor({
   const [splitV,      setSplitV]      = useState(60); // % height of editor
   const draggingH = useRef(false);
   const draggingV = useRef(false);
+  const drafts    = useRef({}); // per-language code, so switching language never loses work
 
   const langConfig = LANGUAGES.find(l => l.id === langId) || LANGUAGES[0];
+  const driven     = !!sig && DRIVER_LANGS.has(langId);
   const testCases  = problem?.testCases || [];
   const hints      = hideHints ? [] : (problem?.hints || []);
   const currentAttempt = Math.min(attemptsUsed + 1, MAX_ATTEMPTS);
   const visibleHints =
-  currentAttempt === 1
-    ? hints.slice(0, 1)
-    : hints.slice(0, 2);
+    currentAttempt === 1
+      ? hints.slice(0, 1)
+      : hints.slice(0, 2);
   const solutionUnlocked =
-  currentAttempt >= 3 || attemptsUsed >= 3 || isSolved;
+    currentAttempt >= 3 || attemptsUsed >= 3 || isSolved;
   const canSubmit =
-  attemptsUsed < MAX_ATTEMPTS && !isSolved;
-// ── Reset submit-gated state when switching problems ────────────────────────
+    attemptsUsed < MAX_ATTEMPTS && !isSolved;
+
+  // ── Reset state when switching problems ─────────────────────────────────────
   useEffect(() => {
+    drafts.current = {};
+    setCode(makeStarter(langId, sig, STARTER));
+    setStdin(sig ? defaultInputFor(problem) : '');
     setAttemptsUsed(0);
     setIsSolved(false);
     setShowSolution(false);
     setShowHint(false);
     setResult(null);
     setTestResults(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problem?.id]);
 
   // ── Language change ──────────────────────────────────────────────────────
   const handleLangChange = (id) => {
+    drafts.current[langId] = code;
     setLangId(id);
-    setCode(STARTER[id] || '');
+    setCode(drafts.current[id] ?? makeStarter(id, sig, STARTER));
     setResult(null);
     setTestResults(null);
   };
@@ -803,11 +791,13 @@ export default function CodeEditor({
     setResult(null);
     const start = Date.now();
     try {
-      const data    = await submitToJudge0(code, langConfig, stdin);
+      const input   = driven && !stdin.trim() ? defaultInputFor(problem) : stdin;
+      const data    = await runOnce(code, langConfig, sig, input);
       const elapsed = Date.now() - start;
       setResult({
         success:    data.success,
-        stdout:     data.stdout,
+        stdout:     data.userOut,
+        returned:   data.returned,
         stderr:     data.stderr,
         elapsed,
         statusDesc: data.statusDesc,
@@ -833,7 +823,7 @@ export default function CodeEditor({
     setTestResults(null);
     setActiveOut('tests');
     try {
-      const results = await runTestCases(code, langConfig, testCases);
+      const results = await runTestCases(code, langConfig, sig, testCases);
       setTestResults(results);
       const passed = results.filter(r => r.passed).length;
       showToast(
@@ -850,57 +840,57 @@ export default function CodeEditor({
   };
 
   const handleSubmit = async () => {
-  if (!onSubmit) return;
-  if (!canSubmit) {
-    setShowSolution(true);
-    showToast("Maximum 3 attempts used. Solution is unlocked.", "warn");
-    return;
-  }
-
-  setSubmitting(true);
-  try {
-     const results = testCases.length
-      ? await runTestCases(code, langConfig, testCases)
-      : [];
-
-     setTestResults(results);
-     setActiveOut("tests");
-
-     const res = await onSubmit(code, langId, results);
-     const passed = !!res?.passed;
-     const nextAttemptsUsed = attemptsUsed + 1;
-
-     setAttemptsUsed(nextAttemptsUsed);
-
-     if (passed) {
-      setIsSolved(true);
-      showToast(
-        `🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`,
-        "success"
-      );
-      return;
-     }
-
-     if (nextAttemptsUsed >= MAX_ATTEMPTS) {
+    if (!onSubmit) return;
+    if (!canSubmit) {
       setShowSolution(true);
-      showToast("❌ 3 attempts used. Solution unlocked.", "warn");
+      showToast('Maximum 3 attempts used. Solution is unlocked.', 'warn');
       return;
-     }
+    }
 
-     showToast(
-      `✗ Wrong Answer — Attempt ${nextAttemptsUsed}/${MAX_ATTEMPTS}. ${
-        nextAttemptsUsed === 1
-        ? "Hint 1 unlocked."
-        : "Hint 2 unlocked."
-       }`,
-      "error"
-     );
+    setSubmitting(true);
+    try {
+      const results = testCases.length
+        ? await runTestCases(code, langConfig, sig, testCases)
+        : [];
+
+      setTestResults(results);
+      setActiveOut('tests');
+
+      const res = await onSubmit(code, langId, results);
+      const passed = !!res?.passed;
+      const nextAttemptsUsed = attemptsUsed + 1;
+
+      setAttemptsUsed(nextAttemptsUsed);
+
+      if (passed) {
+        setIsSolved(true);
+        showToast(
+          `🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`,
+          'success'
+        );
+        return;
+      }
+
+      if (nextAttemptsUsed >= MAX_ATTEMPTS) {
+        setShowSolution(true);
+        showToast('❌ 3 attempts used. Solution unlocked.', 'warn');
+        return;
+      }
+
+      showToast(
+        `✗ Wrong Answer, Attempt ${nextAttemptsUsed}/${MAX_ATTEMPTS}. ${
+          nextAttemptsUsed === 1
+            ? 'Hint 1 unlocked.'
+            : 'Hint 2 unlocked.'
+        }`,
+        'error'
+      );
     } catch (err) {
-    showToast("Submission failed: " + err.message, "error");
-     } finally {
-    setSubmitting(false);
-     }
-    };
+      showToast('Submission failed: ' + err.message, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   const showToast = (msg, type = 'info') => {
@@ -1058,8 +1048,8 @@ export default function CodeEditor({
               </ul>
             </div>
           )}
-            </div>
         </div>
+      </div>
 
       {/* ── Horizontal drag handle ── */}
       <div
@@ -1110,17 +1100,15 @@ export default function CodeEditor({
               }}
             >
               {LANGUAGES.map(l => (
-                <option key={l.id} value={l.id}>{l.label}</option>
+                <option key={l.id} value={l.id}>
+                  {l.label}{sig && !DRIVER_LANGS.has(l.id) ? ' (stdin)' : ''}
+                </option>
               ))}
             </select>
-
-            <span style={{ color: '#333', fontSize: 11 }}>
-              v{langConfig.version}
-            </span>
           </div>
           <div
             style={{
-              color: "#22d3ee",
+              color: '#22d3ee',
               fontWeight: 700,
               fontSize: 13,
             }}
@@ -1170,65 +1158,66 @@ export default function CodeEditor({
               <button
                 onClick={() => setShowHint(true)}
                 style={{
-                  background: "#f59e0b22",
-                  border: "1px solid #f59e0b66",
+                  background: '#f59e0b22',
+                  border: '1px solid #f59e0b66',
                   borderRadius: 8,
-                  color: "#fbbf24",
-                  cursor: "pointer",
+                  color: '#fbbf24',
+                  cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 700,
-                  padding: "7px 16px",
+                  padding: '7px 16px',
                 }}
               >
                 💡 Hints ({visibleHints.length}/2)
               </button>
             )}
             <button
-           onClick={() => {
-            if (solutionUnlocked) setShowSolution(true);
-            else showToast("Solution unlocks on Attempt #3.", "warn");
-             }}
-            disabled={!solutionUnlocked}
-            style={{
-              background: solutionUnlocked ? "#a855f722" : "#1e2a3a",
-              border: solutionUnlocked ? "1px solid #a855f766" : "1px solid #2a3645",
-              borderRadius: 8,
-              color: solutionUnlocked ? "#c084fc" : "#555",
-              cursor: solutionUnlocked ? "pointer" : "not-allowed",
-              fontSize: 13,
-              fontWeight: 700,
-              padding: "7px 16px",
-           }}
-           >
-           {solutionUnlocked ? "📖 Solution" : "🔒 Solution"}
-          </button>
-
-          {onSubmit && (
-           <button
-            onClick={handleSubmit}
-            disabled={running || submitting || !canSubmit}
-            style={{
-              background:
-                submitting || !canSubmit
-                ? "#1e2a3a"
-                : "linear-gradient(135deg,#00c896,#1a73e8)",
-              border: "none",
-              borderRadius: 8,
-              color: "#fff",
-              cursor: running || submitting || !canSubmit ? "not-allowed" : "pointer",
-              fontSize: 13,
-              fontWeight: 700,
-              padding: "7px 20px",
-              opacity: running || submitting || !canSubmit ? 0.7 : 1,
-              transition: "all 0.2s",
-              boxShadow: submitting || !canSubmit ? "none" : "0 0 16px #00c89633",
-            }}
+              onClick={() => {
+                if (solutionUnlocked) setShowSolution(true);
+                else showToast('Solution unlocks on Attempt #3.', 'warn');
+              }}
+              disabled={!solutionUnlocked}
+              style={{
+                background: solutionUnlocked ? '#a855f722' : '#1e2a3a',
+                border: solutionUnlocked ? '1px solid #a855f766' : '1px solid #2a3645',
+                borderRadius: 8,
+                color: solutionUnlocked ? '#c084fc' : '#555',
+                cursor: solutionUnlocked ? 'pointer' : 'not-allowed',
+                fontSize: 13,
+                fontWeight: 700,
+                padding: '7px 16px',
+              }}
             >
-            {submitting ? "⏳ Submitting..." : `🚀 Submit A${currentAttempt}`}
-          </button>
-          )}
+              {solutionUnlocked ? '📖 Solution' : '🔒 Solution'}
+            </button>
+
+            {onSubmit && (
+              <button
+                onClick={handleSubmit}
+                disabled={running || submitting || !canSubmit}
+                style={{
+                  background:
+                    submitting || !canSubmit
+                      ? '#1e2a3a'
+                      : 'linear-gradient(135deg,#00c896,#1a73e8)',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: '#fff',
+                  cursor: running || submitting || !canSubmit ? 'not-allowed' : 'pointer',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: '7px 20px',
+                  opacity: running || submitting || !canSubmit ? 0.7 : 1,
+                  transition: 'all 0.2s',
+                  boxShadow: submitting || !canSubmit ? 'none' : '0 0 16px #00c89633',
+                }}
+              >
+                {submitting ? '⏳ Submitting...' : `🚀 Submit A${currentAttempt}`}
+              </button>
+            )}
           </div>
         </div>
+
         {/* Editor */}
         <div style={{ height: `${splitV}%`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <CodeEditorPane
@@ -1237,7 +1226,7 @@ export default function CodeEditor({
             language={langId}
           />
 
-          {/* stdin */}
+          {/* Custom input */}
           <div style={{
             borderTop:  '1px solid #1e2a3a',
             padding:    '8px 16px',
@@ -1246,13 +1235,13 @@ export default function CodeEditor({
           }}>
             <div style={{ color: '#555', fontSize: 10, fontWeight: 700,
               textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-              stdin (custom input)
+              {driven ? `Custom input (${inputHint(sig)})` : 'stdin (custom input)'}
             </div>
             <textarea
               value={stdin}
               onChange={e => setStdin(e.target.value)}
               rows={2}
-              placeholder="Optional custom input..."
+              placeholder={driven ? 'e.g. ' + defaultInputFor(problem) : 'Optional custom input...'}
               style={{
                 width:        '100%',
                 boxSizing:    'border-box',
@@ -1293,178 +1282,182 @@ export default function CodeEditor({
             onTabChange={setActiveOut}
           />
         </div>
-        </div>
-       {showSolution && (
+      </div>
+
+      {showSolution && (
         <div style={{
-         position: 'fixed',
-         inset: 0,
-         background: 'rgba(0,0,0,0.78)',
-         zIndex: 9999,
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         padding: 24,
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.78)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
         }}>
           <div style={{
-                background: '#0d1117',
-                border: '1px solid #a855f766',
-                borderRadius: 18,
-                padding: 24,
-                maxWidth: 760,
-                width: '100%',
-                maxHeight: '85vh',
-                overflow: 'auto',
-                color: '#e8e8e8',
-                boxShadow: '0 0 40px #a855f733',
-                }}>
-                  <button onClick={() => setShowSolution(false)}
-                   style={{
-                    float: 'right',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#888',
-                   fontSize: 24,
-                   cursor: 'pointer',
+            background: '#0d1117',
+            border: '1px solid #a855f766',
+            borderRadius: 18,
+            padding: 24,
+            maxWidth: 760,
+            width: '100%',
+            maxHeight: '85vh',
+            overflow: 'auto',
+            color: '#e8e8e8',
+            boxShadow: '0 0 40px #a855f733',
+          }}>
+            <button
+              onClick={() => setShowSolution(false)}
+              style={{
+                float: 'right',
+                background: 'transparent',
+                border: 'none',
+                color: '#888',
+                fontSize: 24,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{ color: '#c084fc', marginTop: 0 }}>
+              📖 {problem?.solution?.title || 'Solution Explanation'}
+            </h2>
+
+            <p style={{ color: '#ccc', lineHeight: 1.8 }}>
+              {problem?.solution?.explanation ||
+                problem?.solution?.idea ||
+                'This problem tried to look scary, but relax. It is just a normal DSA pattern wearing a dramatic hoodie.'}
+            </p>
+
+            <h3 style={{ color: '#22d3ee' }}>Approach</h3>
+            <ul style={{ lineHeight: 1.8 }}>
+              {(problem?.solution?.approach || [
+                'Understand the input and output.',
+                'Identify the correct DSA pattern.',
+                'Apply the logic step by step.',
+                'Return the answer like a calm engineer, not like production is burning.',
+              ]).map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ul>
+
+            <h3 style={{ color: '#00c896' }}>Code</h3>
+            <pre style={{
+              background: '#05070c',
+              border: '1px solid #1e2a3a',
+              borderRadius: 12,
+              padding: 16,
+              color: '#f8f8f2',
+              overflow: 'auto',
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}>
+              {problem?.solution?.code?.python3 ||
+                problem?.solution?.code?.javascript ||
+                problem?.solutionCode ||
+                `def solution(nums):
+    # The problem is pretending to be hard.
+    # Apply the pattern and move on with confidence.
+    return nums`}
+            </pre>
+
+            <h3 style={{ color: '#f59e0b' }}>Complexity</h3>
+            <p style={{ lineHeight: 1.7 }}>
+              Time: {problem?.solution?.complexity?.time || problem?.timeComplexity || 'O(n)'}<br />
+              Space: {problem?.solution?.complexity?.space || problem?.spaceComplexity || 'O(n)'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!hideHints && showHint && (
+        <div
+          onClick={() => setShowHint(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.72)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingTop: 90,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#0d1117',
+              border: '1px solid #f59e0b88',
+              borderRadius: 18,
+              padding: 24,
+              maxWidth: 700,
+              width: '90%',
+              color: '#fff',
+              boxShadow: '0 0 40px #f59e0b44',
+            }}
+          >
+            <button
+              onClick={() => setShowHint(false)}
+              style={{
+                float: 'right',
+                background: 'transparent',
+                border: 'none',
+                color: '#aaa',
+                fontSize: 24,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{ color: '#fbbf24', marginTop: 0 }}>
+              💡 Hints (Attempt {currentAttempt}/3)
+            </h2>
+
+            {visibleHints.length === 0 ? (
+              <p style={{ color: '#aaa' }}>No hints available.</p>
+            ) : (
+              visibleHints.map((hint, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: '#1f2937',
+                    border: '1px solid #f59e0b55',
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 12,
+                    color: '#fde68a',
+                    lineHeight: 1.7,
                   }}
                 >
-                 ✕
-                </button>
-
-                <h2 style={{ color: '#c084fc', marginTop: 0 }}>
-                 📖 {problem?.solution?.title || 'Solution Explanation'}
-                </h2>
-
-                <p style={{ color: '#ccc', lineHeight: 1.8 }}>
-                 {problem?.solution?.explanation ||
-                 problem?.solution?.idea ||
-                 'This problem tried to look scary, but relax. It is just a normal DSA pattern wearing a dramatic hoodie.'}
-                </p>
-
-                <h3 style={{ color: '#22d3ee' }}>Approach</h3>
-                 <ul style={{ lineHeight: 1.8 }}>
-                 {(problem?.solution?.approach || [
-                  'Understand the input and output.',
-                  'Identify the correct DSA pattern.',
-                  'Apply the logic step by step.',
-                  'Return the answer like a calm engineer, not like production is burning.',
-                  ]).map((step, i) => (
-                   <li key={i}>{step}</li>
-                   ))}
-                 </ul>
-
-                <h3 style={{ color: '#00c896' }}>Code</h3>
-                  <pre style={{
-                   background: '#05070c',
-                   border: '1px solid #1e2a3a',
-                   borderRadius: 12,
-                   padding: 16,
-                   color: '#f8f8f2',
-                   overflow: 'auto',
-                   fontSize: 13,
-                   lineHeight: 1.6,
-                  }}>
-                 {problem?.solution?.code?.python3 ||
-                 problem?.solution?.code?.javascript ||
-                 problem?.solutionCode ||
-                 `def solution(nums):
-                  # The problem is pretending to be hard.
-                  # Apply the pattern and move on with confidence.
-                  return nums`}
-                 </pre>
-
-                <h3 style={{ color: '#f59e0b' }}>Complexity</h3>
-                <p style={{ lineHeight: 1.7 }}>
-                 Time: {problem?.solution?.complexity?.time || problem?.timeComplexity || 'O(n)'}<br />
-                 Space: {problem?.solution?.complexity?.space || problem?.spaceComplexity || 'O(n)'}
-                </p>
+                  <strong>Hint {index + 1}</strong>
+                  <p style={{ marginBottom: 0 }}>{hint}</p>
                 </div>
-              </div>
+              ))
             )}
-            {!hideHints && showHint && (
-              <div
-                onClick={() => setShowHint(false)}
-                style={{
-                  position: "fixed",
-                  inset: 0,
-                  background: "rgba(0,0,0,0.72)",
-                  zIndex: 10000,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "center",
-                  paddingTop: 90,
-                }}
-              >
-              <div
-               onClick={(e) => e.stopPropagation()}
-               style={{
-                background: "#0d1117",
-                border: "1px solid #f59e0b88",
-                borderRadius: 18,
-                padding: 24,
-                maxWidth: 700,
-                width: "90%",
-                color: "#fff",
-                boxShadow: "0 0 40px #f59e0b44",
-                }}
-              >
-              <button
-                onClick={() => setShowHint(false)}
-                style={{
-                  float: "right",
-                  background: "transparent",
-                  border: "none",
-                  color: "#aaa",
-                  fontSize: 24,
-                  cursor: "pointer",
-                  }}
-                  >
-                  ✕
-              </button>
 
-                  <h2 style={{ color: "#fbbf24", marginTop: 0 }}>
-                    💡 Hints — Attempt {currentAttempt}/3
-                  </h2>
-
-                  {visibleHints.length === 0 ? (
-                    <p style={{ color: "#aaa" }}>No hints available.</p>
-                  ) : (
-                    visibleHints.map((hint, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          background: "#1f2937",
-                          border: "1px solid #f59e0b55",
-                          borderRadius: 12,
-                          padding: 14,
-                          marginBottom: 12,
-                          color: "#fde68a",
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        <strong>Hint {index + 1}</strong>
-                        <p style={{ marginBottom: 0 }}>{hint}</p>
-                      </div>
-                    ))
-                  )}
-
-                  <button
-                    onClick={() => setShowHint(false)}
-                    style={{
-                      marginTop: 10,
-                      background: "#f59e0b22",
-                      border: "1px solid #f59e0b66",
-                      borderRadius: 10,
-                      color: "#fbbf24",
-                      padding: "9px 16px",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Close
-                  </button>
-            </div>
+            <button
+              onClick={() => setShowHint(false)}
+              style={{
+                marginTop: 10,
+                background: '#f59e0b22',
+                border: '1px solid #f59e0b66',
+                borderRadius: 10,
+                color: '#fbbf24',
+                padding: '9px 16px',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              Close
+            </button>
           </div>
-        )}
+        </div>
+      )}
+
       {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
