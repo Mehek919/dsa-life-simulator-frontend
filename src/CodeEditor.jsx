@@ -724,6 +724,7 @@ export default function CodeEditor({
   user,
   defaultLanguage = 'python3',
   hideHints = false, // when true (Mock Interview), hints button/panel are not rendered at all. Odyssey omits this prop and keeps current behavior.
+  onBack,           // optional: when provided, a "Back" button is shown above the problem title
 }) {
   // Function signature read from the problem's examples/test cases (or problem.signature).
   const sig = useMemo(() => getSignature(problem), [problem]);
@@ -960,6 +961,24 @@ export default function CodeEditor({
           background:   '#0d1117',
           flexShrink:   0,
         }}>
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                background:   'transparent',
+                border:       '1px solid #1e2a3a',
+                borderRadius: 8,
+                color:        '#22d3ee',
+                cursor:       'pointer',
+                fontSize:     12,
+                fontWeight:   700,
+                padding:      '4px 12px',
+                marginBottom: 10,
+              }}
+            >
+              ← Back
+            </button>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#e8e8e8' }}>
               {problem?.title || 'Untitled Problem'}
@@ -1496,3 +1515,4 @@ export default function CodeEditor({
     </div>
   );
 }
+
