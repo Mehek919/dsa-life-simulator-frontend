@@ -444,6 +444,13 @@ function ResultScreen({ problem, result, onContinue, onRetry, onRetrySave, savin
           </motion.div>
         )}
 
+        {/* Repeat solve note */}
+        {passed && result.alreadySolved && !result.saveFailed && (
+          <div style={{ background: '#22d3ee11', border: '1px solid #22d3ee33', borderRadius: 10, padding: '10px 14px', marginBottom: 14, color: '#9fe3f0', fontSize: 12, lineHeight: 1.6 }}>
+            ✅ You already solved this mission earlier, so no extra XP this time.
+          </div>
+        )}
+
         {/* Attempt history */}
         {allAttempts?.length > 0 && (
           <div style={{ background: '#ffffff06', border: '1px solid #ffffff0a', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
@@ -693,7 +700,7 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
   const postSubmission = useCallback(async (payload) => {
     const res  = await axios.post(`${API_BASE}/problems/${problemId}/submit`, payload);
     const data = res.data || {};
-    if (data.newXp !== undefined && typeof setUserData === 'function') {
+    if (typeof data.newXp === 'number' && typeof setUserData === 'function') {
       setUserData(prev => ({ ...prev, xp: data.newXp, credits: data.newCredits, level: data.newLevel }));
     }
     return data;
@@ -763,10 +770,10 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
 
     try {
       const data    = await postSubmission(payload);
-      const xp      = data.xpAwarded || xpAwarded;
-      const credits = data.creditsAwarded || crAwarded;
+      const xp      = data.xpAwarded ?? xpAwarded;
+      const credits = data.creditsAwarded ?? crAwarded;
 
-      setResult({ allPassed, passed, total, xp, credits, stars });
+      setResult({ allPassed, passed, total, xp, credits, stars, alreadySolved: !!data.alreadySolved });
       setPhase('result');
 
       return { passed: allPassed, passedCount: passed, total, xp, credits };
@@ -788,8 +795,9 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
       setResult(prev => prev && ({
         ...prev,
         saveFailed: false,
-        xp:         data.xpAwarded || last.xpAwarded,
-        credits:    data.creditsAwarded || last.crAwarded,
+        xp:         data.xpAwarded ?? last.xpAwarded,
+        credits:    data.creditsAwarded ?? last.crAwarded,
+        alreadySolved: !!data.alreadySolved,
       }));
     } catch (err) {
       console.error('Retry save failed:', err?.response?.status, err?.response?.data || err.message);
