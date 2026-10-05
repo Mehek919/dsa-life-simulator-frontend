@@ -129,34 +129,52 @@ const OnboardingGuard = ({ user, userData, children }) => {
 };
 
 // ─── Skip Onboarding Button ───────────────────────────────────────────────────
-// Shown on top of the onboarding screen so players can go straight into the world.
-const SkipOnboarding = ({ onSkip, busy, retaking }) => (
-  <button
-    type="button"
-    onClick={onSkip}
-    disabled={busy}
-    style={{
-      position: 'fixed',
-      top: 'calc(16px + env(safe-area-inset-top, 0px))',
-      right: 16,
-      zIndex: 1000,
-      minHeight: 44,
-      padding: '0 18px',
-      borderRadius: 999,
-      border: '1px solid rgba(255,255,255,0.18)',
-      background: 'rgba(13,17,23,0.75)',
-      color: '#d7dcea',
-      fontSize: 14,
-      fontWeight: 600,
-      fontFamily: 'inherit',
-      cursor: busy ? 'wait' : 'pointer',
-      backdropFilter: 'blur(8px)',
-      opacity: busy ? 0.6 : 1,
-    }}
-  >
-    {busy ? 'Skipping…' : retaking ? 'Back to the world' : 'Skip for now'}
-  </button>
-);
+// Sits on top of the onboarding screen. Skipping first shows what the player would miss,
+// with "Take the quiz" as the main choice. Players coming back to retake just leave.
+const ONBOARDING_REWARD = { xp: 200, credits: 50 }; // keep in sync with the backend route
+const skipBtn = {
+  minHeight: 44, padding: '0 18px', borderRadius: 999, fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+};
+const SkipOnboarding = ({ onSkip, busy, retaking }) => {
+  const [asking, setAsking] = useState(false);
+  return (
+    <div style={{ position: 'fixed', top: 'calc(16px + env(safe-area-inset-top, 0px))', right: 16, zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+      {!asking && (
+        <button
+          type="button"
+          onClick={() => (retaking ? onSkip() : setAsking(true))}
+          disabled={busy}
+          style={{ ...skipBtn, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(13,17,23,0.75)', color: '#d7dcea', backdropFilter: 'blur(8px)', opacity: busy ? 0.6 : 1 }}
+        >
+          {busy ? 'Skipping…' : retaking ? 'Back to the world' : 'Skip for now'}
+        </button>
+      )}
+      {asking && (
+        <div role="dialog" aria-labelledby="skip-title" style={{
+          width: 'min(320px, calc(100vw - 32px))', padding: 18, borderRadius: 16, background: '#0f1522', color: '#eef1f8',
+          border: '1px solid #2a3550', boxShadow: '0 18px 50px rgba(0,0,0,0.55)', fontFamily: 'inherit',
+        }}>
+          <div id="skip-title" style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>Skip and lose your bonus?</div>
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: '#b7c0d4', marginBottom: 14 }}>
+            Finishing the 5 questions gives you <b style={{ color: '#fff' }}>+{ONBOARDING_REWARD.xp} XP</b>,{' '}
+            <b style={{ color: '#fff' }}>{ONBOARDING_REWARD.credits} credits</b> and your own Life Role.
+            You can still earn them later from your profile.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => setAsking(false)} autoFocus
+              style={{ ...skipBtn, flex: 1, border: 0, background: 'linear-gradient(135deg, #a855f7, #2f7bf5)', color: '#fff', fontWeight: 700 }}>
+              Take the quiz
+            </button>
+            <button type="button" onClick={() => { setAsking(false); onSkip(); }} disabled={busy}
+              style={{ ...skipBtn, border: '1px solid #2a3550', background: 'transparent', color: '#9aa4b8' }}>
+              Skip anyway
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 const AppShell = () => {
@@ -231,7 +249,9 @@ const AppShell = () => {
     }));
     safeLog('onboarding_complete', { userId: user?.uid });
     navigate('/world', { replace: true });
-  }, [navigate, user?.uid]);
+    // Pull the saved profile again so the completion bonus (XP, credits, level) shows right away.
+    if (user) createOrFetchUser(user).then((fresh) => { if (fresh) setUserData(fresh); });
+  }, [navigate, user, createOrFetchUser]);
 
   // ── Onboarding skip handler ──
   // Saves the skip on the server so the player isn't sent back here on the next visit.
@@ -535,7 +555,3 @@ const App = () => (
   </ErrorBoundary>
 );
 export default App;
-
-
-
-
