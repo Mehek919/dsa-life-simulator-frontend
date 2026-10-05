@@ -128,6 +128,36 @@ const OnboardingGuard = ({ user, userData, children }) => {
   return children;
 };
 
+// ─── Skip Onboarding Button ───────────────────────────────────────────────────
+// Shown on top of the onboarding screen so players can go straight into the world.
+const SkipOnboarding = ({ onSkip, busy, retaking }) => (
+  <button
+    type="button"
+    onClick={onSkip}
+    disabled={busy}
+    style={{
+      position: 'fixed',
+      top: 'calc(16px + env(safe-area-inset-top, 0px))',
+      right: 16,
+      zIndex: 1000,
+      minHeight: 44,
+      padding: '0 18px',
+      borderRadius: 999,
+      border: '1px solid rgba(255,255,255,0.18)',
+      background: 'rgba(13,17,23,0.75)',
+      color: '#d7dcea',
+      fontSize: 14,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: busy ? 'wait' : 'pointer',
+      backdropFilter: 'blur(8px)',
+      opacity: busy ? 0.6 : 1,
+    }}
+  >
+    {busy ? 'Skipping…' : retaking ? 'Back to the world' : 'Skip for now'}
+  </button>
+);
+
 // ─── App Shell ────────────────────────────────────────────────────────────────
 const AppShell = () => {
   const navigate = useNavigate();
@@ -135,6 +165,7 @@ const AppShell = () => {
   const [user,      setUser]      = useState(undefined);
   const [userData,  setUserData]  = useState(null);
   const [authReady, setAuthReady] = useState(false);
+  const [skipping,  setSkipping]  = useState(false);
 
   // ── Fetch or create user doc ──
   const createOrFetchUser = useCallback(async (firebaseUser) => {
@@ -173,7 +204,7 @@ const AppShell = () => {
     const data = await createOrFetchUser(firebaseUser);
     setUser(firebaseUser);
     setUserData(data);
-    safeLog('login', { method: 'Google' });
+    safeLog('login', { method: firebaseUser.providerData?.[0]?.providerId || 'unknown' });
 
     if (data && !data.onboardingCompleted) {
       navigate('/onboarding', { replace: true });
@@ -196,10 +227,36 @@ const AppShell = () => {
       ...prev,
       ...updatedUserData,
       onboardingCompleted: true,
+      onboardingSkipped: false,
     }));
     safeLog('onboarding_complete', { userId: user?.uid });
     navigate('/world', { replace: true });
   }, [navigate, user?.uid]);
+
+  // ── Onboarding skip handler ──
+  // Saves the skip on the server so the player isn't sent back here on the next visit.
+  // If the save fails, they still get in now; they'll just see onboarding next time.
+  const handleOnboardingSkip = useCallback(async () => {
+    if (!user) return;
+    if (userData?.onboardingCompleted) { navigate('/world', { replace: true }); return; } // retaking: just leave
+    setSkipping(true);
+    let saved = null;
+    try {
+      const res = await axios.post(`${API_BASE}/onboarding/skip`, { uid: user.uid });
+      saved = res.data?.user || null;
+    } catch (err) {
+      console.error('❌ Skip onboarding failed:', err);
+    }
+    setUserData(prev => ({
+      ...prev,
+      ...(saved || {}),
+      onboardingCompleted: true,
+      onboardingSkipped: true,
+    }));
+    safeLog('onboarding_skipped', { userId: user.uid });
+    setSkipping(false);
+    navigate('/world', { replace: true });
+  }, [user, userData?.onboardingCompleted, navigate]);
 
   // ── Auth loading splash ──
   if (!authReady) return <PageLoader />;
@@ -232,21 +289,29 @@ const AppShell = () => {
             </Guard>
            }
          />
-         
+
           {/* ── Onboarding ── */}
+          {/* Players who skipped can come back here later (for example from their profile) to take the quiz. */}
           <Route
             path="/onboarding"
             element={
               !user
                 ? <Navigate to="/" replace />
-                : userData?.onboardingCompleted
+                : userData?.onboardingCompleted && !userData?.onboardingSkipped
                   ? <Navigate to="/world" replace />
                   : (
-                    <Onboarding
-                      user={user}
-                      userData={userData}
-                      onComplete={handleOnboardingComplete}
-                    />
+                    <>
+                      <Onboarding
+                        user={user}
+                        userData={userData}
+                        onComplete={handleOnboardingComplete}
+                      />
+                      <SkipOnboarding
+                        onSkip={handleOnboardingSkip}
+                        busy={skipping}
+                        retaking={!!userData?.onboardingSkipped}
+                      />
+                    </>
                   )
             }
           />
