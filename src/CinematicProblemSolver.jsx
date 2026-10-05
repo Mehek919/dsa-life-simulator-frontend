@@ -262,6 +262,10 @@ function XPDecayBar({ attemptNumber, baseXP, baseCredits }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CINEMATIC SCENE (intro)
+// ─────────────────────────────────────────────────────────────────────────────
 function CinematicScene({ problem, onReveal, attemptNumber, attemptConfig, onBack }) {
   const [sceneTyped, setSceneTyped] = useState(false);
   const [showBtn, setShowBtn]       = useState(false);
@@ -278,9 +282,17 @@ function CinematicScene({ problem, onReveal, attemptNumber, attemptConfig, onBac
       <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.1, 0.05] }}
         transition={{ duration: 6, repeat: Infinity }}
         style={{ position: 'absolute', top: '50%', left: '50%', width: 600, height: 600, background: `radial-gradient(circle, ${companyColor}22, transparent)`, borderRadius: '50%', transform: 'translate(-50%, -50%)', zIndex: 0 }} />
-        <button onClick={onBack} style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, background: 'transparent', border: '1px solid #ffffff22', borderRadius: 10, color: '#22d3ee', cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: '8px 16px' }}>
+
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, background: 'transparent', border: '1px solid #ffffff22', borderRadius: 10, color: '#22d3ee', cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: '8px 16px' }}
+        >
           ← Back
         </button>
+      )}
+
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
         style={{ maxWidth: 700, width: '100%', position: 'relative', zIndex: 1 }}>
 
@@ -360,9 +372,7 @@ function CinematicScene({ problem, onReveal, attemptNumber, attemptConfig, onBac
 // ─────────────────────────────────────────────────────────────────────────────
 // RESULT SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-function ResultScreen({ problem, result, onContinue, onRetry, attemptNumber, allAttempts }) {
-  const cfg = getAttemptConfig(attemptNumber);
-
+function ResultScreen({ problem, result, onContinue, onRetry, onRetrySave, saving, attemptNumber, allAttempts }) {
   const passed     = result.allPassed;
   const xpEarned   = result.xp;
   const crEarned   = result.credits;
@@ -401,8 +411,26 @@ function ResultScreen({ problem, result, onContinue, onRetry, attemptNumber, all
           </div>
         </div>
 
+        {/* Save failed warning */}
+        {result.saveFailed && (
+          <div style={{ background: '#ef444411', border: '1px solid #ef444433', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+            <div style={{ color: '#ef9090', fontSize: 12, lineHeight: 1.6, marginBottom: onRetrySave ? 8 : 0 }}>
+              ⚠️ Your result could not be saved to the server, so XP and progress were not updated yet.
+            </div>
+            {onRetrySave && (
+              <button
+                onClick={onRetrySave}
+                disabled={saving}
+                style={{ background: '#ef444422', border: '1px solid #ef444466', borderRadius: 8, color: '#ef9090', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, opacity: saving ? 0.6 : 1, padding: '6px 14px' }}
+              >
+                {saving ? 'Saving...' : '🔄 Retry saving'}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* XP & Credits earned */}
-        {passed && (xpEarned > 0 || crEarned > 0) && (
+        {passed && !result.saveFailed && (xpEarned > 0 || crEarned > 0) && (
           <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 1.5, repeat: 3 }}
             style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
             {[
@@ -414,6 +442,13 @@ function ResultScreen({ problem, result, onContinue, onRetry, attemptNumber, all
               </div>
             ))}
           </motion.div>
+        )}
+
+        {/* Repeat solve note */}
+        {passed && result.alreadySolved && !result.saveFailed && (
+          <div style={{ background: '#22d3ee11', border: '1px solid #22d3ee33', borderRadius: 10, padding: '10px 14px', marginBottom: 14, color: '#9fe3f0', fontSize: 12, lineHeight: 1.6 }}>
+            ✅ You already solved this mission earlier, so no extra XP this time.
+          </div>
         )}
 
         {/* Attempt history */}
@@ -502,7 +537,7 @@ function SideAssistPanel({ problem, attemptNumber, attemptConfig, onClose }) {
             Attempt #{attemptNumber} · {getAttemptConfig(attemptNumber).badge}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16 }}>✕</button>
+        <button onClick={onClose} title="Hide panel" style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16 }}>✕</button>
       </div>
 
       {/* Tabs */}
@@ -540,12 +575,18 @@ function SideAssistPanel({ problem, attemptNumber, attemptConfig, onClose }) {
         )}
 
         {tab === 'hints' && (
-          <HintPanel
-            hints={problem.hints || []}
-            hintsUnlocked={attemptConfig.hintsUnlocked}
-            problemId={problem.id}
-            attemptNumber={attemptNumber}
-          />
+          attemptConfig.hintsUnlocked === 0 ? (
+            <div style={{ color: '#666', fontSize: 13, lineHeight: 1.6 }}>
+              💡 Hints unlock after your first unsuccessful attempt. Give it your best shot first.
+            </div>
+          ) : (
+            <HintPanel
+              hints={problem.hints || []}
+              hintsUnlocked={attemptConfig.hintsUnlocked}
+              problemId={problem.id}
+              attemptNumber={attemptNumber}
+            />
+          )
         )}
 
         {tab === 'solution' && attemptConfig.solutionUnlocked && (
@@ -577,81 +618,93 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
   const [attemptNumber, setAttemptNumber] = useState(1);
   const [allAttempts,   setAllAttempts]   = useState([]);
   const [showSidePanel, setShowSidePanel] = useState(true);
+  const [saving,        setSaving]        = useState(false);
+  const lastSubmission = useRef(null); // last payload sent to the backend, kept so a failed save can be retried
 
   const attemptConfig = getAttemptConfig(attemptNumber);
 
   // ── Load problem + previous attempt count ────────────────────────────────
   useEffect(() => {
-  if (!problemId) {
-    setError('Problem ID missing.');
-    setLoading(false);
-    return;
-  }
+    if (!problemId) {
+      setError('Problem ID missing.');
+      setLoading(false);
+      return;
+    }
 
-  if (!user?.uid) {
-    setError('Please login first.');
-    setLoading(false);
-    return;
-  }
+    if (!user?.uid) {
+      setError('Please login first.');
+      setLoading(false);
+      return;
+    }
 
-  let alive = true;
+    let alive = true;
 
-  const loadProblem = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const probRes = await axios.get(`${API_BASE}/problems/${problemId}`);
-
-      if (!alive) return;
-
-      if (probRes.data?.problem) {
-        setProblem(probRes.data.problem);
-      } else {
-        setError('Problem not found.');
-        setProblem(null);
-      }
+    const loadProblem = async () => {
+      setLoading(true);
+      setError('');
 
       try {
-        const attDoc = await getDoc(
-          doc(db, 'userProblemAttempts', `${user.uid}_${problemId}`)
-        );
+        const probRes = await axios.get(`${API_BASE}/problems/${problemId}`);
 
         if (!alive) return;
 
-        if (attDoc.exists()) {
-          const data = attDoc.data();
-          setAttemptNumber((data.attemptCount || 0) + 1);
-          setAllAttempts(data.attempts || []);
+        if (probRes.data?.problem) {
+          setProblem(probRes.data.problem);
         } else {
+          setError('Problem not found.');
+          setProblem(null);
+        }
+
+        try {
+          const attDoc = await getDoc(
+            doc(db, 'userProblemAttempts', `${user.uid}_${problemId}`)
+          );
+
+          if (!alive) return;
+
+          if (attDoc.exists()) {
+            const data = attDoc.data();
+            setAttemptNumber((data.attemptCount || 0) + 1);
+            setAllAttempts(data.attempts || []);
+          } else {
+            setAttemptNumber(1);
+            setAllAttempts([]);
+          }
+        } catch (attemptErr) {
+          console.warn('Attempt fetch failed:', attemptErr);
           setAttemptNumber(1);
           setAllAttempts([]);
         }
-      } catch (attemptErr) {
-        console.warn('Attempt fetch failed:', attemptErr);
-        setAttemptNumber(1);
-        setAllAttempts([]);
+      } catch (err) {
+        console.error('Problem fetch failed:', err);
+        if (!alive) return;
+        setProblem(null);
+        setError(
+          err?.response?.data?.error ||
+          err?.message ||
+          'Failed to load problem.'
+        );
+      } finally {
+        if (alive) setLoading(false);
       }
-    } catch (err) {
-      console.error('Problem fetch failed:', err);
-      if (!alive) return;
-      setProblem(null);
-      setError(
-        err?.response?.data?.error ||
-        err?.message ||
-        'Failed to load problem.'
-      );
-    } finally {
-      if (alive) setLoading(false);
-    }
-  };
+    };
 
-  loadProblem();
+    loadProblem();
 
-   return () => {
-    alive = false;
-   };
+    return () => {
+      alive = false;
+    };
   }, [problemId, user?.uid]);
+
+  // ── Post a submission to the backend and sync header stats ────────────────
+  const postSubmission = useCallback(async (payload) => {
+    const res  = await axios.post(`${API_BASE}/problems/${problemId}/submit`, payload);
+    const data = res.data || {};
+    if (typeof data.newXp === 'number' && typeof setUserData === 'function') {
+      setUserData(prev => ({ ...prev, xp: data.newXp, credits: data.newCredits, level: data.newLevel }));
+    }
+    return data;
+  }, [problemId, setUserData]);
 
   // ── Submit handler ────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async (code, langId, testResults) => {
@@ -669,7 +722,7 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
       ? (attemptNumber === 1 ? 3 : attemptNumber <= 3 ? 2 : 1)
       : 0;
 
-    // ── Save attempt record to Firestore ────────────────────────────────────
+    // ── Save attempt record to Firestore (never blocks the submit) ──────────
     const attemptRef  = doc(db, 'userProblemAttempts', `${user.uid}_${problemId}`);
     const newAttempt  = {
       attemptNumber,
@@ -683,57 +736,88 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
       timestamp:      new Date().toISOString(),
     };
     const updatedAttempts = [...allAttempts, newAttempt];
-    await setDoc(attemptRef, {
-      userId:       user.uid,
-      problemId,
-      attemptCount: attemptNumber,
-      lastAttempt:  serverTimestamp(),
-      solved:       allPassed,
-      solvedOnAttempt: allPassed ? attemptNumber : null,
-      attempts:     updatedAttempts,
-    }, { merge: true });
+    try {
+      await setDoc(attemptRef, {
+        userId:       user.uid,
+        problemId,
+        attemptCount: attemptNumber,
+        lastAttempt:  serverTimestamp(),
+        solved:       allPassed,
+        solvedOnAttempt: allPassed ? attemptNumber : null,
+        attempts:     updatedAttempts,
+      }, { merge: true });
+    } catch (fsErr) {
+      console.warn('Could not save attempt record:', fsErr);
+    }
 
     setAllAttempts(updatedAttempts);
 
     // ── Post to backend ──────────────────────────────────────────────────────
+    const payload = {
+      userId:      user.uid,
+      code,
+      language:    langId,
+      passed,
+      total,
+      allPassed,
+      stars,
+      hintsUsed:   cfg.hintsUnlocked,
+      attemptNumber,
+      xpMultiplier: cfg.xpMult,
+      testResults: testResults.map(r => ({ label: r.label || '', passed: r.passed, time: r.time || null, memory: r.memory || null })),
+    };
+    lastSubmission.current = { payload, xpAwarded, crAwarded };
+
     try {
-      const res = await axios.post(`${API_BASE}/problems/${problemId}/submit`, {
-        userId:      user.uid,
-        code,
-        language:    langId,
-        passed,
-        total,
-        allPassed,
-        stars,
-        hintsUsed:   cfg.hintsUnlocked,
-        attemptNumber,
-        xpMultiplier: cfg.xpMult,
-        testResults: testResults.map(r => ({ label: r.label || '', passed: r.passed, time: r.time || null, memory: r.memory || null })),
-      });
+      const data    = await postSubmission(payload);
+      const xp      = data.xpAwarded ?? xpAwarded;
+      const credits = data.creditsAwarded ?? crAwarded;
 
-      const data = res.data || {};
-      if (data.newXp !== undefined && typeof setUserData === 'function') {
-        setUserData(prev => ({ ...prev, xp: data.newXp, credits: data.newCredits, level: data.newLevel }));
-      }
-
-      setResult({ allPassed, passed, total, xp: data.xpAwarded || xpAwarded, credits: data.creditsAwarded || crAwarded, stars });
+      setResult({ allPassed, passed, total, xp, credits, stars, alreadySolved: !!data.alreadySolved });
       setPhase('result');
 
-      return { passed: allPassed, passedCount: passed, total, xp: data.xpAwarded || xpAwarded, credits: data.creditsAwarded || crAwarded };
-        } catch (err) {
+      return { passed: allPassed, passedCount: passed, total, xp, credits };
+    } catch (err) {
       console.error('Submit to backend failed:', err?.response?.status, err?.response?.data || err.message);
       setResult({ allPassed, passed, total, xp: xpAwarded, credits: crAwarded, stars, saveFailed: true });
       setPhase('result');
-      return { passed: allPassed, passedCount: passed, total, xp: xpAwarded, credits: crAwarded };
+      return { passed: allPassed, passedCount: passed, total, xp: 0, credits: 0 };
     }
-  }, [problemId, user?.uid, attemptNumber, allAttempts, problem]);
+  }, [problemId, user?.uid, attemptNumber, allAttempts, problem, postSubmission]);
 
-  // ── Retry ─────────────────────────────────────────────────────────────────
+  // ── Retry saving a result the server did not receive ──────────────────────
+  const handleRetrySave = useCallback(async () => {
+    const last = lastSubmission.current;
+    if (!last || saving) return;
+    setSaving(true);
+    try {
+      const data = await postSubmission(last.payload);
+      setResult(prev => prev && ({
+        ...prev,
+        saveFailed: false,
+        xp:         data.xpAwarded ?? last.xpAwarded,
+        credits:    data.creditsAwarded ?? last.crAwarded,
+        alreadySolved: !!data.alreadySolved,
+      }));
+    } catch (err) {
+      console.error('Retry save failed:', err?.response?.status, err?.response?.data || err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [postSubmission, saving]);
+
+  // ── Retry the problem (next attempt) ─────────────────────────────────────
   const handleRetry = useCallback(() => {
     setAttemptNumber(n => n + 1);
     setPhase('cinematic');
     setResult(null);
   }, []);
+
+  // ── Back button (asks first while coding, since the code would be lost) ──
+  const handleBack = useCallback(() => {
+    if (phase === 'editor' && !window.confirm('Leave this mission? Your current code will be lost.')) return;
+    navigate(-1);
+  }, [phase, navigate]);
 
   // ── Loading / Error ───────────────────────────────────────────────────────
   if (loading) {
@@ -762,25 +846,26 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
       {/* ── Phase 1: Cinematic intro ── */}
       {phase === 'cinematic' && (
         <motion.div key="cinematic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <CinematicScene
+          <CinematicScene
             problem={problem}
             onReveal={() => setPhase('editor')}
             attemptNumber={attemptNumber}
             attemptConfig={attemptConfig}
             onBack={() => navigate(-1)}
-          />   </motion.div>
+          />
+        </motion.div>
       )}
 
-      {/* ── Phase 2: Code editor ── */}
-      {phase === 'editor' && (
+      {/* ── Phase 2 + 3: Code editor (the result screen overlays the same editor) ── */}
+      {(phase === 'editor' || phase === 'result') && (
         <motion.div key="editor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: '100vh', position: 'relative' }}>
           <div style={{ marginRight: showSidePanel ? 320 : 0, height: '100%', transition: 'margin-right 0.3s' }}>
             <CodeEditor
               problem={problem}
               user={user}
               onSubmit={handleSubmit}
-                            onHintUsed={() => {}}
-              onBack={() => navigate(-1)}
+              onHintUsed={() => {}}
+              onBack={handleBack}
               defaultLanguage="python3"
             />
           </div>
@@ -805,23 +890,20 @@ export default function CinematicProblemSolver({ user, userData, setUserData }) 
               />
             )}
           </AnimatePresence>
-        </motion.div>
-      )}
 
-      {/* ── Phase 3: Result ── */}
-      {phase === 'result' && result && (
-        <motion.div key="result-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: '100vh' }}>
-          <div style={{ marginRight: showSidePanel ? 320 : 0, height: '100%' }}>
-            <CodeEditor problem={problem} user={user} onSubmit={handleSubmit} defaultLanguage="python3" />
-          </div>
-          <ResultScreen
-            problem={problem}
-            result={result}
-            attemptNumber={attemptNumber}
-            allAttempts={allAttempts}
-            onContinue={() => navigate(-1)}
-            onRetry={handleRetry}
-          />
+          {/* Result overlay */}
+          {phase === 'result' && result && (
+            <ResultScreen
+              problem={problem}
+              result={result}
+              attemptNumber={attemptNumber}
+              allAttempts={allAttempts}
+              onContinue={() => navigate(-1)}
+              onRetry={handleRetry}
+              onRetrySave={handleRetrySave}
+              saving={saving}
+            />
+          )}
         </motion.div>
       )}
 
