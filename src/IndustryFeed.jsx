@@ -1,14 +1,10 @@
-// IndustryFeed.jsx
-// Real, recent tech headlines (via the backend's /industry/feed, sourced from Hacker News) with
-// AI prep insights per story (via /industry/insight, Groq). Insights are labeled as AI analysis.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
-
 const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
 // Same searches the backend route uses, run from the browser when that route isn't available.
-const HN = 'https://hn.algolia.com/api/v1/search';
+const HN = 'https://hn.algolia.com/api/v1/search'; // browser fallback only — real feed uses NewsAPI + Guardian via backend
 const QUERIES = {
   hiring: ['hiring', 'layoffs', 'tech jobs', 'job market'],
   skills: ['developer survey', 'programming language', 'rust', 'typescript'],
@@ -78,7 +74,7 @@ export default function IndustryFeed() {
     if (cache.current.has(s.id)) { setInsight(cache.current.get(s.id)); setIState('ready'); return; }
     setInsight(null); setIState('loading');
     try {
-      const res = await axios.post(`${API_BASE}/industry/insight`, { id: s.id, title: s.title, source: s.source });
+      const res = await axios.post(`${API_BASE}/industry/insight`, { id: s.id, title: s.title, source: s.source, description: s.description || '' });
       cache.current.set(s.id, res.data.insight); setInsight(res.data.insight); setIState('ready');
     } catch (e) { setIError(e.response?.status === 404 ? 'AI insights will appear once the /industry route is live on the server. You can still read the original article above.' : (e.response?.data?.error || 'Could not generate insights. Try again.')); setIState('error'); }
   };
@@ -124,7 +120,8 @@ export default function IndustryFeed() {
                   <span>
                     <span className="smeta"><span className="cat">{c.label}</span><span>{s.source}</span><span>{ago(s.createdAt)}</span></span>
                     <h3>{s.title}</h3>
-                    <span className="nums"><b>▲ {s.points}</b> points · {s.comments} comments · tap for prep insights</span>
+                    {s.description && <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#8a9aa4', lineHeight: 1.5 }}>{s.description.slice(0, 180)}{s.description.length > 180 ? '…' : ''}</p>}
+                    <span className="nums" style={{ marginTop: 6 }}>{s.points ? <><b>▲ {s.points}</b> points · {s.comments} comments · </> : null}tap for prep insights</span>
                   </span>
                 </button>
               );
@@ -159,7 +156,7 @@ export default function IndustryFeed() {
           )}
         </div>
       )}
-      <div className="fnote">Headlines: Hacker News, last 10 days, refreshed every 30 minutes.</div>
+      <div className="fnote">Headlines: NewsAPI + The Guardian · last 10 days · refreshed every 30 minutes · AI insights powered by Groq.</div>
     </section>
   );
 }
