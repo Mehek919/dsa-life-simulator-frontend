@@ -7,7 +7,6 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import API_BASE from './config';
 const ADMIN_KEY = process.env.REACT_APP_ADMIN_KEY || '';
-import './CompanyDashboard.css';
 async function authHeaders() {
   const u = getAuth().currentUser;
   if (!u) return {};
@@ -23,7 +22,6 @@ function timeAgo(ts) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 const linkFor = (a) => a.inviteLink || `${window.location.origin}/Assessment/${a.id}`;
-
 // ─── Shared Styles (create form + results) ────────────────────────────────────
 const inp = { width:'100%', background:'#060910', border:'1px solid #1e2a3a', borderRadius:8, color:'#e8e8e8', fontSize:13, padding:'8px 12px', outline:'none', boxSizing:'border-box' };
 const lbl = { color:'#8a97ad', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', display:'block', marginBottom:5 };
