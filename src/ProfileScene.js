@@ -1,13 +1,6 @@
-// ProfileScene.js
-// 3D banner for the Profile page: a stylized chibi avatar (cel shaded, ink outlines) on a
-// tier-coloured pedestal, in front of a switchable banner scene.
-// const scene = mountProfileScene(container, { look, acc, accent, banner });
-// scene.setAvatar(look, acc) · scene.setAccent(hex) · scene.setBanner(id) · scene.destroy()
 import * as THREE from 'three';
-
 export const TIER_COLORS = ['#39ff88', '#35c4e6', '#a78bfa', '#f4b740', '#ff4fd8'];
 const TAU = Math.PI * 2;
-
 export default function mountProfileScene(container, init) {
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const COARSE = window.matchMedia('(pointer: coarse)').matches;
@@ -75,16 +68,19 @@ export default function mountProfileScene(container, init) {
   let av = null, rig = {}, haloMesh = null, rotY = 0.35;
   function buildAvatar(L, acc) {
     if (av) { sc.remove(av); disposeTree(av); }
-    const root = new THREE.Group(), skin = '#f0b894', top = L.topColor, hc = L.hairColor, pants = '#2f3b55';
+    const root = new THREE.Group(), skin = L.skin || '#f0b894', top = L.topColor, hc = L.hairColor, pants = L.bottomColor || '#2f3b55';
+    const slim = L.build === 'slim', bottom = L.bottom || 'pants', sx = slim ? 0.29 : 0.31;
     const eyes = [];
-    add(root, sph(0.26), pants, [0, 0.64, 0], { s: [1.05, 0.55, 0.8] });
+    add(root, sph(0.26), pants, [0, 0.64, 0], { s: [slim ? 1.1 : 1.05, 0.55, 0.8] });
+    if (bottom === 'skirt') add(root, new THREE.CylinderGeometry(0.25, 0.4, 0.34, 28, 1), pants, [0, 0.5, 0]);
     [-1, 1].forEach((sd) => {
-      add(root, capsuleGeo(0.095, 0.3), pants, [sd * 0.12, 0.42, 0]);
+      add(root, capsuleGeo(slim ? 0.085 : 0.095, 0.3), bottom === 'pants' ? pants : skin, [sd * 0.12, 0.42, 0]);
+      if (bottom === 'shorts') add(root, capsuleGeo(0.105, 0.08), pants, [sd * 0.12, 0.54, 0]);
       add(root, sph(0.125), '#eef1f6', [sd * 0.12, 0.05, 0.05], { s: [0.95, 0.42, 1.35] });
       add(root, sph(0.12), top, [sd * 0.12, 0.11, 0.04], { s: [0.9, 0.55, 1.25] });
     });
     const torso = new THREE.Group(); torso.position.y = 0.95; root.add(torso);
-    add(torso, capsuleGeo(0.27, 0.26, 24), top, [0, 0, 0], { s: [1.05, 1, 0.82] });
+    add(torso, capsuleGeo(0.27, 0.26, 24), top, [0, 0, 0], { s: [slim ? 0.9 : 1.05, 1, slim ? 0.78 : 0.82] });
     if (L.top === 'hoodie') {
       add(torso, new THREE.TorusGeometry(0.19, 0.075, 10, 24), top, [0, 0.36, -0.13], { r: [1.25, 0, 0] });
       add(torso, new THREE.BoxGeometry(0.3, 0.12, 0.04), shade(top, 0.82), [0, -0.16, 0.215], { noInk: true });
@@ -98,7 +94,7 @@ export default function mountProfileScene(container, init) {
     if (L.top === 'tee') add(torso, new THREE.TorusGeometry(0.12, 0.025, 8, 20), shade(top, 0.8), [0, 0.37, 0.02], { r: [Math.PI / 2, 0, 0], noInk: true });
     if (acc === 'cape') add(torso, new THREE.CylinderGeometry(0.33, 0.46, 0.9, 20, 1, true, Math.PI * 0.62, Math.PI * 0.76), TIER_COLORS[3], [0, -0.18, 0], { m: { side: THREE.DoubleSide } });
     const arm = (sd) => {
-      const g = new THREE.Group(); g.position.set(sd * 0.31, 1.24, 0); g.rotation.z = sd * 0.16; root.add(g);
+      const g = new THREE.Group(); g.position.set(sd * sx, 1.24, 0); g.rotation.z = sd * 0.16; root.add(g);
       if (L.top === 'tee') { add(g, capsuleGeo(0.098, 0.06), top, [0, -0.07, 0]); add(g, capsuleGeo(0.072, 0.26), skin, [0, -0.25, 0]); }
       else { add(g, capsuleGeo(0.085, 0.3), top, [0, -0.22, 0]); add(g, new THREE.TorusGeometry(0.075, 0.022, 6, 16), shade(top, 0.8), [0, -0.42, 0], { r: [Math.PI / 2, 0, 0], noInk: true }); }
       add(g, sph(0.085), skin, [0, -0.5, 0.01]);
@@ -115,11 +111,13 @@ export default function mountProfileScene(container, init) {
       const hl = new THREE.Mesh(sph(0.022, 8, 6), shine); hl.position.set(0.022, 0.03, 0.028); e.add(hl);
       const hl2 = new THREE.Mesh(sph(0.01, 6, 4), shine); hl2.position.set(-0.02, -0.03, 0.03); e.add(hl2);
       eyes.push(e);
+      if (L.face === 'lashes') [0, 1].forEach((n) => { const lash = new THREE.Mesh(capsuleGeo(0.009, 0.045, 6), eyeMat); lash.position.set(sd * (0.065 + n * 0.012), 0.08 - n * 0.025, 0.01); lash.rotation.z = sd * (-0.9 - n * 0.35); e.add(lash); });
       add(head, capsuleGeo(0.014, 0.08, 8), hc === '#e8d27a' ? '#9a7a3a' : hc, [sd * 0.15, 0.55, 0.355], { r: [0, 0, Math.PI / 2 + sd * 0.15], noInk: true });
       const blush = new THREE.Mesh(sph(0.05, 12, 8), new THREE.MeshBasicMaterial({ color: C('#ff8a8a'), transparent: true, opacity: 0.45, depthWrite: false }));
       blush.position.set(sd * 0.25, 0.31, 0.33); blush.scale.set(1, 0.55, 0.3); head.add(blush);
     });
-    add(head, new THREE.TorusGeometry(0.045, 0.012, 6, 14, Math.PI), '#8a2f2f', [0, 0.27, 0.392], { r: [0, 0, Math.PI], noInk: true });
+    add(head, new THREE.TorusGeometry(0.045, 0.012, 6, 14, Math.PI), L.face === 'lashes' ? '#b23a4a' : '#8a2f2f', [0, 0.27, 0.392], { r: [0, 0, Math.PI], noInk: true });
+    if (L.face === 'freckles') [-1, 1].forEach((sd) => [[0.2, 0.33], [0.25, 0.3], [0.23, 0.36], [0.28, 0.34]].forEach(([x, y]) => add(head, sph(0.017, 6, 4), shade(skin, 0.5), [sd * x, y, Math.sqrt(Math.max(0, 0.162 - x * x - (y - 0.4) * (y - 0.4))) + 0.005], { noInk: true })));
     add(head, sph(0.025, 10, 8), shade(skin, 0.85), [0, 0.35, 0.405], { noInk: true });
     if (L.hair !== 'none') {
       add(head, sph(0.45, 32, 20, 0, 1.3), hc, [0, 0.41, -0.02], { r: [-0.32, 0, 0] });
@@ -128,6 +126,26 @@ export default function mountProfileScene(container, init) {
     }
     if (L.hair === 'spiky') for (let i = 0; i < 7; i++) { const a = -0.9 + i * 0.3; add(head, new THREE.ConeGeometry(0.075, 0.24, 8), hc, [Math.sin(a) * 0.3, 0.82 + Math.cos(a * 1.4) * 0.05, -0.06 + Math.cos(a) * 0.08], { r: [-0.25, 0, -a * 0.9] }); }
     if (L.hair === 'bun') add(head, sph(0.15, 16, 12), hc, [0, 0.86, -0.22]);
+    if (L.hair === 'long') {
+      add(head, sph(0.44, 24, 18), hc, [0, 0.2, -0.17], { s: [1.04, 1.28, 0.62] });
+      [-1, 1].forEach((sd) => add(head, capsuleGeo(0.085, 0.36, 12), hc, [sd * 0.36, 0.16, 0.1], { r: [0, 0, sd * 0.06] }));
+    }
+    if (L.hair === 'ponytail') {
+      add(head, sph(0.07, 12, 10), shade(TIER_COLORS[0], 0.9), [0, 0.64, -0.4], { noInk: true });
+      add(head, capsuleGeo(0.1, 0.36, 14), hc, [0, 0.4, -0.5], { r: [0.35, 0, 0] });
+    }
+    if (L.hair === 'pigtails') [-1, 1].forEach((sd) => {
+      add(head, sph(0.06, 10, 8), shade(TIER_COLORS[1], 0.9), [sd * 0.44, 0.5, -0.06], { noInk: true });
+      add(head, capsuleGeo(0.095, 0.3, 14), hc, [sd * 0.5, 0.3, -0.06], { r: [0, 0, sd * 0.25] });
+    });
+    if (L.hair === 'bob') {
+      add(head, sph(0.43, 24, 18), hc, [0, 0.33, -0.12], { s: [1.08, 0.98, 0.72] });
+      [-1, 1].forEach((sd) => add(head, sph(0.16, 14, 12), hc, [sd * 0.37, 0.3, 0.05], { s: [0.62, 1.4, 0.95] }));
+    }
+    if (L.hair === 'curly') for (let i = 0; i < 11; i++) {
+      const a = i / 11 * TAU, rr = 0.36;
+      add(head, sph(0.13, 12, 10), hc, [Math.cos(a) * rr, 0.62 + Math.sin(a * 2) * 0.04, -0.06 + Math.sin(a) * rr * 0.85]);
+    }
     haloMesh = null;
     if (acc === 'headset') {
       add(head, new THREE.TorusGeometry(0.47, 0.03, 8, 36, Math.PI), '#232a36', [0, 0.42, 0]);
