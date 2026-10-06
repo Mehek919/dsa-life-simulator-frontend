@@ -1,7 +1,11 @@
+// IndustryFeed.jsx
+// Real, recent tech headlines (via the backend's /industry/feed, sourced from Hacker News) with
+// AI prep insights per story (via /industry/insight, Groq). Insights are labeled as AI analysis.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
+
 const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
 // Same searches the backend route uses, run from the browser when that route isn't available.
 const HN = 'https://hn.algolia.com/api/v1/search'; // browser fallback only — real feed uses NewsAPI + Guardian via backend
@@ -161,9 +165,7 @@ export default function IndustryFeed() {
       {src === 'fallback' && (
         <div className="fnote" style={{ color: '#f4b740' }}>⚠ Using backup headlines from Hacker News — your server&rsquo;s own news route (NewsAPI + The Guardian) isn&rsquo;t reachable yet. AI insights are off until it is.</div>
       )}
-      {src === 'backend' && (
-        <div className="fnote">Headlines: NewsAPI + The Guardian · last 10 days · refreshed every 30 minutes · AI insights powered by Groq.</div>
-      )}
+
     </section>
   );
 }
