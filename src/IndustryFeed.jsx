@@ -7,6 +7,38 @@ import axios from 'axios';
 import API_BASE from './config';
 
 const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
+// Same searches the backend route uses, run from the browser when that route isn't available.
+const HN = 'https://hn.algolia.com/api/v1/search';
+const QUERIES = {
+  hiring: ['hiring', 'layoffs', 'tech jobs', 'job market'],
+  skills: ['developer survey', 'programming language', 'rust', 'typescript'],
+  future: ['AI agents', 'LLM', 'AI coding', 'future of work'],
+  companies: ['Google', 'Microsoft', 'Amazon', 'Meta', 'Nvidia'],
+};
+const CACHE_KEY = 'evo:industryFeed', CACHE_MS = 30 * 60 * 1000;
+async function loadFromHN() {
+  try { const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); if (c && Date.now() - c.at < CACHE_MS && c.items.length) return c.items; } catch (e) { /* ignore */ }
+  const since = Math.floor(Date.now() / 1000) - 10 * 86400, seen = new Set(), items = [];
+  let ok = 0;
+  for (const [cat, qs] of Object.entries(QUERIES)) {
+    const results = await Promise.allSettled(qs.map((q) => fetch(`${HN}?query=${encodeURIComponent(q)}&tags=story&hitsPerPage=12&numericFilters=${encodeURIComponent(`created_at_i>${since},points>25`)}`).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })));
+    const hits = results.flatMap((r) => (r.status === 'fulfilled' ? (ok++, r.value.hits || []) : []));
+    hits.sort((a, b) => (b.points || 0) - (a.points || 0));
+    let taken = 0;
+    for (const h of hits) {
+      if (taken >= 6) break;
+      const id = String(h.objectID); if (!h.title || seen.has(id)) continue;
+      seen.add(id); taken++;
+      let source = 'news.ycombinator.com'; try { if (h.url) source = new URL(h.url).hostname.replace(/^www\./, ''); } catch (e) { /* keep */ }
+      items.push({ id, cat, title: h.title, url: h.url || `https://news.ycombinator.com/item?id=${id}`, source, points: h.points || 0, comments: h.num_comments || 0, createdAt: h.created_at, discussionUrl: `https://news.ycombinator.com/item?id=${id}` });
+    }
+  }
+  if (!ok) throw new Error('Hacker News could not be reached.');
+  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), items })); } catch (e) { /* ignore */ }
+  return items;
+}
+
 const ago = (iso) => { const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (!(m >= 0)) return ''; if (m < 60) return `${Math.max(1, m)}m ago`; if (m < 1440) return `${Math.floor(m / 60)}h ago`; return `${Math.floor(m / 1440)}d ago`; };
 
 export default function IndustryFeed() {
@@ -24,10 +56,15 @@ export default function IndustryFeed() {
 
   const load = useCallback(async () => {
     setState('loading');
-    try { const res = await axios.get(`${API_BASE}/industry/feed`); setItems(res.data.items || []); setState('ready'); }
+    try {
+      let list = null;
+      try { const res = await axios.get(`${API_BASE}/industry/feed`); list = res.data.items || []; }
+      catch (e) { list = await loadFromHN(); }            // backend route missing or down: load directly
+      setItems(list); setState('ready');
+    }
     catch (e) {
       const st = e.response?.status;
-      setWhy(!e.response ? 'The server did not respond (it may be waking up).'
+      setWhy(!e.response ? (e.message || 'The news source did not respond.')
         : st === 404 ? 'The feed route is not on the server yet.'
         : e.response?.data?.reason ? `News source problem: ${e.response.data.reason}` : `Server error ${st}.`);
       setState('error');
@@ -43,7 +80,7 @@ export default function IndustryFeed() {
     try {
       const res = await axios.post(`${API_BASE}/industry/insight`, { id: s.id, title: s.title, source: s.source });
       cache.current.set(s.id, res.data.insight); setInsight(res.data.insight); setIState('ready');
-    } catch (e) { setIError(e.response?.data?.error || 'Could not generate insights. Try again.'); setIState('error'); }
+    } catch (e) { setIError(e.response?.status === 404 ? 'AI insights will appear once the /industry route is live on the server. You can still read the original article above.' : (e.response?.data?.error || 'Could not generate insights. Try again.')); setIState('error'); }
   };
   useEffect(() => {
     if (!open) return undefined;
