@@ -12,7 +12,7 @@ import InterviewReplay from './InterviewReplay';
 import ArrivalSequence from './ArrivalSequence';
 import InterviewScene from './InterviewScene';
 import ReviewingScreen from './ReviewingScreen';
-
+import InterviewSetup from './InterviewSetup';
 // Every mock-interview backend route requires a verified Firebase ID token
 // in the Authorization header. This helper fetches a fresh token for the
 // currently signed in user and returns the header object to spread into
