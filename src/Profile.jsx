@@ -24,11 +24,16 @@ const TIERS = [
 ];
 const BANNERS = [{ id: 'neon', name: 'Neon City', tier: 0 }, { id: 'grid', name: 'Grid Run', tier: 0 }, { id: 'aurora', name: 'Aurora', tier: 1 }, { id: 'gold', name: 'Gold Rush', tier: 4 }];
 const ACCS = [{ id: 'none', name: 'None', tier: 0 }, { id: 'headset', name: 'Headset', tier: 0 }, { id: 'glasses', name: 'Glasses', tier: 0 }, { id: 'cap', name: 'Cap', tier: 1 }, { id: 'halo', name: 'Halo', tier: 2 }, { id: 'cape', name: 'Cape', tier: 3 }, { id: 'crown', name: 'Crown', tier: 4 }];
-const HAIR = [['none', 'None'], ['short', 'Short'], ['spiky', 'Spiky'], ['bun', 'Bun']];
+const HAIR = [['short', 'Short'], ['long', 'Long'], ['ponytail', 'Ponytail'], ['pigtails', 'Pigtails'], ['bob', 'Bob'], ['curly', 'Curly'], ['spiky', 'Spiky'], ['bun', 'Bun'], ['none', 'None']];
+const BUILDS = [['broad', 'Broad'], ['slim', 'Slim']];
+const FACES = [['plain', 'Plain'], ['lashes', 'Lashes'], ['freckles', 'Freckles']];
+const BOTTOMS = [['pants', 'Trousers'], ['shorts', 'Shorts'], ['skirt', 'Skirt']];
+const SKINS = ['#fbe0cc', '#f0b894', '#d99a6c', '#b87750', '#8a5434', '#5e3a24'];
+const BOTTOM_COLORS = ['#2f3b55', '#3b3b44', '#6b4a35', '#7a5ac8'];
 const TOPS = [['tee', 'T-shirt'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket']];
 const TOP_COLORS = ['#35c4e6', '#d9644a', '#4e9f5d', '#f2b53a', '#7a5ac8', '#eceff5'];
 const HAIR_COLORS = ['#2b1d14', '#5a3a22', '#c98b3a', '#e8d27a', '#b5462e'];
-const DEFAULT_LOOK = { banner: 'neon', hair: 'short', hairColor: '#2b1d14', top: 'hoodie', topColor: '#35c4e6', acc: 'headset' };
+const DEFAULT_LOOK = { banner: 'neon', hair: 'short', hairColor: '#2b1d14', top: 'hoodie', topColor: '#35c4e6', acc: 'headset', skin: '#f0b894', build: 'broad', face: 'plain', bottom: 'pants', bottomColor: '#2f3b55' };
 // Same ELO bands as the Arena record
 const ELO_TIERS = [['Bronze', 0], ['Gold', 1000], ['Diamond', 1200], ['Master', 1500], ['Grandmaster', 1800]];
 const STREAK_GOALS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '1 month']];
@@ -250,13 +255,18 @@ function CustomizeDrawer({ look, tierIdx, onChange, onLocked, onClose }) {
       <div className="pf-scrim" onClick={onClose} />
       <aside className="pf-drawer" role="dialog" aria-modal="true" aria-labelledby="pf-dtitle">
         <header><h2 id="pf-dtitle">customize.profile</h2><button className="pf-tbtn" ref={closeRef} onClick={onClose}>Close</button></header>
+        <h4>Skin tone</h4>{swatches(SKINS, 'skin', 'Skin tone')}
+        <h4>Build</h4>{options(BUILDS, 'build')}
+        <h4>Face</h4>{options(FACES, 'face')}
         <h4>Banner</h4>{options(BANNERS, 'banner', true)}
         <h4>Gear</h4>{options(ACCS, 'acc', true)}
         <h4>Hair</h4>{options(HAIR, 'hair')}
         <h4>Hair color</h4>{swatches(HAIR_COLORS, 'hairColor', 'Hair')}
         <h4>Top</h4>{options(TOPS, 'top')}
         <h4>Top color</h4>{swatches(TOP_COLORS, 'topColor', 'Top')}
-        <p className="pf-note">Locked items unlock as you climb the tier titles. Tap a tier on your banner to preview its gear.</p>
+        <h4>Bottoms</h4>{options(BOTTOMS, 'bottom')}
+        <h4>Bottoms color</h4>{swatches(BOTTOM_COLORS, 'bottomColor', 'Bottoms')}
+        <p className="pf-note">Every style is open to everyone: mix any pieces you like. Locked items unlock as you climb the tier titles. Tap a tier on your banner to preview its gear.</p>
       </aside>
     </>
   );
@@ -377,6 +387,11 @@ export default function Profile({ user, userData }) {
       if (TOPS.some((t) => t[0] === saved.top)) out.top = saved.top;
       if (TOP_COLORS.includes(saved.topColor)) out.topColor = saved.topColor;
       if (HAIR_COLORS.includes(saved.hairColor)) out.hairColor = saved.hairColor;
+      if (SKINS.includes(saved.skin)) out.skin = saved.skin;
+      if (BUILDS.some((b) => b[0] === saved.build)) out.build = saved.build;
+      if (FACES.some((f) => f[0] === saved.face)) out.face = saved.face;
+      if (BOTTOMS.some((b) => b[0] === saved.bottom)) out.bottom = saved.bottom;
+      if (BOTTOM_COLORS.includes(saved.bottomColor)) out.bottomColor = saved.bottomColor;
     }
     return out;
   });
