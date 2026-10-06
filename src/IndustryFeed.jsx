@@ -1,0 +1,167 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import API_BASE from './config';
+const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
+// Same searches the backend route uses, run from the browser when that route isn't available.
+const HN = 'https://hn.algolia.com/api/v1/search'; // browser fallback only — real feed uses NewsAPI + Guardian via backend
+const QUERIES = {
+  hiring: ['hiring', 'layoffs', 'tech jobs', 'job market'],
+  skills: ['developer survey', 'programming language', 'rust', 'typescript'],
+  future: ['AI agents', 'LLM', 'AI coding', 'future of work'],
+  companies: ['Google', 'Microsoft', 'Amazon', 'Meta', 'Nvidia'],
+};
+const CACHE_KEY = 'evo:industryFeed', CACHE_MS = 30 * 60 * 1000;
+async function loadFromHN() {
+  try { const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); if (c && Date.now() - c.at < CACHE_MS && c.items.length) return c.items; } catch (e) { /* ignore */ }
+  const since = Math.floor(Date.now() / 1000) - 10 * 86400, seen = new Set(), items = [];
+  let ok = 0;
+  for (const [cat, qs] of Object.entries(QUERIES)) {
+    const results = await Promise.allSettled(qs.map((q) => fetch(`${HN}?query=${encodeURIComponent(q)}&tags=story&hitsPerPage=12&numericFilters=${encodeURIComponent(`created_at_i>${since},points>25`)}`).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })));
+    const hits = results.flatMap((r) => (r.status === 'fulfilled' ? (ok++, r.value.hits || []) : []));
+    hits.sort((a, b) => (b.points || 0) - (a.points || 0));
+    let taken = 0;
+    for (const h of hits) {
+      if (taken >= 6) break;
+      const id = String(h.objectID); if (!h.title || seen.has(id)) continue;
+      seen.add(id); taken++;
+      let source = 'news.ycombinator.com'; try { if (h.url) source = new URL(h.url).hostname.replace(/^www\./, ''); } catch (e) { /* keep */ }
+      items.push({ id, cat, title: h.title, url: h.url || `https://news.ycombinator.com/item?id=${id}`, source, points: h.points || 0, comments: h.num_comments || 0, createdAt: h.created_at, discussionUrl: `https://news.ycombinator.com/item?id=${id}` });
+    }
+  }
+  if (!ok) throw new Error('Hacker News could not be reached.');
+  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), items })); } catch (e) { /* ignore */ }
+  return items;
+}
+
+const ago = (iso) => { const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (!(m >= 0)) return ''; if (m < 60) return `${Math.max(1, m)}m ago`; if (m < 1440) return `${Math.floor(m / 60)}h ago`; return `${Math.floor(m / 1440)}d ago`; };
+
+export default function IndustryFeed() {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [state, setState] = useState('loading');          // loading | ready | error
+  const [why, setWhy] = useState('');
+  const [src, setSrc] = useState(null);                   // 'backend' | 'fallback' — which source actually answered
+  const [cat, setCat] = useState('all');
+  const [open, setOpen] = useState(null);                 // selected story
+  const [insight, setInsight] = useState(null);
+  const [iState, setIState] = useState('idle');           // idle | loading | ready | error
+  const [iError, setIError] = useState('');
+  const cache = useRef(new Map());
+  const closeRef = useRef(null);
+
+  const load = useCallback(async () => {
+    setState('loading');
+    try {
+      let list = null, usedBackend = true;
+      try { const res = await axios.get(`${API_BASE}/industry/feed`); list = res.data.items || []; }
+      catch (e) { usedBackend = false; list = await loadFromHN(); }   // backend route missing or down: load directly
+      setItems(list); setSrc(usedBackend ? 'backend' : 'fallback'); setState('ready');
+    }
+    catch (e) {
+      const st = e.response?.status;
+      setWhy(!e.response ? (e.message || 'The news source did not respond.')
+        : st === 404 ? 'The feed route is not on the server yet.'
+        : e.response?.data?.reason ? `News source problem: ${e.response.data.reason}` : `Server error ${st}.`);
+      setState('error');
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const openStory = async (s) => {
+    if (open?.id === s.id) { setOpen(null); return; }
+    setOpen(s); setIError('');
+    if (cache.current.has(s.id)) { setInsight(cache.current.get(s.id)); setIState('ready'); return; }
+    setInsight(null); setIState('loading');
+    try {
+      const res = await axios.post(`${API_BASE}/industry/insight`, { id: s.id, title: s.title, source: s.source, description: s.description || '' });
+      cache.current.set(s.id, res.data.insight); setInsight(res.data.insight); setIState('ready');
+    } catch (e) { setIError(e.response?.status === 404 ? 'AI insights will appear once the /industry route is live on the server. You can still read the original article above.' : (e.response?.data?.error || 'Could not generate insights. Try again.')); setIState('error'); }
+  };
+  useEffect(() => {
+    if (!open) return undefined;
+    if (closeRef.current && window.matchMedia('(max-width: 900px)').matches) closeRef.current.focus();
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(null); };
+    document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  const shown = cat === 'all' ? items : items.filter((s) => s.cat === cat);
+  const top = [...items].sort((a, b) => b.points - a.points).slice(0, 8);
+
+  return (
+    <section className="panel feed" aria-labelledby="of-feed">
+      <div className="phd">
+        <h2 id="of-feed"><i className="dot" />TECH INDUSTRY FEED</h2>
+        <div className="ftabs" role="group" aria-label="Filter news">
+          {[['all', 'All'], ['hiring', 'Hiring'], ['skills', 'Skills'], ['future', 'Future'], ['companies', 'Companies']].map(([k, l]) => (
+            <button key={k} className="ftab" aria-pressed={cat === k} onClick={() => { setCat(k); setOpen(null); }}>{l}</button>
+          ))}
+        </div>
+        <button className="btn" onClick={load} disabled={state === 'loading'}>↻ Refresh</button>
+      </div>
+
+      {top.length > 0 && (
+        <div className="ticker" aria-hidden="true"><div className="ticker-in">
+          {[...top, ...top].map((s, i) => <span key={i} className="tk"><b>▲ {s.points}</b>{s.title}</span>)}
+        </div></div>
+      )}
+
+      {state === 'loading' && <div className="flist">{[0, 1, 2, 3].map((i) => <div key={i} className="skel" style={{ minHeight: 64 }} />)}</div>}
+      {state === 'error' && <div className="empty">Couldn't load industry news right now.<br /><small style={{ opacity: .75 }}>{why}</small><br /><button className="btn" onClick={load} style={{ marginTop: 10 }}>Try again</button></div>}
+      {state === 'ready' && (
+        <div className={`fbody${open ? ' open' : ''}`}>
+          <div className="flist">
+            {shown.length === 0 && <div className="empty">No recent stories in this category.</div>}
+            {shown.map((s) => {
+              const c = CATS[s.cat] || CATS.future;
+              return (
+                <div key={s.id} role="button" tabIndex={0} className="story" style={{ '--cc': c.color }} aria-pressed={open?.id === s.id}
+                  onClick={() => openStory(s)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStory(s); } }}>
+                  <span className="cd" aria-hidden="true" />
+                  <div className="sbody">
+                    <div className="smeta"><span className="cat">{c.label}</span><span>{s.source}</span><span>{ago(s.createdAt)}</span></div>
+                    <h3>{s.title}</h3>
+                    {s.description && <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#8a9aa4', lineHeight: 1.5 }}>{s.description.slice(0, 180)}{s.description.length > 180 ? '…' : ''}</p>}
+                    <div className="nums">{s.points ? <><b>▲ {s.points}</b> points · {s.comments} comments · </> : null}tap for prep insights</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {open && (
+            <aside className="detail" aria-label="Prep insights for this story">
+              <div className="dhd">
+                <div className="row"><span className="cat" style={{ '--cc': (CATS[open.cat] || CATS.future).color }}>{(CATS[open.cat] || CATS.future).label}</span>
+                  <button className="btn" ref={closeRef} onClick={() => setOpen(null)}>Close</button></div>
+                <h3>{open.title}</h3>
+                <div className="links"><a href={open.url} target="_blank" rel="noopener noreferrer">Read original ({open.source}) ↗</a><a href={open.discussionUrl} target="_blank" rel="noopener noreferrer">Discussion ↗</a></div>
+              </div>
+              <div className="dbody">
+                <span className="aitag">✦ AI analysis of the headline · may be imperfect</span>
+                {iState === 'loading' && <div aria-label="Generating insights">{[90, 70, 85, 60, 80, 50].map((w, i) => <div key={i} className="dskel" style={{ width: `${w}%` }} />)}</div>}
+                {iState === 'error' && <div className="empty">{iError} <button className="btn" onClick={() => { const s = open; setOpen(null); setTimeout(() => openStory(s), 0); }}>Retry</button></div>}
+                {iState === 'ready' && insight && (
+                  <>
+                    {insight.takeaway && <div className="take">{insight.takeaway}</div>}
+                    <div className="sec"><small>KEY INSIGHTS FOR YOUR PREP</small>
+                      {insight.insights.map((t, i) => <div key={i} className="ins"><b>{i + 1}.</b><span>{t}</span></div>)}</div>
+                    {insight.tracks?.length > 0 && <div className="sec"><small>ROADMAP TRACKS TO FOCUS ON</small>
+                      {insight.tracks.map((t) => <button key={t} className="trk" onClick={() => navigate('/roadmap')}>{t}</button>)}</div>}
+                    {insight.actions?.length > 0 && <div className="sec"><small>DO IT IN EVOWORLD</small>
+                      {insight.actions.map((a, i) => <button key={i} className="act" onClick={() => navigate(a.path)}><b>{a.title}</b>{a.body}</button>)}</div>}
+                  </>
+                )}
+              </div>
+            </aside>
+          )}
+        </div>
+      )}
+      {src === 'fallback' && (
+        <div className="fnote" style={{ color: '#f4b740' }}>⚠ Using backup headlines from Hacker News — your server&rsquo;s own news route (NewsAPI + The Guardian) isn&rsquo;t reachable yet. AI insights are off until it is.</div>
+      )}
+
+    </section>
+  );
+}
