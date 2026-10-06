@@ -115,15 +115,16 @@ export default function IndustryFeed() {
             {shown.map((s) => {
               const c = CATS[s.cat] || CATS.future;
               return (
-                <button key={s.id} className="story" style={{ '--cc': c.color }} aria-pressed={open?.id === s.id} onClick={() => openStory(s)}>
+                <div key={s.id} role="button" tabIndex={0} className="story" style={{ '--cc': c.color }} aria-pressed={open?.id === s.id}
+                  onClick={() => openStory(s)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStory(s); } }}>
                   <span className="cd" aria-hidden="true" />
-                  <span>
-                    <span className="smeta"><span className="cat">{c.label}</span><span>{s.source}</span><span>{ago(s.createdAt)}</span></span>
+                  <div className="sbody">
+                    <div className="smeta"><span className="cat">{c.label}</span><span>{s.source}</span><span>{ago(s.createdAt)}</span></div>
                     <h3>{s.title}</h3>
                     {s.description && <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#8a9aa4', lineHeight: 1.5 }}>{s.description.slice(0, 180)}{s.description.length > 180 ? '…' : ''}</p>}
-                    <span className="nums" style={{ marginTop: 6 }}>{s.points ? <><b>▲ {s.points}</b> points · {s.comments} comments · </> : null}tap for prep insights</span>
-                  </span>
-                </button>
+                    <div className="nums">{s.points ? <><b>▲ {s.points}</b> points · {s.comments} comments · </> : null}tap for prep insights</div>
+                  </div>
+                </div>
               );
             })}
           </div>
