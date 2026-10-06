@@ -42,6 +42,7 @@ export default function IndustryFeed() {
   const [items, setItems] = useState([]);
   const [state, setState] = useState('loading');          // loading | ready | error
   const [why, setWhy] = useState('');
+  const [src, setSrc] = useState(null);                   // 'backend' | 'fallback' — which source actually answered
   const [cat, setCat] = useState('all');
   const [open, setOpen] = useState(null);                 // selected story
   const [insight, setInsight] = useState(null);
@@ -53,10 +54,10 @@ export default function IndustryFeed() {
   const load = useCallback(async () => {
     setState('loading');
     try {
-      let list = null;
+      let list = null, usedBackend = true;
       try { const res = await axios.get(`${API_BASE}/industry/feed`); list = res.data.items || []; }
-      catch (e) { list = await loadFromHN(); }            // backend route missing or down: load directly
-      setItems(list); setState('ready');
+      catch (e) { usedBackend = false; list = await loadFromHN(); }   // backend route missing or down: load directly
+      setItems(list); setSrc(usedBackend ? 'backend' : 'fallback'); setState('ready');
     }
     catch (e) {
       const st = e.response?.status;
@@ -157,7 +158,12 @@ export default function IndustryFeed() {
           )}
         </div>
       )}
-      <div className="fnote">Headlines: NewsAPI + The Guardian · last 10 days · refreshed every 30 minutes · AI insights powered by Groq.</div>
+      {src === 'fallback' && (
+        <div className="fnote" style={{ color: '#f4b740' }}>⚠ Using backup headlines from Hacker News — your server&rsquo;s own news route (NewsAPI + The Guardian) isn&rsquo;t reachable yet. AI insights are off until it is.</div>
+      )}
+      {src === 'backend' && (
+        <div className="fnote">Headlines: NewsAPI + The Guardian · last 10 days · refreshed every 30 minutes · AI insights powered by Groq.</div>
+      )}
     </section>
   );
 }
