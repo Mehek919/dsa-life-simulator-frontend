@@ -110,6 +110,9 @@
 .wt-feed li.unread { background: rgba(57, 255, 136, .06); }
 .wt-feed time { display: block; color: var(--muted); font-size: 11px; }
 
+.wt-ring { transform-origin: 50% 10%; animation: wt-ring 4s ease-in-out infinite; }
+@keyframes wt-ring { 0%, 86%, 100% { transform: rotate(0); } 89% { transform: rotate(14deg); } 92% { transform: rotate(-12deg); } 95% { transform: rotate(8deg); } 98% { transform: rotate(-4deg); } }
+
 @media (max-width: 860px) {
   .wt-app { padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 24px; }
   .wt-stage { grid-template-columns: minmax(0, 1fr); transform: none !important; }
@@ -121,6 +124,6 @@
   .wt-ibtn small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wt-cursor, .wt-tag.crit, .wt-row:hover b, .wt-launch h3, .wt-feed { animation: none; }
+  .wt-cursor, .wt-ring, .wt-tag.crit, .wt-row:hover b, .wt-launch h3, .wt-feed { animation: none; }
   .wt-stage, .wt-pane { transition: none; }
 }
