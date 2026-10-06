@@ -24,7 +24,7 @@ const isToday = (ts) => { const d = toDate(ts); const n = new Date(); return !!d
 // Icon + color per event type (a book for story, a sword for battle, …)
 const EVENT_ICONS = {
   challenge_completed: ['✅', '#39ff88'], challenge_solved: ['✅', '#39ff88'], challenge_attempted: ['🎯', '#35e0ff'],
-  arena_win: ['⚔️', '#ff6b6b'], arena_loss: ['🛡️', '#9aa9b4'], level_up: ['🎉', '#f4b740'],
+  arena_win: ['⚔️', '#ff6b6b'], arena_loss: ['🛡️', '#9aa9b4'], arena_draw: ['⚔️', '#f4b740'], level_up: ['🎉', '#f4b740'],
   challenge_created: ['🧪', '#b18cff'], challenge_published: ['🧪', '#b18cff'], credits_earned: ['💰', '#f4b740'], xp_earned: ['✨', '#b18cff'],
 };
 function eventStyle(act) {
@@ -175,7 +175,7 @@ export default function Office({ user, userData: propUserData }) {
     const has = (types) => today.some((a) => types.includes(a.type));
     return [
       { id: 'challenges', label: 'Daily Challenges', desc: 'Solve 3 AI-generated DSA challenges', icon: '🏢', color: '#39ff88', progress: Math.min(completedToday, 3), goal: 3, onClick: () => setShowChallenges(true) },
-      { id: 'arena', label: 'Arena Battle', desc: '1v1 real-time coding battle', icon: '⚔️', color: '#ff6b6b', progress: has(['arena_win', 'arena_loss']) ? 1 : 0, goal: 1, cta: 'GO', onClick: () => navigate('/arena') },
+      { id: 'arena', label: 'Arena Battle', desc: '1v1 real-time coding battle', icon: '⚔️', color: '#ff6b6b', progress: has(['arena_win', 'arena_loss', 'arena_draw']) ? 1 : 0, goal: 1, cta: 'GO', onClick: () => navigate('/arena') },
       { id: 'hub', label: 'Community Hub', desc: 'Attempt a challenge from another player', icon: '🏛️', color: '#35e0ff', progress: has(['challenge_solved', 'challenge_attempted']) ? 1 : 0, goal: 1, cta: 'BROWSE', onClick: () => navigate('/hub') },
       { id: 'lab', label: 'Create a Challenge', desc: 'Publish a challenge and earn Credits', icon: '🧪', color: '#b18cff', progress: has(['challenge_published', 'challenge_created']) ? 1 : 0, goal: 1, cta: 'BUILD', onClick: () => navigate('/lab') },
     ].map((q) => ({ ...q, done: q.progress >= q.goal }));
