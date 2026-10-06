@@ -1834,7 +1834,7 @@ export default function MockInterview({ user, userData, setUserData }) {
   };
 
   if (phase === 'select') {
-    return <CompanySelector onStart={startInterview} error={startError} />;
+       return <InterviewSetup onStart={startInterview} error={startError} />;
   }
 
   if (phase === 'reviewing') {
