@@ -322,7 +322,7 @@ export default function World({ user, userData, onLogout }) {
             {xpPct}% to LV {xpLevel + 1}
           </div>
           <div className="wt-actions">
-            <NotificationBell user={user} />
+            <NotificationBell user={user} variant="terminal" />
             <button className="wt-ibtn" onClick={openFeed} aria-label={`Activity log${unread ? `, ${unread} new` : ''}`} title="Activity log">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 17l6-6-6-6" /><path d="M12 19h8" /></svg>
               {unread > 0 && <span className="wt-count">{unread}</span>}
