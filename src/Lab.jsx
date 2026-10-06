@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
 import './Lab.css';
-
 // ── Constants (same values the backend already uses) ──────────────────────────
 const TOPICS = ['Array', 'LinkedList', 'Stack', 'Queue', 'Tree', 'Graph', 'DynamicProgramming'];
 const TOPIC_LABEL = { LinkedList: 'Linked List', DynamicProgramming: 'Dynamic Programming' };
@@ -152,7 +151,7 @@ export default function Lab({ user, userData, setUserData }) {
     try {
       const res = await axios.post(`${API_BASE}/challenges/publish`, {
         userId: user?.uid, creatorName: user?.displayName,
-        question, options, correctAnswer, explanation, topic, difficulty,
+        question, options, correctAnswer, explanation, topic, difficulty, creditCost: PUBLISH_COST,
       });
       play('forge');
       const hits = reduceMotion() ? [0] : [0, 320, 640];
@@ -163,7 +162,7 @@ export default function Lab({ user, userData, setUserData }) {
       }, d));
       setTimeout(() => {
         setStamped(true); setPublished({ id: res.data.challengeId, topic });
-        if (setUserData && res.data.newCredits != null) setUserData((prev) => ({ ...prev, credits: res.data.newCredits }));
+        if (setUserData) setUserData((prev) => ({ ...prev, credits: res.data.newCredits != null ? res.data.newCredits : Math.max(0, (prev?.credits || 0) - PUBLISH_COST) }));
         const cr = document.querySelector('.lb .credits'); if (cr) { cr.classList.remove('spend'); void cr.offsetWidth; cr.classList.add('spend'); }
         showToast('Trap set! Your challenge is published.');
       }, reduceMotion() ? 0 : 950);
@@ -314,7 +313,7 @@ export default function Lab({ user, userData, setUserData }) {
               {!published && <div className="viewtag">{showKey ? 'Answer key shown. Rivals never see this.' : 'This is exactly what a rival sees'}</div>}
               {published && (
                 <div className="done on" role="status">
-                  <b>Forged and published.</b> Your trap is live in the {label(published.topic)} pool. You earn credits every time someone attempts it.
+                  <b>Forged and published.</b> Your trap is live in the {label(published.topic)} pool. You earn 5 credits and 10 XP each time someone solves it.
                   {published.id && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>ID: {published.id}</div>}
                   <div className="acts"><button className="btn" onClick={handleReset}>Forge another</button><button className="btn" onClick={() => navigate('/world')}>Back to World</button></div>
                 </div>
