@@ -201,7 +201,6 @@ export default function Office({ user, userData: propUserData }) {
           <div className="path"><b>{firstName.toLowerCase()}</b>@<i>evoworld</i>:~/office$</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span className="lvl" style={{ '--lc': lc }}>{LEVEL_NAMES[level] || 'Legend'} · Lv {level}</span>
-            <button className="btn" onClick={() => { fetchStats(); fetchActivity(); }}>↻ Refresh</button>
           </div>
         </div>
         <span className="kicker"><i className="dot" />THE OFFICE</span>
