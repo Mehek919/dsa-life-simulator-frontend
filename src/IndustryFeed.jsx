@@ -1,14 +1,9 @@
-// IndustryFeed.jsx
-// Real, recent tech headlines (via the backend's /industry/feed, sourced from Hacker News) with
-// AI prep insights per story (via /industry/insight, Groq). Insights are labeled as AI analysis.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
-
 const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
 const ago = (iso) => { const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (!(m >= 0)) return ''; if (m < 60) return `${Math.max(1, m)}m ago`; if (m < 1440) return `${Math.floor(m / 60)}h ago`; return `${Math.floor(m / 1440)}d ago`; };
-
 export default function IndustryFeed() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
