@@ -1,12 +1,6 @@
-// ArenaScene.js
-// 3D pieces for the Arena lobby.
-// const radar = mountRadar(container, color);  radar.setColor(hex) · radar.setMode('idle'|'search'|'found') · radar.destroy()
-// const stop = mountEmblem(container, tierColor);  stop()
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 export function mountRadar(container, color) {
   const REDUCE = reduceMotion();
   let r;
@@ -74,7 +68,6 @@ export function mountRadar(container, color) {
     },
   };
 }
-
 export function mountEmblem(container, tierColor) {
   const REDUCE = reduceMotion();
   let r;
