@@ -88,7 +88,7 @@ function DistrictPane({ district, badgeMap, onOpen, reduce }) {
           const threat = THREAT[z.threat];
           return (
             <li key={z.id}>
-              <button className="wt-row" onClick={() => onOpen(z)}
+              <button className="wt-row" onClick={() => onOpen({ ...z, district })}
                 onMouseEnter={() => typeOut(`open ${slug(z.label)}`)} onFocus={() => typeOut(`open ${slug(z.label)}`)}>
                 <span className="wt-code">{z.code}</span>
                 <span><b>{z.label}</b><small><em>{z.tag}</em>{z.desc}</small></span>
@@ -269,7 +269,7 @@ export default function World({ user, userData, onLogout }) {
 
   const openZone = useCallback((z) => {
     if (reduce) { navigate(z.path); return; }
-    setLaunching(z);
+    setLaunching({ ...z, district: z.district || DISTRICTS.find((d) => d.zones.some((x) => x.id === z.id)) || DISTRICTS[0] });
     clearTimeout(launchTimer.current);
     launchTimer.current = setTimeout(() => navigate(z.path), 900);
   }, [navigate, reduce]);
