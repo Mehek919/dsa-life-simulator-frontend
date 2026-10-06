@@ -5,7 +5,9 @@ import { AnimatePresence, motion }     from 'framer-motion';
 import { subscribeToNotifications }    from './utils/notificationHelpers';
 import NotificationPanel               from './NotificationPanel';
 
-export default function NotificationBell({ user }) {
+// variant="terminal" matches the World page buttons (styles live in World.css).
+// Without it the bell looks exactly as it did before.
+export default function NotificationBell({ user, variant }) {
   const [notifications, setNotifications] = useState([]);
   const [open,          setOpen]          = useState(false);
 
@@ -18,6 +20,45 @@ export default function NotificationBell({ user }) {
   }, [user?.uid]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const countLabel  = unreadCount > 9 ? '9+' : unreadCount;
+
+  // ✅ Portal — renders OUTSIDE World DOM tree, always on top
+  const panel = ReactDOM.createPortal(
+    <AnimatePresence>
+      {open && (
+        <NotificationPanel
+          uid={user?.uid}
+          notifications={notifications}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+
+  if (variant === 'terminal') {
+    return (
+      <>
+        <button
+          type="button"
+          className="wt-ibtn"
+          onClick={() => setOpen((p) => !p)}
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          title="Notifications"
+        >
+          <svg className={unreadCount > 0 ? 'wt-ring' : undefined} width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+          </svg>
+          {unreadCount > 0 && <span className="wt-count">{countLabel}</span>}
+        </button>
+        {panel}
+      </>
+    );
+  }
 
   return (
     <>
@@ -58,25 +99,13 @@ export default function NotificationBell({ user }) {
                          font-bold flex items-center justify-center px-1
                          border-2 border-[#060612]"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {countLabel}
             </motion.span>
           )}
         </AnimatePresence>
       </motion.button>
 
-      {/* ✅ Portal — renders OUTSIDE World DOM tree, always on top */}
-      {ReactDOM.createPortal(
-        <AnimatePresence>
-          {open && (
-            <NotificationPanel
-              uid={user?.uid}
-              notifications={notifications}
-              onClose={() => setOpen(false)}
-            />
-          )}
-        </AnimatePresence>,
-        document.body   // ← attaches directly to <body>
-      )}
+      {panel}
     </>
   );
 }
