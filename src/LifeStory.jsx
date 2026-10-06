@@ -1,655 +1,368 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence }                          from 'framer-motion';
-import { useNavigate }                                      from 'react-router-dom';
-import axios                                                from 'axios';
-import API_BASE                                             from './config';
-const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
-const ROLE_COLORS = {
-  Junior:  'from-green-500  to-emerald-700',
-  Mid:     'from-blue-500   to-indigo-700',
-  Senior:  'from-purple-500 to-violet-700',
-  Lead:    'from-orange-500 to-amber-700',
-  Legend:  'from-red-500    to-rose-700',
-};
-const ROLE_ICONS = {
-  Junior:'🌱', Mid:'💻', Senior:'🔥', Lead:'👑', Legend:'⚡',
-};
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import API_BASE from './config';
+import './LifeStory.css';
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function getWeekLabel(weekId) {
-  if (!weekId) return 'Unknown Week';
-  // weekId format: "YYYY-Www"
-  const match = weekId.match(/(\d{4})-W(\d{2})/);
-  if (!match) return weekId;
-  return `Week ${parseInt(match[2], 10)}, ${match[1]}`;
+  const m = String(weekId || '').match(/(\d{4})-W(\d{2})/);
+  return m ? `Week ${parseInt(m[2], 10)}, ${m[1]}` : (weekId || 'This week');
 }
-function formatDate(ts) {
-  if (!ts) return '';
+function toDate(ts) {
+  if (!ts) return null;
+  const d = typeof ts?.toDate === 'function' ? ts.toDate() : ts?._seconds !== undefined ? new Date(ts._seconds * 1000)
+    : ts?.seconds !== undefined ? new Date(ts.seconds * 1000) : new Date(ts);
+  return isNaN(d?.getTime?.()) ? null : d;
+}
+const fmtDate = (ts) => { const d = toDate(ts); return d ? d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''; };
 
-  let date;
+// Mood of the week (drives the 3D world and the page colours) from real solves
+const MOODS = {
+  calm:    { name: 'Calm before the storm', c: '#4c6fff', c2: '#35e0ff', speed: 0.25, energy: 0.3 },
+  steady:  { name: 'Steady climb', c: '#20c997', c2: '#39ff88', speed: 0.45, energy: 0.5 },
+  rising:  { name: 'Rising tide', c: '#7c5cff', c2: '#ff6bd6', speed: 0.6, energy: 0.7 },
+  blazing: { name: 'Blazing run', c: '#ff7a45', c2: '#f4b740', speed: 0.9, energy: 1 },
+};
+const moodFor = (s = {}) => { const n = s.solves || 0; return n >= 12 ? 'blazing' : n >= 5 ? 'rising' : n >= 1 ? 'steady' : 'calm'; };
 
-  // Firestore Timestamp object (from SDK)
-  if (typeof ts?.toDate === 'function') {
-    date = ts.toDate();
+// Avatar evolves with total XP
+const STAGES = [['Apprentice', 0], ['Adept', 400], ['Knight', 900], ['Archmage', 1600]];
+const stageOf = (xp) => STAGES.reduce((s, [, need], i) => (xp >= need ? i : s), 0);
+function avatarSvg(stage, c, c2, label = true) {
+  const robe = stage === 0 ? '#5b5bd6' : c;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"${label ? ` role="img" aria-label="${STAGES[stage][0]} avatar"` : ''}>
+    ${stage >= 3 ? `<circle cx="100" cy="92" r="84" fill="none" stroke="${c2}" stroke-width="2" stroke-dasharray="4 8" opacity=".8"/>` : ''}
+    <ellipse cx="100" cy="186" rx="44" ry="7" fill="#000" opacity=".35"/>
+    <path d="M62 180 Q66 120 100 112 Q134 120 138 180 Z" fill="${robe}"/>
+    ${stage >= 2 ? `<path d="M70 132 L100 122 L130 132 L126 150 L74 150 Z" fill="#cfd6e6"/><circle cx="100" cy="138" r="5" fill="${c2}"/>` : ''}
+    <circle cx="100" cy="86" r="34" fill="#f2d3b3"/><circle cx="88" cy="88" r="4" fill="#2a1f3d"/><circle cx="112" cy="88" r="4" fill="#2a1f3d"/>
+    <path d="M90 100 Q100 106 110 100" stroke="#2a1f3d" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M64 80 Q70 44 100 46 Q132 44 136 80 Q118 64 100 66 Q82 64 64 80 Z" fill="#3a2a55"/>
+    ${stage >= 1 ? `<path d="M66 60 L100 22 L134 60 Z" fill="${c}" stroke="${c2}" stroke-width="2"/><circle cx="100" cy="30" r="4" fill="${c2}"/>` : ''}
+    ${stage >= 1 ? `<line x1="150" y1="70" x2="150" y2="180" stroke="#8b6b45" stroke-width="5" stroke-linecap="round"/><circle cx="150" cy="64" r="${stage >= 3 ? 13 : 9}" fill="${c2}"/>` : ''}
+  </svg>`;
+}
+const KC = { place: '#f4b740', topic: '#35e0ff', stat: '#39ff88' };
 
-  // Firestore Timestamp serialized over HTTP: { _seconds, _nanoseconds }
-  } else if (ts?._seconds !== undefined) {
-    date = new Date(ts._seconds * 1000);
+// Split the chapter into plain text and keyword segments (first occurrence of each keyword)
+function segmentsFor(content, keywords = []) {
+  const hits = [];
+  keywords.forEach((k) => {
+    const i = content.indexOf(k.text);
+    if (i >= 0 && !hits.some((h) => i < h.end && i + k.text.length > h.start)) hits.push({ start: i, end: i + k.text.length, k });
+  });
+  hits.sort((a, b) => a.start - b.start);
+  const segs = []; let at = 0;
+  hits.forEach((h) => { if (h.start > at) segs.push(content.slice(at, h.start)); segs.push(h.k); at = h.end; });
+  if (at < content.length) segs.push(content.slice(at));
+  return segs;
+}
 
-  // Firestore REST API format: { seconds, nanoseconds }
-  } else if (ts?.seconds !== undefined) {
-    date = new Date(ts.seconds * 1000);
+// ─── Typewriter chapter with hoverable keywords ───────────────────────────────
+function Chapter({ content, keywords, onTip }) {
+  const segs = useMemo(() => segmentsFor(content, keywords), [content, keywords]);
+  const total = content.length;
+  const [n, setN] = useState(reduceMotion() ? total : 0);
+  useEffect(() => {
+    if (reduceMotion()) { setN(total); return undefined; }
+    setN(0);
+    const id = setInterval(() => setN((v) => { if (v >= total) { clearInterval(id); return v; } return Math.min(total, v + 2); }), 28);
+    return () => clearInterval(id);
+  }, [content, total]);
+  const done = n >= total;
+  let left = n; const shown = [], rest = [];
+  segs.forEach((s, i) => {
+    const txt = typeof s === 'string' ? s : s.text, part = txt.slice(0, Math.max(0, left)), after = txt.slice(part.length); left -= part.length;
+    if (part) shown.push(typeof s === 'string' ? <React.Fragment key={i}>{part}</React.Fragment>
+      : <span key={i} className="kw" tabIndex={0} style={{ '--kc': KC[s.kind] }}
+          onPointerEnter={(e) => onTip(e.currentTarget, s)} onPointerLeave={() => onTip(null)} onFocus={(e) => onTip(e.currentTarget, s)} onBlur={() => onTip(null)}>{part}</span>);
+    if (after) rest.push(after);
+  });
+  return (
+    <>
+      <div className="prose" aria-label={done ? content : undefined}>
+        <span aria-hidden={!done}>{shown}</span>{!done && <span className="caret" aria-hidden="true" />}
+        {rest.length > 0 && <span className="unseen" aria-hidden="true">{rest.join('')}</span>}
+      </div>
+      {!done && <button type="button" className="skip" onClick={() => setN(total)}>Show the whole chapter</button>}
+    </>
+  );
+}
 
-  // Already a JS Date
-  } else if (ts instanceof Date) {
-    date = ts;
-
-  // ISO string or timestamp number
-  } else {
-    date = new Date(ts);
-  }
-
-  if (isNaN(date.getTime())) return '';   // ← silently hide if still invalid
-
-  return date.toLocaleDateString('en-US', {
-    year:  'numeric',
-    month: 'short',
-    day:   'numeric',
+// ─── Trading card ─────────────────────────────────────────────────────────────
+const FINISHES = { holo: ['Holo', '#7c5cff', '#35e0ff'], gold: ['Gold', '#f4b740', '#b45309'], ruby: ['Ruby', '#ff4d6d', '#5b0b2a'], emerald: ['Emerald', '#20c997', '#064e3b'] };
+const rarityOf = (xp) => (xp >= 1600 ? 'LEGENDARY' : xp >= 900 ? 'EPIC' : xp >= 400 ? 'RARE' : 'COMMON');
+function renderCardPng({ name, xp, stage, level, solved, streak, weekLabel, finish }) {
+  const [, r1, r2] = FINISHES[finish], W = 600, H = 840, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, r1); gr.addColorStop(1, r2); g.fillStyle = gr; rr(0, 0, W, H, 36); g.fill();
+  g.fillStyle = 'rgba(8,6,20,.6)'; rr(28, 28, W - 56, H - 56, 24); g.fill(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 4; g.stroke();
+  g.fillStyle = '#fff'; g.font = '800 22px "JetBrains Mono", monospace'; g.fillText(rarityOf(xp), 56, 76); g.textAlign = 'right'; g.fillText(`LV ${level}`, W - 56, 76); g.textAlign = 'left';
+  const art = g.createRadialGradient(W / 2, 300, 20, W / 2, 300, 260); art.addColorStop(0, '#ffffff'); art.addColorStop(0.25, r1); art.addColorStop(1, r2); g.fillStyle = art; rr(56, 100, W - 112, 400, 20); g.fill();
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      g.drawImage(img, W / 2 - 170, 120, 340, 340);
+      g.fillStyle = '#fff'; g.font = '800 40px Inter, sans-serif'; g.fillText(name.slice(0, 20), 56, 560);
+      g.font = '600 22px Inter, sans-serif'; g.globalAlpha = 0.85; g.fillText(STAGES[stage][0], 56, 596); g.globalAlpha = 1;
+      [['SOLVED', solved], ['XP', xp], ['STREAK', streak]].forEach(([l, v], i) => { const x = 56 + i * 170; g.fillStyle = 'rgba(255,255,255,.12)'; rr(x, 630, 150, 100, 14); g.fill(); g.fillStyle = '#fff'; g.font = '700 16px Inter, sans-serif'; g.fillText(l, x + 16, 662); g.font = '900 34px Inter, sans-serif'; g.fillText(String(v), x + 16, 708); });
+      g.font = '700 16px "JetBrains Mono", monospace'; g.globalAlpha = 0.8; g.fillText(`EVOWORLD · ${weekLabel.toUpperCase()}`, 56, 780); g.globalAlpha = 1;
+      c.toBlob((b) => resolve(b), 'image/png');
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(avatarSvg(stage, r1, '#ffffff', false));
   });
 }
-// ─── Typewriter Hook ──────────────────────────────────────────────────────────
-function useTypewriter(text, speed = 28, active = false) {
-  const [displayed, setDisplayed] = useState('');
-  const [done,      setDone]      = useState(false);
-  const idx = useRef(0);
-
+function TradingCard({ info, onClose }) {
+  const [finish, setFinish] = useState('holo');
+  const [png, setPng] = useState(null);
+  const cardRef = useRef(null), firstRef = useRef(null);
+  const [, r1, r2] = FINISHES[finish];
   useEffect(() => {
-    if (!active || !text) return;
-    setDisplayed('');
-    setDone(false);
-    idx.current = 0;
-
-    const interval = setInterval(() => {
-      idx.current += 1;
-      setDisplayed(text.slice(0, idx.current));
-      if (idx.current >= text.length) {
-        clearInterval(interval);
-        setDone(true);
-      }
-    }, speed);
-
-    return () => clearInterval(interval);
-  }, [text, speed, active]);
-
-  return { displayed, done };
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-// Cinematic loading screen
-function CinematicLoader() {
+    const prev = document.activeElement; if (firstRef.current) firstRef.current.focus();
+    const k = (e) => { if (e.key === 'Escape') onClose(); }; document.addEventListener('keydown', k);
+    return () => { document.removeEventListener('keydown', k); if (prev && prev.focus) prev.focus(); };
+  }, [onClose]);
+  useEffect(() => () => { if (png) URL.revokeObjectURL(png.url); }, [png]);
+  const tilt = (e) => { if (reduceMotion() || !cardRef.current) return; const r = cardRef.current.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; cardRef.current.style.transform = `rotateY(${x * 22}deg) rotateX(${-y * 18}deg)`; cardRef.current.style.setProperty('--hx', `${(x + 0.5) * 100}%`); };
+  const make = async () => { const blob = await renderCardPng({ ...info, finish }); if (png) URL.revokeObjectURL(png.url); setPng({ blob, url: URL.createObjectURL(blob) }); };
+  const share = async () => {
+    const file = new File([png.blob], 'evoworld-card.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My EvoWorld card' }); } catch (e) { /* cancelled */ } }
+  };
   return (
-    <motion.div
-      key="loader"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex flex-col items-center justify-center min-h-screen"
-    >
-      {/* Outer ring */}
-      <div className="relative w-28 h-28 mb-8">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-          className="absolute inset-0 rounded-full border-2 border-transparent
-                     border-t-cyan-400 border-r-purple-500"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          className="absolute inset-3 rounded-full border-2 border-transparent
-                     border-t-pink-400 border-l-blue-500"
-        />
-        <div className="absolute inset-0 flex items-center justify-center text-4xl">
-          📖
+    <div className="shade open" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="cardbox" role="dialog" aria-modal="true" aria-labelledby="ls-card">
+        <div className="tc-stage" onPointerMove={tilt} onPointerLeave={() => { if (cardRef.current) cardRef.current.style.transform = ''; }}>
+          <div className="tc" ref={cardRef} style={{ '--r1': r1, '--r2': r2 }}>
+            <div className="frame">
+              <div className="row1"><span>{rarityOf(info.xp)}</span><span>LV {info.level}</span></div>
+              <div className="art" dangerouslySetInnerHTML={{ __html: avatarSvg(info.stage, r1, '#ffffff') }} />
+              <h4>{info.name}</h4><div className="cls">{STAGES[info.stage][0]}</div>
+              <div className="st"><div>SOLVED<b>{info.solved}</b></div><div>XP<b>{info.xp}</b></div><div>STREAK<b>{info.streak}</b></div></div>
+              <div className="ft"><span>EVOWORLD · {info.weekLabel.toUpperCase()}</span></div>
+            </div>
+          </div>
+        </div>
+        <div className="opts">
+          <h2 id="ls-card">Trading card</h2>
+          <p>Your rarity comes from your real XP. Pick a finish, then save it as an image to share.</p>
+          <div className="swatches" role="group" aria-label="Card finish">
+            {Object.entries(FINISHES).map(([k, [l]], i) => <button type="button" key={k} ref={i === 0 ? firstRef : undefined} aria-pressed={finish === k} onClick={() => { setFinish(k); setPng(null); }}>{l}</button>)}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="cta" onClick={make}>Generate image</button>
+            <button type="button" className="ghost" onClick={onClose}>Close</button>
+          </div>
+          {png && (
+            <div className="png">
+              <img src={png.url} alt="Your trading card" />
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                <a className="cta" href={png.url} download="evoworld-card.png" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Download</a>
+                {typeof navigator !== 'undefined' && navigator.canShare && <button type="button" className="ghost" onClick={share}>Share</button>}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      <motion.p
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="text-cyan-400 font-mono text-sm tracking-widest uppercase"
-      >
-        Generating your story...
-      </motion.p>
-      <p className="text-gray-600 text-xs mt-2">
-        The AI is writing your DSA journey
-      </p>
-    </motion.div>
-  );
-}
-
-// Particle burst on story reveal
-function Particles() {
-  const particles = Array.from({ length: 12 }, (_, i) => i);
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {particles.map((i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 1, x: '50%', y: '50%', scale: 0 }}
-          animate={{
-            opacity:  [1, 0],
-            x:        `${50 + (Math.random() - 0.5) * 80}%`,
-            y:        `${50 + (Math.random() - 0.5) * 80}%`,
-            scale:    [0, 1.5, 0],
-          }}
-          transition={{ duration: 1.2, delay: i * 0.05, ease: 'easeOut' }}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            background: ['#22d3ee','#a855f7','#ec4899','#f59e0b'][i % 4],
-          }}
-        />
-      ))}
     </div>
   );
 }
 
-// Story reveal card with typewriter
-function StoryReveal({ story, userData, onViewArchive, onRegenerate, loading }) {
-  const level     = userData?.level ?? 1;
-  const levelName = LEVEL_NAMES[level] || 'Junior';
-  const gradient  = ROLE_COLORS[levelName]  || ROLE_COLORS.Junior;
-  const roleIcon  = ROLE_ICONS[levelName]   || '🌱';
-
-  const [showParticles, setShowParticles] = useState(true);
-  const [copied,        setCopied]        = useState(false);
-
-  const storyText = story?.content || story?.story || '';
-  const weekLabel = getWeekLabel(story?.weekId);
-  const genDate   = formatDate(story?.generatedAt);
-
-  const { displayed, done } = useTypewriter(storyText, 25, true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setShowParticles(false), 2000);
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleCopy = () => {
-    const text = `📖 My DSA Life Story — ${weekLabel}\n\n${storyText}\n\n— ${userData?.displayName || 'DSA Coder'} (${levelName})\nDSA Life Simulator`;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
-  };
-
-  return (
-    <motion.div
-      key="reveal"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y:  0  }}
-      exit={{    opacity: 0, y: -30 }}
-      transition={{ duration: 0.6 }}
-      className="relative w-full max-w-2xl mx-auto"
-    >
-      {showParticles && <Particles />}
-
-      {/* Chapter badge */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y:   0 }}
-        transition={{ delay: 0.2 }}
-        className="flex justify-center mb-6"
-      >
-        <span className="bg-white/10 border border-white/20 text-gray-300
-                         text-xs px-4 py-1.5 rounded-full font-mono tracking-widest uppercase">
-          📅 {weekLabel}
-        </span>
-      </motion.div>
-
-      {/* Main story card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1    }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="relative bg-white/5 border border-white/10 rounded-2xl
-                   overflow-hidden shadow-2xl"
-      >
-        {/* Gradient top bar */}
-        <div className={`h-1 w-full bg-gradient-to-r ${gradient}`} />
-
-        {/* Role header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-6 pt-5 pb-4 border-b border-white/10">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient}
-                          flex items-center justify-center text-xl`}>
-            {roleIcon}
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm">
-              {userData?.displayName || 'DSA Coder'}
-            </p>
-            <p className="text-gray-400 text-xs">{levelName} Developer</p>
-          </div>
-          {genDate && (
-            <p className="ml-auto text-gray-600 text-xs">{genDate}</p>
-          )}
-        </div>
-
-        {/* Story text with typewriter */}
-        <div className="px-6 py-6 min-h-[160px]">
-          {/* Decorative quote mark */}
-          <span className="text-5xl text-cyan-500/20 font-serif leading-none
-                           select-none float-left mr-2 -mt-2">
-            "
-          </span>
-
-          <p className="text-gray-200 leading-relaxed text-sm md:text-base
-                        font-light tracking-wide">
-            {displayed}
-            {/* Blinking cursor while typing */}
-            {!done && (
-              <motion.span
-                animate={{ opacity: [1, 0] }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                className="inline-block w-0.5 h-4 bg-cyan-400 ml-0.5 align-middle"
-              />
-            )}
-          </p>
-        </div>
-
-        {/* Actions footer */}
-        <AnimatePresence>
-          {done && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y:  0  }}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-6 pb-5"
-            >
-              {/* Share / Copy */}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleCopy}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs
-                            font-semibold transition-all duration-300
-                            ${copied
-                              ? 'bg-green-500/20 border border-green-500/40 text-green-400'
-                              : 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30'
-                            }`}
-              >
-                {copied ? '✅ Copied!' : '📋 Share Story'}
-              </motion.button>
-
-              {/* View archive */}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={onViewArchive}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs
-                           font-semibold bg-white/10 border border-white/10
-                           text-gray-300 hover:bg-white/20 transition-all"
-              >
-                📚 View All Chapters
-              </motion.button>
-
-              {/* Regenerate */}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={onRegenerate}
-                disabled={loading}
-                className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl
-                           text-xs font-semibold bg-white/5 border border-white/10
-                           text-gray-500 hover:text-gray-300 hover:bg-white/10
-                           transition-all disabled:opacity-40"
-              >
-                🔄 {loading ? 'Writing…' : 'Regenerate'}
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Decorative glow */}
-      <div className={`absolute -inset-px -z-10 blur-2xl opacity-10
-                       bg-gradient-to-br ${gradient} rounded-2xl`} />
-    </motion.div>
-  );
-}
-
-// Archive chapter card
-function ChapterCard({ chapter, index, onClick }) {
-  const weekLabel = getWeekLabel(chapter?.weekId);
-  const genDate   = formatDate(chapter?.generatedAt);
-  const preview   = (chapter?.content || chapter?.story || '').slice(0, 120);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y:  0  }}
-      transition={{ delay: index * 0.07 }}
-      whileHover={{ scale: 1.02, y: -2 }}
-      onClick={() => onClick(chapter)}
-      className="cursor-pointer bg-white/5 hover:bg-white/10
-                 border border-white/10 hover:border-cyan-500/30
-                 rounded-xl p-4 transition-all duration-200 group"
-    >
-      {/* Card header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30
-                          flex items-center justify-center text-sm">
-            📖
-          </div>
-          <div>
-            <p className="text-white text-sm font-semibold">Chapter {index + 1}</p>
-            <p className="text-gray-500 text-xs">{weekLabel}</p>
-          </div>
-        </div>
-        <span className="text-gray-600 text-xs">{genDate}</span>
-      </div>
-
-      {/* Preview */}
-      <p className="text-gray-400 text-xs leading-relaxed line-clamp-3">
-        {preview}…
-      </p>
-
-      {/* Read more */}
-      <div className="flex items-center gap-1 mt-3 text-cyan-500/60
-                      group-hover:text-cyan-400 transition-colors">
-        <span className="text-xs">Read chapter</span>
-        <span className="text-xs">→</span>
-      </div>
-    </motion.div>
-  );
-}
-
-// Archive modal overlay
-function ArchiveModal({ archive, onClose, onSelectChapter }) {
-  return (
-    <motion.div
-      key="archive-modal"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4
-                 bg-black/70 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1,    y:  0  }}
-        exit={{    opacity: 0, scale: 0.92, y: 20  }}
-        transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-[#0d0d1f] border border-white/10
-                   rounded-2xl shadow-2xl overflow-hidden"
-        style={{ maxHeight: '85vh' }}
-      >
-        {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4
-                        border-b border-white/10">
-          <div>
-            <h2 className="text-white font-bold text-lg">📚 Story Archive</h2>
-            <p className="text-gray-500 text-xs mt-0.5">
-              {archive.length} chapter{archive.length !== 1 ? 's' : ''} in your journey
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20
-                       flex items-center justify-center text-gray-400
-                       hover:text-white transition-all"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Chapter grid */}
-        <div className="overflow-y-auto p-5"
-             style={{ maxHeight: 'calc(85vh - 80px)' }}>
-          {archive.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-5xl mb-4">📭</p>
-              <p className="text-gray-400 text-sm">No archived chapters yet.</p>
-              <p className="text-gray-600 text-xs mt-1">
-                Stories are saved weekly after generation.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {archive.map((chapter, i) => (
-                <ChapterCard
-                  key={chapter.weekId || i}
-                  chapter={chapter}
-                  index={i}
-                  onClick={(ch) => {
-                    onSelectChapter(ch);
-                    onClose();
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ─── Main LifeStory Component ─────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LifeStory({ user, userData }) {
   const navigate = useNavigate();
-
-  const [story,        setStory]        = useState(null);
-  const [archive,      setArchive]      = useState([]);
-  const [stage,        setStage]        = useState('loading'); // loading | reveal | error
-  const [error,        setError]        = useState('');
-  const [generating,   setGenerating]   = useState(false);
-  const [showArchive,  setShowArchive]  = useState(false);
   const uid = user?.uid;
+  const [story, setStory] = useState(null);
+  const [archive, setArchive] = useState([]);
+  const [stage, setStage] = useState('loading');   // loading | reveal | error
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showCard, setShowCard] = useState(false);
+  const [tip, setTip] = useState(null);
+  const [toast, setToast] = useState('');
 
-  // ── Fetch current story ────────────────────────────────────────────────────
+  const name = userData?.displayName || user?.displayName || (user?.email || '').split('@')[0] || 'Coder';
+  const xp = userData?.xp ?? 0, level = userData?.level ?? 1, streak = userData?.streak ?? 0;
+  const solvedTotal = Object.keys(userData?.solvedProblems || {}).length;
+  const avStage = stageOf(xp), next = STAGES[avStage + 1];
+  const stats = story?.stats || {};
+  const mood = MOODS[moodFor(stats)];
+
+  const generateStory = useCallback(async (force = false) => {
+    if (!uid) return;
+    setGenerating(true); setNotice('');
+    if (!force) setStage('loading');
+    try {
+      const res = await axios.post(`${API_BASE}/story/generate`, { userId: uid, force });
+      setStory(res.data?.story); setStage('reveal');
+      if (force && typeof res.data?.regenerationsLeft === 'number') setNotice(`New chapter written. ${res.data.regenerationsLeft} rewrite${res.data.regenerationsLeft === 1 ? '' : 's'} left this week.`);
+    } catch (err) {
+      if (err.response?.status === 429) { setNotice(err.response.data?.message || 'No rewrites left this week.'); }
+      else if (force) setNotice('Could not rewrite the chapter. Try again in a moment.');
+      else { setError('Failed to generate your story.'); setStage('error'); }
+    } finally { setGenerating(false); }
+  }, [uid]);
+
   const fetchStory = useCallback(async () => {
     if (!uid) return;
-    try {
-      const res = await axios.get(`${API_BASE}/story/${uid}`);
-      if (res.data?.story) {
-        setStory(res.data.story);
-        setStage('reveal');
-      } else {
-        // No story yet — auto-generate
-        await generateStory();
-      }
-    } catch (err) {
-      console.error('[LifeStory] fetchStory error:', err);
-      setError('⚠️ Failed to load story.');
-      setStage('error');
-    }
-  }, [uid]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Generate story ─────────────────────────────────────────────────────────
-  const generateStory = useCallback(async () => {
-    if (!uid) return;
-    setGenerating(true);
     setStage('loading');
     try {
-      const res = await axios.post(`${API_BASE}/story/generate`, { userId: uid });
-      setStory(res.data?.story || res.data);
-      setStage('reveal');
-    } catch (err) {
-      console.error('[LifeStory] generateStory error:', err);
-      setError('⚠️ Failed to generate story.');
-      setStage('error');
-    } finally {
-      setGenerating(false);
-    }
-  }, [uid]);
+      const res = await axios.get(`${API_BASE}/story/${uid}`);
+      if (res.data?.story) { setStory(res.data.story); setStage('reveal'); } else await generateStory(false);
+    } catch (err) { setError('Failed to load your story.'); setStage('error'); }
+  }, [uid, generateStory]);
 
-  // ── Fetch archive ──────────────────────────────────────────────────────────
   const fetchArchive = useCallback(async () => {
     if (!uid) return;
-    try {
-      const res = await axios.get(`${API_BASE}/story/${uid}/archive`);
-      setArchive(res.data?.archive || []);
-    } catch (err) {
-      console.error('[LifeStory] fetchArchive error:', err);
-    }
+    try { const res = await axios.get(`${API_BASE}/story/${uid}/archive`); setArchive(res.data?.archive || []); } catch (e) { /* archive is optional */ }
   }, [uid]);
 
-  // ── On mount ───────────────────────────────────────────────────────────────
+  useEffect(() => { fetchStory(); fetchArchive(); }, [fetchStory, fetchArchive]);
+  useEffect(() => { if (story && !generating) fetchArchive(); }, [story, generating, fetchArchive]);
+  useEffect(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(''), 2400); return () => clearTimeout(t); }, [toast]);
+  useEffect(() => { const h = () => setTip(null); window.addEventListener('scroll', h, { passive: true }); return () => window.removeEventListener('scroll', h); }, []);
   useEffect(() => {
-    fetchStory();
-    fetchArchive();
-  }, [fetchStory, fetchArchive]);
+    if (!showArchive) return undefined;
+    const k = (e) => { if (e.key === 'Escape') setShowArchive(false); }; document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  }, [showArchive]);
 
-  // ── View selected archive chapter ─────────────────────────────────────────
-  const handleSelectChapter = (chapter) => {
-    setStory(chapter);
-    setStage('reveal');
+  // 3D world: loaded after the page shows, recoloured when the mood changes
+  const worldHost = useRef(null), world = useRef(null), moodRef = useRef(mood);
+  moodRef.current = mood;
+  useEffect(() => {
+    let dead = false;
+    import('./StoryScene').then((m) => { if (!dead && worldHost.current) world.current = m.mountStoryWorld(worldHost.current, moodRef.current); }).catch(() => {});
+    return () => { dead = true; if (world.current) world.current.destroy(); world.current = null; };
+  }, []);
+  useEffect(() => { if (world.current) world.current.setMood(mood); }, [mood]);
+
+  const onTip = useCallback((el, k) => {
+    if (!el) { setTip(null); return; }
+    const r = el.getBoundingClientRect(); setTip({ x: r.left + r.width / 2, y: r.top, k });
+  }, []);
+
+  const weekLabel = getWeekLabel(story?.weekId);
+  const content = story?.content || story?.story || '';
+  const share = async () => {
+    const text = `📖 My DSA Life Story — ${weekLabel}\n\n${story?.title ? story.title + '\n\n' : ''}${content}\n\n— ${name} (${STAGES[avStage][0]})\nDSA Life Simulator`;
+    if (navigator.share) { try { await navigator.share({ title: 'My DSA Life Story', text }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(text); setToast('Story copied. Paste it anywhere to share.'); } catch (e) { window.prompt('Copy your story:', text); }
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  const quests = [
+    ['Solve 3 problems', Math.min(stats.solves || 0, 3), 3],
+    ['Win an Arena battle', Math.min(stats.battlesWon || 0, 1), 1],
+    ['Earn 200 XP', Math.min(stats.xpEarned || 0, 200), 200],
+  ];
+  const miles = [
+    ['🌱', 'First solve', 'Solve any problem', solvedTotal >= 1],
+    ['🔥', '7-day streak', `${Math.min(streak, 7)}/7 days`, streak >= 7],
+    ['⚔️', '25 problems', `${Math.min(solvedTotal, 25)}/25 solved`, solvedTotal >= 25],
+    ['🏰', '1,000 XP', `${Math.min(xp, 1000)}/1000 XP`, xp >= 1000],
+    ['👑', '50 problems', `${Math.min(solvedTotal, 50)}/50 solved`, solvedTotal >= 50],
+  ];
+  const nextMile = miles.findIndex((m) => !m[3]);
+  const currentIdx = archive.findIndex((c) => c.weekId === story?.weekId);
+  const chapterNo = currentIdx >= 0 ? archive.length - currentIdx : archive.length + (story ? 1 : 0);
+  const isThisWeek = archive.length === 0 || archive[0]?.weekId === story?.weekId;
+
   return (
-    <div className="min-h-screen bg-[#060612] text-white overflow-x-hidden">
-      {/* ── Background glow ── */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2
-                        w-[600px] h-[400px] rounded-full
-                        bg-purple-600/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/4
-                        w-[400px] h-[300px] rounded-full
-                        bg-cyan-600/8 blur-[100px]" />
-      </div>
-
-      {/* ── Top nav ── */}
-      <motion.nav
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y:   0 }}
-        className="relative z-10 flex items-center justify-between
-                   px-6 py-4 border-b border-white/5"
-      >
-        <motion.button
-          whileHover={{ scale: 1.05, x: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/world')}
-          className="flex items-center gap-2 text-gray-400 hover:text-white
-                     transition-colors text-sm"
-        >
-          ← Back to World
-        </motion.button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-cyan-400 font-mono text-xs tracking-widest uppercase">
-            Life Story
-          </span>
+    <div className="ls" style={{ '--mc': mood.c, '--mc2': mood.c2 }}>
+      <div className="world" ref={worldHost} aria-hidden="true" />
+      <div className="veil" aria-hidden="true" />
+      <div className="page">
+        <div className="top">
+          <button type="button" className="ghost" onClick={() => navigate('/world')}>&larr; Back to World</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="ghost" onClick={() => setShowArchive(true)}>📚 Archive{archive.length > 0 ? ` (${archive.length})` : ''}</button>
+            <button type="button" className="ghost" onClick={() => setShowCard(true)}>✦ Trading card</button>
+          </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowArchive(true)}
-          className="flex items-center gap-2 text-gray-400 hover:text-cyan-400
-                     transition-colors text-sm"
-        >
-          📚 Archive
-          {archive.length > 0 && (
-            <span className="bg-cyan-500/20 border border-cyan-500/30
-                             text-cyan-400 text-xs px-1.5 py-0.5 rounded-full">
-              {archive.length}
-            </span>
-          )}
-        </motion.button>
-      </motion.nav>
+        {stage === 'loading' && <div className="center"><div><div className="loader" aria-hidden="true" /><p role="status">Writing your story…</p></div></div>}
+        {stage === 'error' && (
+          <div className="center"><div><p style={{ fontSize: 18, color: '#ffc4c4' }}>{error}</p><p>Check your connection and try again.</p>
+            <button type="button" className="cta" onClick={fetchStory}>Try again</button></div></div>
+        )}
 
-      {/* ── Main content ── */}
-      <div className="relative z-10 flex flex-col items-center
-                      justify-center px-4 py-12 min-h-[calc(100vh-70px)]">
+        {stage === 'reveal' && story && (
+          <div className="grid">
+            <aside>
+              <section className="glass hero" aria-label="Your character">
+                <div className="av"><div className="aura" /><div dangerouslySetInnerHTML={{ __html: avatarSvg(avStage, mood.c, mood.c2) }} /></div>
+                <h2>{name}</h2>
+                <div className="cls">{STAGES[avStage][0]} · {xp.toLocaleString()} XP</div>
+                <div className="evo">
+                  <span>{next ? `${next[1] - xp} XP until you evolve into ${/^[AEIOU]/.test(next[0]) ? 'an' : 'a'} ${next[0]}` : 'Fully evolved'}</span>
+                  <div className="bar"><i style={{ width: next ? `${((xp - STAGES[avStage][1]) / (next[1] - STAGES[avStage][1])) * 100}%` : '100%' }} /></div>
+                  <div className="stages">{STAGES.map((s, i) => <span key={s[0]} className={i <= avStage ? 'on' : ''}>{s[0]}</span>)}</div>
+                </div>
+              </section>
+              <section className="glass path" aria-labelledby="ls-mh">
+                <h3 id="ls-mh">MILESTONE PATH</h3>
+                {miles.map(([ic, t, d, done], i) => (
+                  <div key={t} className={`mile ${done ? 'done' : i === nextMile ? 'next' : ''}`}>
+                    <span className="dot" aria-hidden="true">{done ? '✓' : ic}</span><span><b>{t}</b><small>{done ? 'Unlocked' : d}</small></span>
+                  </div>
+                ))}
+              </section>
+            </aside>
 
-        {/* Page title */}
-        <AnimatePresence mode="wait">
-          {stage !== 'loading' && (
-            <motion.div
-              key="title"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y:   0 }}
-              className="text-center mb-10"
-            >
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
-                📖 Your{' '}
-                <span className="bg-gradient-to-r from-cyan-400 to-purple-500
-                                 bg-clip-text text-transparent">
-                  Life Story
-                </span>
-              </h1>
-              <p className="text-gray-500 text-sm">
-                An AI-generated chronicle of your DSA journey this week
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Stages ── */}
-        <AnimatePresence mode="wait">
-
-          {/* Loading */}
-          {stage === 'loading' && <CinematicLoader key="loader" />}
-
-          {/* Story reveal */}
-          {stage === 'reveal' && story && (
-            <StoryReveal
-              key="reveal"
-              story={story}
-              userData={userData}
-              onViewArchive={() => setShowArchive(true)}
-              onRegenerate={generateStory}
-              loading={generating}
-            />
-          )}
-
-          {/* Error */}
-          {stage === 'error' && (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1    }}
-              exit={{    opacity: 0, scale: 0.95  }}
-              className="text-center"
-            >
-              <p className="text-5xl mb-4">📕</p>
-              <p className="text-red-400 text-lg font-semibold mb-2">{error}</p>
-              <p className="text-gray-500 text-sm mb-6">
-                Could not load your story. Check your connection and try again.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={fetchStory}
-                className="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40
-                           text-cyan-400 px-6 py-2.5 rounded-xl text-sm font-semibold
-                           transition-all"
-              >
-                🔄 Try Again
-              </motion.button>
-            </motion.div>
-          )}
-
-        </AnimatePresence>
+            <main>
+              <article className="glass chapter" aria-labelledby="ls-title">
+                <div className="chd"><span className="pill">CHAPTER {chapterNo} · {weekLabel.toUpperCase()}</span><span className="mood">Mood: {mood.name}</span></div>
+                <h1 id="ls-title"><span>{story.title || weekLabel}</span></h1>
+                <Chapter key={`${story.weekId}-${story.regenerations || 0}-${content.length}`} content={content} keywords={story.keywords || []} onTip={onTip} />
+                <div className="quest" aria-labelledby="ls-qh">
+                  <h3 id="ls-qh">⚔ QUEST LOG</h3>
+                  {quests.map(([t, have, need]) => {
+                    const done = have >= need;
+                    return <div key={t} className={`obj ${done ? 'done' : ''}`}><span className="ck" aria-hidden="true">{done ? '✓' : ''}</span><span>{t}</span><small>{done ? 'DONE' : `${have}/${need}`}</small></div>;
+                  })}
+                </div>
+                <div className="acts">
+                  <button type="button" className="cta" onClick={share}>Share story</button>
+                  {isThisWeek && <button type="button" className="ghost" onClick={() => generateStory(true)} disabled={generating}>{generating ? 'Writing…' : '↻ Regenerate'}</button>}
+                  {!isThisWeek && <button type="button" className="ghost" onClick={fetchStory}>Back to this week</button>}
+                </div>
+                {notice && <div className="err" role="status" style={{ borderColor: 'rgba(255,255,255,.2)', background: 'rgba(255,255,255,.05)', color: '#e3dcff' }}>{notice}</div>}
+                {fmtDate(story.generatedAt) && <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--muted)' }}>Written {fmtDate(story.generatedAt)}</p>}
+              </article>
+            </main>
+          </div>
+        )}
       </div>
 
-      {/* ── Archive modal ── */}
-      <AnimatePresence>
-        {showArchive && (
-          <ArchiveModal
-            archive={archive}
-            onClose={() => setShowArchive(false)}
-            onSelectChapter={handleSelectChapter}
-          />
-        )}
-      </AnimatePresence>
+      {tip && <div className="ls-tip" role="status" style={{ left: tip.x, top: tip.y, '--kc': KC[tip.k.kind] }}><b>{tip.k.text}</b>{tip.k.tip}</div>}
+      {toast && <div className="toast" role="status">{toast}</div>}
+
+      {showArchive && (
+        <div className="arch" onClick={(e) => { if (e.target === e.currentTarget) setShowArchive(false); }}>
+          <div className="archbox" role="dialog" aria-modal="true" aria-labelledby="ls-ah">
+            <div className="archhd">
+              <div><h2 id="ls-ah">Story archive</h2><p>{archive.length} chapter{archive.length === 1 ? '' : 's'} in your journey</p></div>
+              <button type="button" className="ghost" autoFocus onClick={() => setShowArchive(false)}>Close</button>
+            </div>
+            {archive.length === 0 ? <p style={{ color: 'var(--muted)' }}>No chapters yet. They are saved each week after they're written.</p> : (
+              <div className="chs">
+                {archive.map((c, i) => (
+                  <button type="button" key={c.weekId || i} className="ch" aria-current={c.weekId === story?.weekId}
+                    onClick={() => { setStory(c); setStage('reveal'); setNotice(''); setShowArchive(false); }}>
+                    <b>Chapter {archive.length - i}{c.title ? `: ${c.title}` : ''}</b><small>{getWeekLabel(c.weekId)} · {fmtDate(c.generatedAt)}</small>
+                    <span>{String(c.content || c.story || '').slice(0, 120)}…</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showCard && <TradingCard info={{ name, xp, stage: avStage, level, solved: solvedTotal, streak, weekLabel }} onClose={() => setShowCard(false)} />}
     </div>
   );
 }
-
-
-
-
