@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
+import './Roadmap.css';
+
 const p = (slug, title, coming = false) => ({
   id: slug,
   title,
@@ -236,590 +237,246 @@ const TRACKS = [
     skills: ['Recursion', 'Pruning', 'State Search', 'Trie + DFS'],
   },
 ];
-const getUniqueProblems = () => {
-  const map = new Map();
 
-  TRACKS.forEach(track => {
-    track.problems.forEach(problem => {
-      if (!problem.comingSoon) {
-        map.set(problem.id, problem);
-      }
-    });
-  });
-
-  return Array.from(map.values());
-};
-
+const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
+const byId = Object.fromEntries(TRACKS.map((t) => [t.id, t]));
+const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const realProblems = (track) => track.problems.filter((x) => !x.comingSoon);
+const getUniqueProblems = () => { const map = new Map(); TRACKS.forEach((t) => realProblems(t).forEach((x) => map.set(x.id, x))); return Array.from(map.values()); };
 const ROADMAP_TOTAL = getUniqueProblems().length;
+const RING_C = 2 * Math.PI * 28;
 
-function ProgressRing({ pct, color, size = 44 }) {
-  const r = (size - 5) / 2;
-  const circ = 2 * Math.PI * r;
-
+// ─── Track card: radial ring, fog of war when locked ──────────────────────────
+function TrackCard({ track, progress, locked, onOpen }) {
+  const done = progress.total > 0 && progress.solved >= progress.total;
+  const req = track.requires ? byId[track.requires] : null;
+  const lockText = req ? `Solve 1 problem in "${req.title}" to unlock` : '';
   return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1e2a3a" strokeWidth={4} />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={4}
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        initial={{ strokeDashoffset: circ }}
-        animate={{ strokeDashoffset: circ * (1 - pct / 100) }}
-        transition={{ duration: 1, ease: 'easeOut' }}
-      />
-      <text
-        x={size / 2}
-        y={size / 2}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        style={{ transform: 'rotate(90deg)', transformOrigin: `${size / 2}px ${size / 2}px` }}
-        fill={color}
-        fontSize={10}
-        fontWeight={900}
-        fontFamily="Arial"
-      >
-        {pct}%
-      </text>
-    </svg>
+    <button id={`rm-${track.id}`} className={`mod${locked ? ' locked' : ''}${done ? ' done' : ''}`} style={{ '--c': track.color }} aria-disabled={locked}
+      aria-label={`${track.title}, level ${track.level}, ${locked ? `locked. ${lockText}` : `${progress.pct} percent complete, ${progress.solved} of ${progress.total} problems`}`}
+      onClick={() => onOpen(track, locked, lockText)}>
+      <span className="hd">
+        <span className="ring"><svg viewBox="0 0 66 66"><circle className="bg" cx="33" cy="33" r="28" /><circle className="pg" cx="33" cy="33" r="28" strokeDasharray={RING_C} strokeDashoffset={RING_C * (1 - progress.pct / 100)} /></svg>
+          <span className="ic" aria-hidden="true">{track.icon}</span></span>
+        <span><span className="lv">LEVEL {track.level}</span><span className="xpchip">+{track.xpReward} XP</span><h3>{track.title}</h3></span>
+        <span className="pct">{locked ? '' : `${progress.pct}%`}</span>
+      </span>
+      <p>{track.desc}</p>
+      <span className="meta"><span>{progress.solved}/{progress.total} problems</span><span>{done ? 'cleared' : locked ? 'locked' : 'in progress'}</span></span>
+      <span className="chips">{track.skills.map((s) => <span key={s}>{s}</span>)}</span>
+      {locked && <span className="fog"><span className="lk" aria-hidden="true">🔒</span><small>{lockText}</small></span>}
+    </button>
   );
 }
 
-function TrackCard({ track, progress, isLocked, onStart, idx }) {
-  const [hovered, setHovered] = useState(false);
-  const pct = progress?.pct || 0;
-  const solved = progress?.solved || 0;
-  const total = track.problems.length;
-  const isComplete = solved >= total;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: idx * 0.06 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => !isLocked && onStart(track)}
-      style={{
-        position: 'relative',
-        background: isLocked ? '#0a0a14' : hovered ? `linear-gradient(135deg, #0d1117, ${track.color}11)` : '#0d1117',
-        border: `1px solid ${isLocked ? '#1e2a3a' : isComplete ? track.color + '88' : hovered ? track.color + '66' : track.color + '33'}`,
-        borderRadius: 18,
-        padding: 20,
-        cursor: isLocked ? 'not-allowed' : 'pointer',
-        opacity: isLocked ? 0.5 : 1,
-        transition: 'all 0.3s',
-        overflow: 'hidden',
-        boxShadow: hovered && !isLocked ? `0 0 30px ${track.glow}` : 'none',
-      }}
-    >
-      {!isLocked && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${track.color}, transparent)`, opacity: hovered ? 1 : 0.4 }} />
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div style={{
-          width: 48,
-          height: 48,
-          borderRadius: 14,
-          background: isLocked ? '#1e2a3a' : `linear-gradient(135deg, ${track.color}33, ${track.color}11)`,
-          border: `1px solid ${isLocked ? '#333' : track.color + '44'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 24,
-        }}>
-          {isLocked ? '🔒' : track.icon}
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{
-            background: isLocked ? '#1e2a3a' : track.color + '22',
-            border: `1px solid ${isLocked ? '#333' : track.color + '33'}`,
-            borderRadius: 20,
-            padding: '1px 8px',
-            color: isLocked ? '#444' : track.color,
-            fontSize: 9,
-            fontWeight: 700,
-          }}>
-            Level {track.level}
-          </span>
-
-          <h3 style={{ margin: '6px 0 0', color: isLocked ? '#333' : '#e8e8e8', fontSize: 15, fontWeight: 800 }}>
-            {track.title}
-          </h3>
-        </div>
-
-        {!isLocked && <ProgressRing pct={pct} color={track.color} size={44} />}
-      </div>
-
-      <p style={{ margin: '0 0 14px', color: isLocked ? '#333' : '#666', fontSize: 12, lineHeight: 1.6 }}>
-        {track.desc}
-      </p>
-
-      {!isLocked && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ color: '#555', fontSize: 10 }}>{solved}/{total} problems</span>
-            <span style={{ color: track.color, fontSize: 10, fontWeight: 600 }}>{pct}%</span>
-          </div>
-
-          <div style={{ width: '100%', height: 5, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              style={{ height: '100%', background: track.color, borderRadius: 3 }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-        {track.skills.map(skill => (
-          <span key={skill} style={{
-            background: '#1e2a3a',
-            borderRadius: 20,
-            padding: '2px 8px',
-            color: isLocked ? '#333' : '#666',
-            fontSize: 10,
-          }}>
-            {skill}
-          </span>
-        ))}
-      </div>
-
-      {isLocked && track.requires && (
-        <div style={{ marginTop: 12, color: '#444', fontSize: 11 }}>
-          🔒 Complete "{TRACKS.find(t => t.id === track.requires)?.title}" first
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-function TrackDetail({ track, userProgress, onClose }) {
+// ─── Track detail pop-up (same problem links as before) ───────────────────────
+function TrackDetail({ track, solvedMap, onClose }) {
   const navigate = useNavigate();
-
+  const closeRef = useRef(null);
+  useEffect(() => {
+    const prev = document.activeElement; if (closeRef.current) closeRef.current.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); if (prev && prev.focus) prev.focus(); };
+  }, [onClose]);
+  const real = realProblems(track), solved = real.filter((x) => solvedMap[x.id]).length;
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        style={{
-          background: '#0d1117',
-          border: `1px solid ${track.color}44`,
-          borderRadius: 20,
-          padding: 28,
-          width: '100%',
-          maxWidth: 620,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          position: 'relative',
-        }}
-      >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${track.color}, transparent)` }} />
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 36 }}>{track.icon}</span>
-            <div>
-              <h2 style={{ margin: 0, color: '#e8e8e8', fontSize: 20, fontWeight: 900 }}>{track.title}</h2>
-              <span style={{ color: track.color, fontSize: 12 }}>+{track.xpReward} XP on completion</span>
-            </div>
-          </div>
-
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 20 }}>
-            ✕
-          </button>
-        </div>
-
-        <p style={{ color: '#666', fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>{track.desc}</p>
-
-        <div style={{
-          background: track.color + '11',
-          border: `1px solid ${track.color}22`,
-          borderRadius: 10,
-          padding: '12px 16px',
-          marginBottom: 20,
-        }}>
-          <div style={{
-            color: track.color,
-            fontSize: 10,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            marginBottom: 8,
-          }}>
-            Skills You'll Master
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {track.skills.map(s => (
-              <span key={s} style={{
-                background: track.color + '22',
-                border: `1px solid ${track.color}33`,
-                borderRadius: 20,
-                padding: '3px 10px',
-                color: track.color,
-                fontSize: 11,
-                fontWeight: 600,
-              }}>
-                {s}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ color: '#555', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-          Problems ({track.problems.length})
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {track.problems.map((p, i) => {
-            const solvedMap = userProgress?.solvedProblems || {};
-            const isSolved  = !!solvedMap[p.id];
-            const isComingSoon = !!p.comingSoon;
-
-            const handleClick = () => {
-              if (isComingSoon) return;
-              navigate(`/roadmap-solve/${p.id}`);
-            };
-
+    <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="rm-dt" style={{ '--c': track.color }}>
+        <header>
+          <div><span className="lv">LEVEL {track.level}</span><h2 id="rm-dt">{track.icon} {track.title}</h2><div className="sub">+{track.xpReward} XP on completion · {solved}/{real.length} solved</div></div>
+          <button className="btn" ref={closeRef} onClick={onClose}>Close</button>
+        </header>
+        <p>{track.desc}</p>
+        <span className="chips">{track.skills.map((s) => <span key={s}>{s}</span>)}</span>
+        <div className="plist">
+          {track.problems.map((x, i) => {
+            const isSolved = !!solvedMap[x.id], soon = !!x.comingSoon;
             return (
-              <div
-                key={p.id}
-                onClick={handleClick}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  background: isSolved ? '#00c89608' : isComingSoon ? '#0a0a14' : '#060910',
-                  border: `1px solid ${isSolved ? '#00c89633' : isComingSoon ? '#1e2a3a' : '#1e2a3a'}`,
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  cursor: isComingSoon ? 'not-allowed' : 'pointer',
-                  opacity: isComingSoon ? 0.5 : 1,
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { if (!isComingSoon) e.currentTarget.style.borderColor = track.color + '44'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = isSolved ? '#00c89633' : '#1e2a3a'; }}
-              >
-                <div style={{
-                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                  background: isSolved ? '#00c89622' : '#1e2a3a',
-                  border: `1px solid ${isSolved ? '#00c89644' : '#333'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: isSolved ? '#00c896' : '#555',
-                  fontSize: 11, fontWeight: 700,
-                }}>
-                  {isSolved ? '✓' : isComingSoon ? '🔒' : i + 1}
-                </div>
-
-                <span style={{ color: isSolved ? '#888' : isComingSoon ? '#444' : '#c8c8c8', fontSize: 13, flex: 1 }}>
-                  {p.title}
-                </span>
-
-                {isComingSoon
-                  ? <span style={{ color: '#333', fontSize: 10 }}>Coming Soon</span>
-                  : isSolved
-                    ? <span style={{ color: '#00c896', fontSize: 11 }}>✓ Solved</span>
-                    : <span style={{ color: '#1a73e8', fontSize: 11 }}>Solve →</span>
-                }
-              </div>
+              <button key={`${x.id}-${i}`} className={`prow${isSolved ? ' solved' : ''}`} disabled={soon} onClick={() => navigate(`/roadmap-solve/${x.id}`)}>
+                <span className="n">{isSolved ? '✓' : soon ? '🔒' : i + 1}</span>
+                <span>{x.title}{soon && <small> · coming soon</small>}</span>
+                <span className="go">{soon ? '' : isSolved ? 'Solved ✓' : 'Solve →'}</span>
+              </button>
             );
           })}
         </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function CertificateCard({ cert, earned }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      style={{
-        background: earned ? `linear-gradient(135deg, #0d1117, ${cert.color}11)` : '#0a0a14',
-        border: `1px solid ${earned ? cert.color + '44' : '#1e2a3a'}`,
-        borderRadius: 14,
-        padding: 16,
-        textAlign: 'center',
-        opacity: earned ? 1 : 0.4,
-      }}
-    >
-      <div style={{ fontSize: 32, marginBottom: 8 }}>{cert.badge}</div>
-      <div style={{ color: earned ? cert.color : '#444', fontSize: 12, fontWeight: 800, marginBottom: 4 }}>{cert.title}</div>
-      <div style={{ color: '#555', fontSize: 10, lineHeight: 1.5 }}>{cert.desc}</div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
 export default function Roadmap({ user, userData }) {
   const navigate = useNavigate();
-
   const [tab, setTab] = useState('tracks');
   const [selected, setSelected] = useState(null);
   const [certificates, setCertificates] = useState([]);
   const [allCerts, setAllCerts] = useState({});
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const solvedMap = useMemo(() => userData?.solvedProblems || {}, [userData?.solvedProblems]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
-      if (!user?.uid) {
-        if (isMounted) setLoading(false);
-        return;
-      }
-
+    let alive = true;
+    (async () => {
+      if (!user?.uid) { if (alive) setLoading(false); return; }
       try {
-        const [certRes, bookRes] = await Promise.allSettled([
-          axios.get(`${API_BASE}/certificates/${user.uid}`),
-          axios.get(`${API_BASE}/bookmarks/${user.uid}`),
-        ]);
-
-        const certData = certRes.status === 'fulfilled'
-          ? certRes.value.data
-          : {};
-
-        const bookData = bookRes.status === 'fulfilled'
-          ? bookRes.value.data
-          : {};
-
-        if (!isMounted) return;
-
+        const [certRes, bookRes] = await Promise.allSettled([axios.get(`${API_BASE}/certificates/${user.uid}`), axios.get(`${API_BASE}/bookmarks/${user.uid}`)]);
+        const certData = certRes.status === 'fulfilled' ? certRes.value.data : {};
+        const bookData = bookRes.status === 'fulfilled' ? bookRes.value.data : {};
+        if (!alive) return;
         setCertificates(certData.certificates || []);
-        setAllCerts(certData.allCerts || certData.allCertificates || certData.availableCertificates || {});
+        // the certificates route returns the full list as `all`
+        setAllCerts(certData.all || certData.allCerts || certData.allCertificates || certData.availableCertificates || {});
         setBookmarks(bookData.bookmarks || []);
-      } catch (err) {
-        console.error('Roadmap load error:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
+      } catch (err) { console.error('Roadmap load error:', err); }
+      finally { if (alive) setLoading(false); }
+    })();
+    return () => { alive = false; };
   }, [user?.uid]);
 
-  const getTrackProgress = (track) => {
-    const solvedMap   = userData?.solvedProblems || {};
-    const realProbs   = track.problems.filter(p => !p.comingSoon);
-    const solved      = realProbs.filter(p => !!solvedMap[p.id]).length;
-    const total       = realProbs.length;
-    const pct         = total > 0 ? Math.round((solved / total) * 100) : 0;
-    return { solved, pct, total };
-  };
+  useEffect(() => { if (!toast) return undefined; const id = setTimeout(() => setToast(''), 2600); return () => clearTimeout(id); }, [toast]);
 
-  const isUnlocked = (track) => {
-    if (!track.requires) return true;
-    const reqTrack = TRACKS.find(t => t.id === track.requires);
-    if (!reqTrack) return true;
-    const reqProgress = getTrackProgress(reqTrack);
-    return reqProgress.solved >= 1;
-  };
-  const roadmapSolved = getUniqueProblems()
-   .filter(p => userData?.solvedProblems?.[p.id])
-   .length;
-  const ROADMAP_REAL_TOTAL = getUniqueProblems().length;
-  const earnedIds = new Set(certificates.map(c => c.certId));
-
-  const TABS = [
-    { key: 'tracks', label: '🗺️ Learning Paths' },
-    { key: 'certificates', label: '🏆 Certificates' },
-    { key: 'bookmarks', label: '🔖 Bookmarks' },
+  // ── Progress (one rule everywhere: coming-soon problems don't count) ──
+  const progressOf = useCallback((track) => {
+    const real = realProblems(track), solved = real.filter((x) => !!solvedMap[x.id]).length, total = real.length;
+    return { solved, total, pct: total > 0 ? Math.round((solved / total) * 100) : 0 };
+  }, [solvedMap]);
+  // Same unlock rule as before: one solved problem in the prerequisite track
+  const isUnlocked = useCallback((track) => { if (!track.requires) return true; const req = byId[track.requires]; return !req || progressOf(req).solved >= 1; }, [progressOf]);
+  const roadmapSolved = getUniqueProblems().filter((x) => solvedMap[x.id]).length;
+  const tracksDone = TRACKS.filter((t) => { const pr = progressOf(t); return pr.total > 0 && pr.solved >= pr.total; }).length;
+  const earnedIds = new Set(certificates.map((c) => c.certId));
+  const level = userData?.level ?? 1, xp = userData?.xp ?? 0;
+  const MILES = [
+    ['First solve', 'Solve any roadmap problem', roadmapSolved >= 1],
+    ['Level 2 open', 'Solve 1 Arrays & Hashing problem', TRACKS.some((t) => t.level === 2 && isUnlocked(t))],
+    ['First track', 'Finish every problem in one track', tracksDone >= 1],
+    ['Halfway', `Solve ${Math.ceil(ROADMAP_TOTAL / 2)} roadmap problems`, roadmapSolved >= ROADMAP_TOTAL / 2],
+    ['Roadmap master', `Solve all ${ROADMAP_TOTAL}`, roadmapSolved >= ROADMAP_TOTAL],
   ];
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
-        Loading roadmap...
-      </div>
-    );
-  }
+  // ── Unfog animation for tracks that unlocked since the last visit ──
+  const memKey = `roadmap:${user?.uid || 'anon'}`;
+  const [justOpened, setJustOpened] = useState(() => new Set());
+  useEffect(() => {
+    if (loading) return;
+    const open = TRACKS.filter(isUnlocked).map((t) => t.id);
+    let prev = null; try { prev = JSON.parse(localStorage.getItem(memKey) || 'null'); } catch (e) { prev = null; }
+    if (Array.isArray(prev)) { const fresh = open.filter((id) => !prev.includes(id)); if (fresh.length) { setJustOpened(new Set(fresh)); setToast(`Unlocked: ${fresh.map((id) => byId[id].title).join(', ')}`); } }
+    try { localStorage.setItem(memKey, JSON.stringify(open)); } catch (e) { /* ignore */ }
+  }, [loading, isUnlocked, memKey]);
 
-  if (!user?.uid) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
-        Please login first.
-      </div>
-    );
-  }
+  // ── Tracks between modules, measured in the map's own coordinates so they follow the 3D tilt ──
+  const mapRef = useRef(null), [paths, setPaths] = useState([]);
+  const measure = useCallback(() => {
+    const map = mapRef.current; if (!map) return;
+    const pos = (el) => { let x = 0, y = 0, n = el; while (n && n !== map) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; } return { x, y, w: el.offsetWidth, h: el.offsetHeight }; };
+    const out = [];
+    TRACKS.forEach((t) => {
+      if (!t.requires) return; const ea = document.getElementById(`rm-${t.requires}`), eb = document.getElementById(`rm-${t.id}`); if (!ea || !eb) return;
+      const a = pos(ea), b = pos(eb), from = byId[t.requires]; let x1, y1, x2, y2, d;
+      if (Math.abs(a.y - b.y) < 8) { const ltr = a.x < b.x; x1 = ltr ? a.x + a.w : a.x; x2 = ltr ? b.x : b.x + b.w; y1 = y2 = a.y + a.h / 2; d = `M${x1} ${y1} L${x2} ${y2}`; }
+      else { x1 = a.x + a.w / 2; y1 = a.y + a.h; x2 = b.x + b.w / 2; y2 = b.y; const my = (y1 + y2) / 2; d = `M${x1} ${y1} C${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`; }
+      out.push({ key: `${t.requires}-${t.id}`, d, x1, y1, x2, y2, lit: isUnlocked(t), color: from.color });
+    });
+    setPaths(out);
+  }, [isUnlocked]);
+  useEffect(() => {
+    if (tab !== 'tracks' || loading) return undefined;
+    const id = requestAnimationFrame(measure);
+    const ro = new ResizeObserver(() => measure()); if (mapRef.current) ro.observe(mapRef.current);
+    return () => { cancelAnimationFrame(id); ro.disconnect(); };
+  }, [tab, loading, measure]);
+
+  const openTrack = useCallback((track, locked, lockText) => { if (locked) { setToast(`Locked: ${lockText}`); return; } setSelected(track); }, []);
+  const closeTrack = useCallback(() => setSelected(null), []);
+  const TABS = [['tracks', 'Learning Paths'], ['certificates', 'Certificates'], ['bookmarks', 'Bookmarks']];
+  const onTabKey = (e) => { const i = TABS.findIndex((t) => t[0] === tab), n = { ArrowRight: (i + 1) % 3, ArrowLeft: (i + 2) % 3 }[e.key]; if (n == null) return; e.preventDefault(); setTab(TABS[n][0]); const el = document.getElementById(`rm-tab-${TABS[n][0]}`); if (el) el.focus(); };
+  const handle = ((user?.displayName || 'dev').split(' ')[0] || 'dev').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'dev';
+
+  if (loading) return <div className="rm"><div className="center">loading roadmap…</div></div>;
+  if (!user?.uid) return <div className="rm"><div className="center">Please log in first.</div></div>;
+  const levels = [...new Set(TRACKS.map((t) => t.level))].sort((a, b) => a - b);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a14', color: '#e8e8e8', fontFamily: 'Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
-          <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
-            <button
-              onClick={() => navigate('/world')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #1e2a3a',
-                borderRadius: 8,
-                color: '#555',
-                cursor: 'pointer',
-                fontSize: 12,
-                padding: '6px 14px',
-                marginBottom: 16,
-              }}
-            >
-              ← World
-            </button>
+    <div className="rm">
+      <div className="crt" aria-hidden="true" />
+      <div className="page">
+        <div className="top"><button className="btn" onClick={() => navigate('/world')}>&larr; World</button><div className="path"><b>{handle}</b>@<i>evoworld</i>:~/roadmap$</div></div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-              <div style={{ fontSize: 40 }}>🗺️</div>
-              <div>
-                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>Learning Roadmap</h1>
-                <p style={{ margin: '4px 0 0', color: '#555', fontSize: 13 }}>
-                  Master future-ready DSA in the right order.
-                </p>
-              </div>
+        {/* ── Epic banner ── */}
+        <section className="banner" aria-labelledby="rm-h1">
+          <div className="grid" aria-hidden="true" />
+          <div className="bhead">
+            <div><span className="kicker"><i />LEARNING ROADMAP</span><h1 id="rm-h1">Master DSA in the <span>right order</span></h1><p>Future-ready paths. Each track unlocks the next.</p></div>
+            <div className="kpis" aria-label="Your stats">
+              <div><small>TOTAL XP</small><b style={{ color: '#a78bfa' }}>{xp.toLocaleString()}</b></div>
+              <div><small>RANK</small><b className="rank">{(LEVEL_NAMES[level] || 'Legend').toUpperCase()}</b></div>
+              <div><small>TRACKS</small><b>{tracksDone}/{TRACKS.length}</b></div>
             </div>
-
-            <div style={{ background: '#0d1117', border: '1px solid #1e2a3a', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ color: '#555', fontSize: 11 }}>Overall Progress</span>
-                  <span style={{ color: '#1a73e8', fontSize: 11, fontWeight: 700 }}>
-                    {roadmapSolved}/{ROADMAP_REAL_TOTAL} problems
-                  </span>
-                </div>
-
-                <div style={{ width: '100%', height: 6, background: '#1e2a3a', borderRadius: 3, overflow: 'hidden' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${ROADMAP_REAL_TOTAL > 0 ? (roadmapSolved / ROADMAP_REAL_TOTAL) * 100 : 0}%` }}
-                    transition={{ duration: 1.2 }}
-                    style={{
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #00c896, #1a73e8, #f59e0b)',
-                      borderRadius: 3,
-                    }} />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
-            {TABS.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                style={{
-                  background: tab === t.key ? '#1a73e822' : 'transparent',
-                  border: `1px solid ${tab === t.key ? '#1a73e844' : '#1e2a3a'}`,
-                  borderRadius: 20,
-                  color: tab === t.key ? '#1a73e8' : '#555',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: tab === t.key ? 700 : 400,
-                  padding: '6px 16px',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
           </div>
+          <div className="bigbar">
+            <div className="hd"><span>Overall progress</span><span><b>{roadmapSolved}</b> / {ROADMAP_TOTAL} problems</span></div>
+            <div className="track" role="img" aria-label={`${roadmapSolved} of ${ROADMAP_TOTAL} roadmap problems solved`}><i className="fill" style={{ width: `${ROADMAP_TOTAL ? (roadmapSolved / ROADMAP_TOTAL) * 100 : 0}%` }} /></div>
+          </div>
+          <div className="miles" aria-label="Milestones">
+            {MILES.map(([title, hint, on]) => <div key={title} className={`mile${on ? ' on' : ''}`}><b>{title}</b>{on ? 'Unlocked' : hint}</div>)}
+          </div>
+        </section>
 
-          {tab === 'tracks' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {TRACKS.map((track, idx) => (
-                <TrackCard
-                  key={track.id}
-                  track={track}
-                  progress={getTrackProgress(track)}
-                  isLocked={!isUnlocked(track)}
-                  onStart={setSelected}
-                  idx={idx} />
-              ))}
-            </div>
-          )}
-
-          {tab === 'certificates' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-              {Object.entries(allCerts).map(([certId, cert]) => (
-                <CertificateCard key={certId} cert={cert} earned={earnedIds.has(certId)} />
-              ))}
-            </div>
-          )}
-
-          {tab === 'bookmarks' && (
-            <div>
-              {bookmarks.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '48px 0', color: '#333' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🔖</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#444', marginBottom: 6 }}>No bookmarks yet</div>
-                  <div style={{ fontSize: 13 }}>Bookmark problems to save them for later practice.</div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {bookmarks.map((b, i) => (
-                    <motion.div
-                      key={b.id || i}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      onClick={() => navigate(`/solve/${b.problemId}`)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        background: '#0d1117',
-                        border: '1px solid #1e2a3a',
-                        borderRadius: 12,
-                        padding: '14px 18px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span style={{ fontSize: 18 }}>🔖</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 600 }}>
-                          {b.problemTitle || b.problemId}
-                        </div>
-                      </div>
-                      <span style={{ color: '#1a73e8', fontSize: 12 }}>Solve →</span>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        <div className="tabs" role="tablist" aria-label="Roadmap sections" onKeyDown={onTabKey}>
+          {TABS.map(([k, label]) => <button key={k} id={`rm-tab-${k}`} className="tab" role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} onClick={() => setTab(k)}>{label}</button>)}
         </div>
 
-        <AnimatePresence>
-          {selected && (
-            <TrackDetail
-              track={selected}
-              userProgress={userData}
-              onClose={() => setSelected(null)} />
+        <section role="tabpanel" aria-labelledby={`rm-tab-${tab}`}>
+          {tab === 'tracks' && (
+            <div className="mapwrap">
+              <div className="map" ref={mapRef}>
+                <svg className="tracks" aria-hidden="true" viewBox={mapRef.current ? `0 0 ${mapRef.current.offsetWidth} ${mapRef.current.offsetHeight}` : undefined}>
+                  {paths.map((pth) => (
+                    <g key={pth.key}>
+                      <path className="base" d={pth.d} />
+                      <path className={pth.lit ? 'lit' : 'dim'} style={{ '--c': pth.color }} d={pth.d} />
+                      <circle className="stop" cx={pth.x1} cy={pth.y1} r="6" stroke={pth.lit ? pth.color : '#3a4a48'} />
+                      <circle className="stop" cx={pth.x2} cy={pth.y2} r="6" stroke={pth.lit ? pth.color : '#3a4a48'} />
+                    </g>
+                  ))}
+                </svg>
+                {levels.map((lv) => {
+                  const row = TRACKS.filter((t) => t.level === lv);
+                  return (
+                    <div key={lv} className="level">
+                      <div className="lvlab">LEVEL<b>{lv}</b></div>
+                      <div className={`row n${Math.min(3, row.length)}`}>
+                        {row.map((t) => (
+                          <div key={t.id} className={justOpened.has(t.id) && !reduceMotion() ? 'unfogwrap' : ''}>
+                            <TrackCard track={t} progress={progressOf(t)} locked={!isUnlocked(t)} onOpen={openTrack} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
-        </AnimatePresence>
+
+          {tab === 'certificates' && (Object.keys(allCerts).length === 0
+            ? <div className="sidepanel">No certificates available right now.</div>
+            : <div className="certs">{Object.entries(allCerts).map(([id, c]) => {
+                const on = earnedIds.has(id);
+                return <div key={id} className={`cert${on ? '' : ' off'}`} style={on ? { '--c': c.color } : undefined}><div className="b" aria-hidden="true">{c.badge}</div><b>{c.title}</b><small>{c.desc}</small><div><span className="tag">{on ? 'EARNED' : 'LOCKED'}</span></div></div>;
+              })}</div>)}
+
+          {tab === 'bookmarks' && (bookmarks.length === 0
+            ? <div className="sidepanel">No bookmarks yet. Bookmark problems to save them for later practice.</div>
+            : <div className="marks">{bookmarks.map((b, i) => <button key={b.id || i} className="mark" onClick={() => navigate(`/solve/${b.problemId}`)}><span aria-hidden="true">🔖</span><span>{b.problemTitle || b.problemId}</span><span>Solve →</span></button>)}</div>)}
+        </section>
       </div>
- )
+      {selected && <TrackDetail track={selected} solvedMap={solvedMap} onClose={closeTrack} />}
+      {toast && <div className="toast" role="status">{toast}</div>}
+    </div>
+  );
 }
