@@ -1,3 +1,4 @@
+import './CompanyDashboard.css';
 import PlagiarismReport from './PlagiarismReport';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +35,6 @@ function Toggle({ on, onChange, color = '#1a73e8' }) {
     </button>
   );
 }
-
 function AccordionSection({ title, subtitle, color, icon, badge, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
