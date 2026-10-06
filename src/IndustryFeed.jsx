@@ -1,13 +1,19 @@
+// IndustryFeed.jsx
+// Real, recent tech headlines (via the backend's /industry/feed, sourced from Hacker News) with
+// AI prep insights per story (via /industry/insight, Groq). Insights are labeled as AI analysis.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE from './config';
+
 const CATS = { hiring: { label: 'HIRING', color: '#39ff88' }, skills: { label: 'SKILLS', color: '#b18cff' }, future: { label: 'FUTURE', color: '#35e0ff' }, companies: { label: 'COMPANIES', color: '#f4b740' } };
 const ago = (iso) => { const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (!(m >= 0)) return ''; if (m < 60) return `${Math.max(1, m)}m ago`; if (m < 1440) return `${Math.floor(m / 60)}h ago`; return `${Math.floor(m / 1440)}d ago`; };
+
 export default function IndustryFeed() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [state, setState] = useState('loading');          // loading | ready | error
+  const [why, setWhy] = useState('');
   const [cat, setCat] = useState('all');
   const [open, setOpen] = useState(null);                 // selected story
   const [insight, setInsight] = useState(null);
@@ -19,7 +25,13 @@ export default function IndustryFeed() {
   const load = useCallback(async () => {
     setState('loading');
     try { const res = await axios.get(`${API_BASE}/industry/feed`); setItems(res.data.items || []); setState('ready'); }
-    catch (e) { setState('error'); }
+    catch (e) {
+      const st = e.response?.status;
+      setWhy(!e.response ? 'The server did not respond (it may be waking up).'
+        : st === 404 ? 'The feed route is not on the server yet.'
+        : e.response?.data?.reason ? `News source problem: ${e.response.data.reason}` : `Server error ${st}.`);
+      setState('error');
+    }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -62,7 +74,7 @@ export default function IndustryFeed() {
       )}
 
       {state === 'loading' && <div className="flist">{[0, 1, 2, 3].map((i) => <div key={i} className="skel" style={{ minHeight: 64 }} />)}</div>}
-      {state === 'error' && <div className="empty">Couldn't load industry news right now. <button className="btn" onClick={load} style={{ marginLeft: 8 }}>Try again</button></div>}
+      {state === 'error' && <div className="empty">Couldn't load industry news right now.<br /><small style={{ opacity: .75 }}>{why}</small><br /><button className="btn" onClick={load} style={{ marginTop: 10 }}>Try again</button></div>}
       {state === 'ready' && (
         <div className={`fbody${open ? ' open' : ''}`}>
           <div className="flist">
