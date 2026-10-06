@@ -1,791 +1,585 @@
 import useStreak          from './hooks/useStreak';
 import useAchievements    from './hooks/useAchievements';
-import StreakBanner        from './components/StreakBanner';
 import AchievementToast   from './components/AchievementToast';
 import AchievementsGrid   from './components/AchievementsGrid';
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence }                  from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate }                              from 'react-router-dom';
 import axios                                        from 'axios';
-import {
-  collection, query, where,
-  orderBy, limit, getDocs,
-}                                                   from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db }                                       from './firebase';
 import API_BASE                                     from './config';
 import usePushNotifications                         from './usePushNotifications';
+import './Profile.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const LEVEL_NAMES = { 1:'Junior', 2:'Mid', 3:'Senior', 4:'Lead', 5:'Legend' };
-
-const LEVEL_COLORS = {
-  Junior: { gradient:'from-green-500 to-emerald-600',  ring:'ring-green-500/30',  bg:'bg-green-500/10',  text:'text-green-400'  },
-  Mid:    { gradient:'from-blue-500  to-indigo-600',   ring:'ring-blue-500/30',   bg:'bg-blue-500/10',   text:'text-blue-400'   },
-  Senior: { gradient:'from-purple-500 to-violet-600',  ring:'ring-purple-500/30', bg:'bg-purple-500/10', text:'text-purple-400' },
-  Lead:   { gradient:'from-orange-500 to-amber-600',   ring:'ring-orange-500/30', bg:'bg-orange-500/10', text:'text-orange-400' },
-  Legend: { gradient:'from-red-500   to-rose-600',     ring:'ring-red-500/30',    bg:'bg-red-500/10',    text:'text-red-400'    },
-};
-
-const LEVEL_ICONS  = { Junior:'🌱', Mid:'💻', Senior:'🔥', Lead:'👑', Legend:'⚡' };
+const LEVEL_NAMES = { 1: 'Junior', 2: 'Mid', 3: 'Senior', 4: 'Lead', 5: 'Legend' };
 const XP_PER_LEVEL = 500;
+// Tier titles: colour, what each unlocks, and the gear previewed when you tap it.
+const TIERS = [
+  { name: 'Junior', color: '#39ff88', unlock: 'Starter gear: headset, glasses. Banners: Neon City, Grid Run.', acc: 'headset' },
+  { name: 'Mid',    color: '#35c4e6', unlock: 'Cap and the Aurora banner.', acc: 'cap' },
+  { name: 'Senior', color: '#a78bfa', unlock: 'A glowing halo for your avatar.', acc: 'halo' },
+  { name: 'Lead',   color: '#f4b740', unlock: 'A flowing cape.', acc: 'cape' },
+  { name: 'Legend', color: '#ff4fd8', unlock: 'The crown and the Gold Rush banner.', acc: 'crown' },
+];
+const BANNERS = [{ id: 'neon', name: 'Neon City', tier: 0 }, { id: 'grid', name: 'Grid Run', tier: 0 }, { id: 'aurora', name: 'Aurora', tier: 1 }, { id: 'gold', name: 'Gold Rush', tier: 4 }];
+const ACCS = [{ id: 'none', name: 'None', tier: 0 }, { id: 'headset', name: 'Headset', tier: 0 }, { id: 'glasses', name: 'Glasses', tier: 0 }, { id: 'cap', name: 'Cap', tier: 1 }, { id: 'halo', name: 'Halo', tier: 2 }, { id: 'cape', name: 'Cape', tier: 3 }, { id: 'crown', name: 'Crown', tier: 4 }];
+const HAIR = [['none', 'None'], ['short', 'Short'], ['spiky', 'Spiky'], ['bun', 'Bun']];
+const TOPS = [['tee', 'T-shirt'], ['hoodie', 'Hoodie'], ['jacket', 'Jacket']];
+const TOP_COLORS = ['#35c4e6', '#d9644a', '#4e9f5d', '#f2b53a', '#7a5ac8', '#eceff5'];
+const HAIR_COLORS = ['#2b1d14', '#5a3a22', '#c98b3a', '#e8d27a', '#b5462e'];
+const DEFAULT_LOOK = { banner: 'neon', hair: 'short', hairColor: '#2b1d14', top: 'hoodie', topColor: '#35c4e6', acc: 'headset' };
+// Same ELO bands as the Arena record
+const ELO_TIERS = [['Bronze', 0], ['Gold', 1000], ['Diamond', 1200], ['Master', 1500], ['Grandmaster', 1800]];
+const STREAK_GOALS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '1 month']];
+const ACTIVITY_LABELS = {
+  challenge_solved: 'SOLVED', challenge_attempted: 'ATTEMPT', challenge_published: 'PUBLISHED', arena_win: 'ARENA WIN',
+  arena_loss: 'ARENA', level_up: 'LEVEL UP', daily_completed: 'DAILY', story_generated: 'STORY',
+};
+const TAU = Math.PI * 2;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function formatDate(ts) {
-  if (!ts) return '';
-  let date;
-  if (typeof ts?.toDate === 'function') date = ts.toDate();
-  else if (ts?._seconds  !== undefined) date = new Date(ts._seconds  * 1000);
-  else if (ts?.seconds   !== undefined) date = new Date(ts.seconds   * 1000);
-  else date = new Date(ts);
-  if (isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+function toDate(ts) {
+  if (!ts) return null;
+  let d;
+  if (typeof ts?.toDate === 'function') d = ts.toDate();
+  else if (ts?._seconds !== undefined) d = new Date(ts._seconds * 1000);
+  else if (ts?.seconds !== undefined) d = new Date(ts.seconds * 1000);
+  else d = new Date(ts);
+  return isNaN(d.getTime()) ? null : d;
 }
-
+function formatDate(ts) { const d = toDate(ts); return d ? d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : ''; }
 function getWeekLabel(weekId) {
   if (!weekId) return 'Unknown Week';
-  const match = weekId.match(/(\d{4})-W(\d{2})/);
-  if (!match) return weekId;
-  return `Week ${parseInt(match[2], 10)}, ${match[1]}`;
+  const m = weekId.match(/(\d{4})-W(\d{2})/);
+  return m ? `Week ${parseInt(m[2], 10)}, ${m[1]}` : weekId;
 }
-
 function xpProgress(xp) {
-  const level    = Math.min(5, Math.floor(xp / XP_PER_LEVEL) + 1);
-  const base     = (level - 1) * XP_PER_LEVEL;
+  const level = Math.min(5, Math.floor(xp / XP_PER_LEVEL) + 1);
+  const base = (level - 1) * XP_PER_LEVEL;
   const progress = level < 5 ? ((xp - base) / XP_PER_LEVEL) * 100 : 100;
   return { level, progress: Math.min(100, Math.max(0, progress)) };
 }
+const dayKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ─── Reusable card wrapper ─────────────────────────────────────────────────
-function Card({ children, className = '' }) {
+// ─── Small pieces ─────────────────────────────────────────────────────────────
+function CountUp({ value }) {
+  const [n, setN] = useState(reduceMotion() ? value : 0);
+  useEffect(() => {
+    if (reduceMotion() || !value) { setN(value); return undefined; }
+    let raf; const t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / 900); setN(Math.round(value * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{n.toLocaleString()}</>;
+}
+
+function Card({ className = '', title, children }) {
+  const ref = useRef(null);
+  const tilt = !reduceMotion() && typeof window !== 'undefined' && !window.matchMedia('(pointer: coarse)').matches;
+  const onMove = (e) => {
+    if (!tilt || !ref.current) return;
+    const r = ref.current.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    ref.current.style.transform = `perspective(1200px) rotateX(${(-y * 4).toFixed(2)}deg) rotateY(${(x * 5).toFixed(2)}deg) translateZ(6px)`;
+  };
   return (
-    <div className={`bg-white/5 border border-white/10 rounded-2xl p-5 ${className}`}>
+    <section ref={ref} className={`pf-card ${className}`} onPointerMove={onMove} onPointerLeave={() => { if (ref.current) ref.current.style.transform = ''; }}>
+      {title && <h3>{title}</h3>}
       {children}
-    </div>
+    </section>
   );
 }
 
-function SectionTitle({ icon, title }) {
+const ICONS = {
+  overview: <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect className="b b1" x="4" y="12" width="4" height="8" /><rect className="b b2" x="10" y="5" width="4" height="15" /><rect className="b b3" x="16" y="9" width="4" height="11" /></svg>,
+  role: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><g className="mask"><path d="M5 5h14v7a7 7 0 0 1-14 0z" /><circle cx="9.5" cy="10" r="1" fill="currentColor" /><circle cx="14.5" cy="10" r="1" fill="currentColor" /><path d="M9 15c1.5 1.4 4.5 1.4 6 0" /></g></svg>,
+  arena: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true"><g className="s1"><path d="M4 4l13 13M14 17l3-3M3 21l3-3" /></g><g className="s2"><path d="M20 4L7 17M10 17l-3-3M21 21l-3-3" /></g></svg>,
+  achievements: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><g className="medal"><circle cx="12" cy="9" r="5" /><path d="M9 13.5L7 22l5-3 5 3-2-8.5" /><path d="M12 6.5l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3z" fill="currentColor" stroke="none" /></g></svg>,
+  stories: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 5h7v14H4z" /><path className="page2" d="M13 5h7v14h-7z" /></svg>,
+  activity: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square" aria-hidden="true"><path className="beat" pathLength="100" d="M2 12h5l2-6 4 12 2-6h7" /></svg>,
+  notifications: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><g className="bell"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></g></svg>,
+};
+const TABS = [
+  { id: 'overview', label: 'Overview' }, { id: 'role', label: 'Life Role' }, { id: 'arena', label: 'Arena' }, { id: 'achievements', label: 'Badges' },
+  { id: 'stories', label: 'Stories' }, { id: 'activity', label: 'Activity' }, { id: 'notifications', label: 'Alerts' },
+];
+
+const Flame = () => (
+  <svg className="pf-flame" viewBox="0 0 24 24" aria-hidden="true">
+    <defs><linearGradient id="pf-fg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#ff5b2b" /><stop offset=".6" stopColor="#f4b740" /><stop offset="1" stopColor="#fff3a0" /></linearGradient></defs>
+    <path d="M12 2c1.2 4.2-3.6 5.6-3.6 10a4.6 4.6 0 0 0 9.2 0c0-2.3-1.1-3.6-2.3-4.8.1 2.2-.9 3.4-2 3.8 1.2-3.5.4-6.8-1.3-9z" fill="url(#pf-fg)" />
+    <path d="M12 22a3 3 0 0 0 3-3c0-1.6-1.4-2.5-1.8-3.8-1.5.8-1.2 2.2-2.2 2.8-.6-.5-.9-1.2-.8-2A3.6 3.6 0 0 0 9 19a3 3 0 0 0 3 3z" fill="#fff6c8" opacity=".9" />
+  </svg>
+);
+const Check = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" strokeWidth="3" /></svg>;
+
+// ─── Milestone bar ────────────────────────────────────────────────────────────
+function MilestoneBar({ streak, bestStreak, claimedToday }) {
+  const s = streak || 0, now = new Date(), letters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const days = [];
+  for (let k = 6; k >= 0; k--) {
+    const d = new Date(now); d.setDate(now.getDate() - k);
+    // If today isn't claimed yet, the streak ends yesterday and today is pending.
+    const done = claimedToday ? k < s : k >= 1 && k <= s;
+    days.push({ d, k, done, today: k === 0 });
+  }
+  const nextI = STREAK_GOALS.findIndex((g) => g[0] > s), next = STREAK_GOALS[nextI];
+  let f = 0;
+  for (let i = 0; i < STREAK_GOALS.length - 1; i++) {
+    if (s >= STREAK_GOALS[i + 1][0]) f = i + 1;
+    else if (s >= STREAK_GOALS[i][0]) { f = i + (s - STREAK_GOALS[i][0]) / (STREAK_GOALS[i + 1][0] - STREAK_GOALS[i][0]); break; }
+  }
+  const [fill, setFill] = useState(0);
+  useEffect(() => { const id = requestAnimationFrame(() => setFill(f / 3 * 75)); return () => cancelAnimationFrame(id); }, [f]);
+  const msg = claimedToday
+    ? <>Today is locked in. Come back tomorrow for <b>day {s + 1}</b>.</>
+    : s > 0 ? <>Keep it going! Play today to make it <b>{s + 1} days</b>.</> : <>Solve one problem today to <b>start your streak</b>.</>;
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-lg">{icon}</span>
-      <h2 className="text-white font-bold text-base tracking-wide">{title}</h2>
-    </div>
-  );
-}
-
-// ─── Profile Header ────────────────────────────────────────────────────────
-function ProfileHeader({ user, userData }) {
-  const level     = userData?.level ?? 1;
-  const levelName = LEVEL_NAMES[level] || 'Junior';
-  const colors    = LEVEL_COLORS[levelName] || LEVEL_COLORS.Junior;
-  const icon      = LEVEL_ICONS[levelName]  || '🌱';
-  const joinDate  = formatDate(userData?.createdAt);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y:   0  }}
-      className="relative overflow-hidden rounded-2xl border border-white/10"
-    >
-      {/* Banner gradient */}
-      <div className={`h-28 w-full bg-gradient-to-br ${colors.gradient} opacity-30`} />
-
-      {/* Blur overlay */}
-      <div className="absolute inset-0 bg-[#060612]/60 backdrop-blur-sm" />
-
-      {/* Content */}
-      <div className="relative -mt-14 px-6 pb-6">
-        {/* Avatar */}
-        <div className={`w-20 h-20 rounded-2xl ring-4 ${colors.ring}
-                         overflow-hidden bg-white/10 shadow-2xl`}>
-          {user?.photoURL
-            ? <img src={user.photoURL} alt="avatar"
-                   className="w-full h-full object-cover" />
-            : <div className={`w-full h-full bg-gradient-to-br ${colors.gradient}
-                               flex items-center justify-center text-3xl`}>
-                {icon}
-              </div>
-          }
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-white text-xl font-black">
-              {user?.displayName || 'DSA Coder'}
-            </h1>
-            <p className="text-gray-400 text-sm mt-0.5">{user?.email}</p>
-            {joinDate && (
-              <p className="text-gray-600 text-xs mt-1">📅 Joined {joinDate}</p>
-            )}
+    <section className="pf-mile" aria-label="Streak and milestones">
+      <div className="pf-cal" role="img" aria-label={`Last seven days, ${s} day streak`}>
+        {days.map(({ d, k, done, today }) => (
+          <div key={k} className={`pf-day${done ? ' done' : ''}${today ? (claimedToday ? ' today' : ' pending') : ''}`}>
+            {letters[d.getDay()]}<b>{d.getDate()}</b>{today ? <Flame /> : done ? <Check /> : <span>&nbsp;</span>}
           </div>
-
-          {/* Level badge */}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl
-                           bg-gradient-to-r ${colors.gradient} shadow-lg`}>
-            <span className="text-xl">{icon}</span>
-            <div>
-              <p className="text-white font-black text-sm leading-none">{levelName}</p>
-              <p className="text-white/70 text-xs">Level {level}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* XP progress bar */}
-        <div className="mt-4">
-          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-            <span>XP Progress</span>
-            <span>{userData?.xp ?? 0} XP</span>
-          </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${xpProgress(userData?.xp ?? 0).progress}%` }}
-              transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-              className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full`}
-            />
-          </div>
-          {level < 5 && (
-            <p className="text-gray-600 text-xs mt-1 text-right">
-              {XP_PER_LEVEL - ((userData?.xp ?? 0) % XP_PER_LEVEL)} XP to{' '}
-              {LEVEL_NAMES[level + 1]}
-            </p>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Stats Grid ────────────────────────────────────────────────────────────
-function StatsGrid({ userData }) {
-  const stats = [
-    { icon:'⭐', label:'Total XP',            value:(userData?.xp ?? 0).toLocaleString(),           color:'text-yellow-400', bg:'bg-yellow-500/10' },
-    { icon:'💰', label:'Credits',             value:(userData?.credits ?? 0).toLocaleString(),       color:'text-cyan-400',   bg:'bg-cyan-500/10'   },
-    { icon:'🏆', label:'ELO Rating',          value:(userData?.elo ?? 1000).toLocaleString(),        color:'text-orange-400', bg:'bg-orange-500/10' },
-    { icon:'📊', label:'Weekly XP',           value:(userData?.weeklyXp ?? 0).toLocaleString(),      color:'text-purple-400', bg:'bg-purple-500/10' },
-    { icon:'🧩', label:'Challenges Created',  value:(userData?.challengesCreated ?? 0).toLocaleString(), color:'text-green-400', bg:'bg-green-500/10' },
-    {
-      icon:'⭐', label:'Avg Challenge Rating',
-      value: userData?.avgChallengeRating
-        ? userData.avgChallengeRating.toFixed(1) + ' / 5'
-        : '—',
-      color:'text-pink-400', bg:'bg-pink-500/10',
-    },
-  ];
-
-  return (
-    <Card>
-      <SectionTitle icon="📈" title="Stats" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1   }}
-            transition={{ delay: i * 0.07 }}
-            className={`${s.bg} rounded-xl p-3 border border-white/5`}
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base">{s.icon}</span>
-              <p className="text-gray-400 text-xs">{s.label}</p>
-            </div>
-            <p className={`${s.color} font-black text-lg leading-none`}>{s.value}</p>
-          </motion.div>
         ))}
       </div>
-    </Card>
+      <div className="pf-msg">
+        <h2>{s > 0 ? `${s} day streak` : 'No streak yet'}</h2>
+        <p>{msg}{next ? <> {next[0] - s} more to reach <b>{next[1]}</b>.</> : null} Best: {bestStreak || s} days.</p>
+      </div>
+      <div className="pf-track">
+        <div className="fill" style={{ width: `${fill}%` }} />
+        {STREAK_GOALS.map((g, i) => (
+          <div key={g[0]} className={`pf-node${s >= g[0] ? ' got' : i === nextI ? ' next' : ''}`}>
+            <i>{s >= g[0] ? '✓' : g[0]}</i><div><b>Day {g[0]}</b><span>{g[1]}</span></div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
-// ─── Life Role Card ────────────────────────────────────────────────────────
-function LifeRoleCard({ userData }) {
-  const role   = userData?.lifeRole;
-  const level  = userData?.level ?? 1;
-  const colors = LEVEL_COLORS[LEVEL_NAMES[level]] || LEVEL_COLORS.Junior;
+// ─── Skill graph (solved problems grouped by topic) ───────────────────────────
+function SkillGraph({ solvedProblems }) {
+  const skills = useMemo(() => {
+    const counts = {};
+    Object.values(solvedProblems || {}).forEach((p) => {
+      const topic = p && (p.topic || p.category || p.tag);
+      if (topic) counts[topic] = (counts[topic] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [solvedProblems]);
+  const [read, setRead] = useState('Hover or focus a point');
+  if (skills.length < 3) {
+    return <div className="pf-empty">Your skill graph appears once you have solved problems in at least 3 topics.<br />Every solve adds to it.</div>;
+  }
+  const max = Math.max(...skills.map((s) => s[1])), cx = 140, cy = 124, R = 84, n = skills.length;
+  const pt = (i, r) => { const a = -Math.PI / 2 + TAU * i / n; return [+(cx + Math.cos(a) * r).toFixed(1), +(cy + Math.sin(a) * r).toFixed(1)]; };
+  return (
+    <>
+      <svg className="pf-radar" viewBox="0 0 280 250" role="group" aria-label="Skill graph">
+        {[1, 2, 3, 4, 5].map((ring) => <polygon key={ring} className="grid" points={skills.map((_, i) => pt(i, R * ring / 5).join(',')).join(' ')} />)}
+        {skills.map((s, i) => { const [x, y] = pt(i, R), [lx, ly] = pt(i, R + 22); return (
+          <g key={s[0]}><line className="axis" x1={cx} y1={cy} x2={x} y2={y} /><text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle">{s[0].length > 12 ? s[0].slice(0, 11) + '…' : s[0]}</text></g>
+        ); })}
+        <polygon className="area" points={skills.map((s, i) => pt(i, R * s[1] / max).join(',')).join(' ')} />
+        {skills.map((s, i) => { const [x, y] = pt(i, R * s[1] / max); const label = `${s[0]}: ${s[1]} solved`; return (
+          <circle key={s[0]} className="pt" tabIndex={0} r="6" cx={x} cy={y} aria-label={label} onPointerOver={() => setRead(label)} onFocus={() => setRead(label)} />
+        ); })}
+      </svg>
+      <div className="pf-readout">{read}</div>
+    </>
+  );
+}
 
-  if (!role) {
+// ─── Activity heatmap (streak days plus logged activity) ──────────────────────
+function Heatmap({ activities, streak, claimedToday }) {
+  const cells = useMemo(() => {
+    const counts = {};
+    activities.forEach((a) => { const d = toDate(a.createdAt); if (d) counts[dayKey(d)] = (counts[dayKey(d)] || 0) + 1; });
+    const now = new Date(), out = [];
+    for (let back = 26 * 7 - 1; back >= 0; back--) {
+      const d = new Date(now); d.setDate(now.getDate() - back);
+      const inStreak = claimedToday ? back < streak : back >= 1 && back <= streak;
+      const c = (counts[dayKey(d)] || 0) + (inStreak ? 1 : 0);
+      out.push({ key: back, lv: c >= 3 ? 3 : c, label: d.toDateString() });
+    }
+    return out;
+  }, [activities, streak, claimedToday]);
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) ref.current.scrollLeft = ref.current.scrollWidth; }, []);
+  return (
+    <>
+      <div className="pf-heat" ref={ref} role="img" aria-label="Activity over the last 26 weeks">
+        {cells.map((c) => <i key={c.key} className={c.lv ? `l${c.lv}` : undefined} title={c.label} />)}
+      </div>
+      <div className="pf-legend">less <i style={{ background: 'rgba(255,255,255,.07)' }} /><i style={{ background: '#0e4a2c' }} /><i style={{ background: '#1f9d5c' }} /><i style={{ background: '#39ff88' }} /> more</div>
+    </>
+  );
+}
+
+// ─── Customize drawer ─────────────────────────────────────────────────────────
+function CustomizeDrawer({ look, tierIdx, onChange, onLocked, onClose }) {
+  const closeRef = useRef(null);
+  useEffect(() => {
+    const prev = document.activeElement; if (closeRef.current) closeRef.current.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); if (prev && prev.focus) prev.focus(); };
+  }, [onClose]);
+  const options = (list, k, objects) => (
+    <div className="pf-opts">
+      {list.map((it) => {
+        const id = objects ? it.id : it[0], name = objects ? it.name : it[1], locked = objects && it.tier > tierIdx;
+        return (
+          <button key={id} className={`pf-opt${locked ? ' locked' : ''}`} aria-pressed={look[k] === id}
+            onClick={() => (locked ? onLocked(it) : onChange(k, id))}>
+            {name}{locked && <small>🔒 {TIERS[it.tier].name}</small>}
+          </button>
+        );
+      })}
+    </div>
+  );
+  const swatches = (list, k, label) => (
+    <div className="pf-sw">{list.map((c) => <button key={c} style={{ background: c }} aria-label={`${label} ${c}`} aria-pressed={look[k] === c} onClick={() => onChange(k, c)} />)}</div>
+  );
+  return (
+    <>
+      <div className="pf-scrim" onClick={onClose} />
+      <aside className="pf-drawer" role="dialog" aria-modal="true" aria-labelledby="pf-dtitle">
+        <header><h2 id="pf-dtitle">customize.profile</h2><button className="pf-tbtn" ref={closeRef} onClick={onClose}>Close</button></header>
+        <h4>Banner</h4>{options(BANNERS, 'banner', true)}
+        <h4>Gear</h4>{options(ACCS, 'acc', true)}
+        <h4>Hair</h4>{options(HAIR, 'hair')}
+        <h4>Hair color</h4>{swatches(HAIR_COLORS, 'hairColor', 'Hair')}
+        <h4>Top</h4>{options(TOPS, 'top')}
+        <h4>Top color</h4>{swatches(TOP_COLORS, 'topColor', 'Top')}
+        <p className="pf-note">Locked items unlock as you climb the tier titles. Tap a tier on your banner to preview its gear.</p>
+      </aside>
+    </>
+  );
+}
+
+// ─── Tab panels ───────────────────────────────────────────────────────────────
+function LifeRolePanel({ userData, onFindRole }) {
+  const role = userData?.lifeRole, skipped = userData?.onboardingSkipped || role?.source === 'skipped';
+  if (!role || skipped) {
     return (
-      <Card>
-        <SectionTitle icon="🎭" title="Life Role" />
-        <div className="text-center py-8">
-          <p className="text-4xl mb-3">🎭</p>
-          <p className="text-gray-400 text-sm">No life role assigned yet.</p>
-          <p className="text-gray-600 text-xs mt-1">
-            Complete onboarding to discover your developer archetype.
-          </p>
-        </div>
+      <Card className="pf-full" title="life role">
+        <div className="pf-rolename">{role?.primary || 'Explorer'}</div>
+        <div className="pf-sub" style={{ maxWidth: 560 }}>You are still finding your style. Answer 5 honest questions and the AI assigns your Life Role, which shapes your journey.</div>
+        <button className="pf-cta" onClick={onFindRole}>Reveal my Life Role: +200 XP, 50 credits</button>
       </Card>
     );
   }
-
   return (
-    <Card>
-      <SectionTitle icon="🎭" title="Life Role" />
-
-      <div className={`flex items-center gap-4 p-4 rounded-xl
-                       bg-gradient-to-r ${colors.gradient} bg-opacity-10
-                       border border-white/10 mb-4`}>
-        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${colors.gradient}
-                         flex items-center justify-center text-2xl shadow-lg`}>
-          {LEVEL_ICONS[LEVEL_NAMES[level]] || '🌱'}
-        </div>
-        <div>
-          <p className="text-white font-black text-lg leading-none">{role.primary}</p>
-          <p className="text-gray-300 text-xs mt-1 max-w-xs">{role.description}</p>
-        </div>
-      </div>
-
-      {role.traits?.length > 0 && (
-        <div className="mb-4">
-          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">Traits</p>
-          <div className="flex flex-wrap gap-2">
-            {role.traits.map((t, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1   }}
-                transition={{ delay: i * 0.05 }}
-                className={`${colors.bg} ${colors.text} border border-white/10
-                            text-xs px-3 py-1 rounded-full font-medium`}
-              >
-                {t}
-              </motion.span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {role.strengths?.length > 0 && (
-        <div>
-          <p className="text-gray-500 text-xs uppercase tracking-widest mb-2">Strengths</p>
-          <ul className="space-y-2">
-            {role.strengths.map((s, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x:   0  }}
-                transition={{ delay: i * 0.07 }}
-                className="flex items-start gap-2 text-sm text-gray-300"
-              >
-                <span className={`mt-0.5 ${colors.text}`}>▸</span>
-                {s}
-              </motion.li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {role.assignedAt && (
-        <p className="text-gray-600 text-xs mt-4 text-right">
-          Assigned {formatDate(role.assignedAt)}
-        </p>
-      )}
+    <Card className="pf-full" title="life role">
+      <div className="pf-rolename">{role.primary}</div>
+      {role.description && <div className="pf-sub" style={{ maxWidth: 640 }}>{role.description}</div>}
+      {role.traits?.length > 0 && <><h3 style={{ marginTop: 18 }}>traits</h3><div className="pf-chips">{role.traits.map((t, i) => <span key={i}>{t}</span>)}</div></>}
+      {role.strengths?.length > 0 && <><h3 style={{ marginTop: 18 }}>strengths</h3><ul className="pf-list">{role.strengths.map((s, i) => <li key={i}><b>▸</b>{s}</li>)}</ul></>}
+      {role.assignedAt && <div className="pf-sub" style={{ textAlign: 'right' }}>Assigned {formatDate(role.assignedAt)}</div>}
     </Card>
   );
 }
 
-// ─── Arena Record ──────────────────────────────────────────────────────────
-function ArenaRecord({ userData }) {
-  const wins   = userData?.arenaWins   ?? 0;
-  const losses = userData?.arenaLosses ?? 0;
-  const total  = wins + losses;
-  const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
-  const elo    = userData?.elo ?? 1000;
-
-  const tier =
-    elo >= 1800 ? { label:'Grandmaster', color:'text-red-400',    icon:'💎' } :
-    elo >= 1500 ? { label:'Master',      color:'text-purple-400', icon:'👑' } :
-    elo >= 1200 ? { label:'Diamond',     color:'text-cyan-400',   icon:'💠' } :
-    elo >= 1000 ? { label:'Gold',        color:'text-yellow-400', icon:'🥇' } :
-                  { label:'Bronze',      color:'text-orange-400', icon:'🥉' };
-
+function ArenaPanel({ userData }) {
+  const wins = userData?.arenaWins ?? 0, losses = userData?.arenaLosses ?? 0, total = wins + losses, winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const elo = userData?.elo ?? 1000, ti = ELO_TIERS.reduce((a, t, i) => (elo >= t[1] ? i : a), 0);
   return (
-    <Card>
-      <SectionTitle icon="⚔️" title="Arena Record" />
+    <div className="pf-bento">
+      <Card className="c-third" title="elo"><div className="pf-big"><CountUp value={elo} /></div><div className="pf-sub">{ELO_TIERS[ti][0]}</div></Card>
+      <Card className="c-third" title="battles"><div className="pf-big"><CountUp value={total} /></div><div className="pf-sub">{winPct}% win rate</div></Card>
+      <Card className="c-third" title="record">
+        <div className="pf-wl"><i style={{ width: `${total ? winPct : 0}%`, background: '#39ff88' }} /><i style={{ width: `${total ? 100 - winPct : 0}%`, background: '#ff5b5b' }} /></div>
+        <div className="pf-wllab"><span style={{ color: '#39ff88' }}>{wins} wins</span><span style={{ color: '#ff5b5b' }}>{losses} losses</span></div>
+      </Card>
+      <Card className="pf-full" title="elo ladder">
+        <div className="pf-ladder">{ELO_TIERS.map((t, i) => <i key={t[0]} className={`${i <= ti ? 'on ' : ''}${i === ti ? 'here' : ''}`} />)}</div>
+        <div className="pf-ladlab">{ELO_TIERS.map((t) => <span key={t[0]}>{t[0]}</span>)}</div>
+      </Card>
+    </div>
+  );
+}
 
-      <div className="flex items-center gap-4 mb-5 p-4 rounded-xl bg-white/5
-                      border border-white/10">
-        <span className="text-4xl">{tier.icon}</span>
-        <div>
-          <p className={`${tier.color} font-black text-2xl leading-none`}>{elo}</p>
-          <p className={`${tier.color} text-xs font-semibold mt-0.5`}>{tier.label}</p>
-        </div>
-        <div className="ml-auto text-right">
-          <p className="text-gray-400 text-xs">Total Battles</p>
-          <p className="text-white font-bold text-lg">{total}</p>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-green-400 font-semibold">🏆 {wins} Wins</span>
-          <span className="text-gray-400 font-bold">{winPct}% WR</span>
-          <span className="text-red-400 font-semibold">{losses} Losses 💀</span>
-        </div>
-        <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden flex">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${winPct}%` }}
-            transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-            className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-l-full"
-          />
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${100 - winPct}%` }}
-            transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
-            className="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-r-full"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label:'Wins',     value: wins,        color:'text-green-400' },
-          { label:'Losses',   value: losses,      color:'text-red-400'   },
-          { label:'Win Rate', value:`${winPct}%`, color:'text-cyan-400'  },
-        ].map((s) => (
-          <div key={s.label}
-               className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
-            <p className={`${s.color} font-black text-xl`}>{s.value}</p>
-            <p className="text-gray-500 text-xs mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
+function NotificationsPanel({ user }) {
+  const { isSubscribed, loading, subscribe, unsubscribe, permission } = usePushNotifications(user);
+  return (
+    <Card className="pf-full" title="daily challenge reminders">
+      <div className="pf-sub" style={{ marginBottom: 6 }}>Get notified every day when your challenge resets.</div>
+      {permission === 'denied'
+        ? <div className="pf-sub" style={{ color: '#ff8a8a' }}>Notifications are blocked. Enable them in your browser settings.</div>
+        : <button className="pf-cta" onClick={isSubscribed ? unsubscribe : subscribe} disabled={loading}>
+            {loading ? 'Processing…' : isSubscribed ? 'Turn off reminders' : 'Turn on reminders'}
+          </button>}
     </Card>
   );
 }
 
-// ─── Notifications Card ────────────────────────────────────────────────────
-function NotificationsCard({ user }) {
-  const {
-    isSubscribed,
-    loading: pushLoading,
-    subscribe,
-    unsubscribe,
-    permission,
-  } = usePushNotifications(user);
-
-  return (
-    <Card>
-      <SectionTitle icon="🔔" title="Daily Challenge Reminders" />
-      <p className="text-gray-500 text-sm mb-4">
-        Get notified every day when your challenge resets.
-      </p>
-
-      {permission === 'denied' ? (
-        <p className="text-red-400 text-sm">
-          ❌ Notifications blocked. Enable them in your browser settings.
-        </p>
-      ) : (
-        <button
-          onClick={isSubscribed ? unsubscribe : subscribe}
-          disabled={pushLoading}
-          className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all
-            ${isSubscribed
-              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              : 'bg-purple-600 text-white hover:bg-purple-500'
-            } disabled:opacity-50`}
-        >
-          {pushLoading
-            ? '⏳ Processing...'
-            : isSubscribed
-            ? '🔕 Disable Reminders'
-            : '🔔 Enable Reminders'}
-        </button>
-      )}
-    </Card>
-  );
-}
-
-// ─── Life Stories Archive ──────────────────────────────────────────────────
-function StoriesSection({ archive, onReadChapter }) {
-  return (
-    <Card>
-      <SectionTitle icon="📖" title="Life Stories" />
-
-      {archive.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-4xl mb-3">📭</p>
-          <p className="text-gray-400 text-sm">No stories yet.</p>
-          <p className="text-gray-600 text-xs mt-1">
-            Stories are generated weekly from your activity.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {archive.map((chapter, i) => {
-            const preview = (chapter?.content || chapter?.story || '').slice(0, 100);
-            return (
-              <motion.div
-                key={chapter.weekId || i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x:   0  }}
-                transition={{ delay: i * 0.06 }}
-                whileHover={{ scale: 1.01 }}
-                onClick={() => onReadChapter(chapter)}
-                className="cursor-pointer flex items-start gap-4 p-4
-                           bg-white/5 hover:bg-white/10 border border-white/5
-                           hover:border-cyan-500/30 rounded-xl transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20
-                                border border-cyan-500/30 flex items-center
-                                justify-center text-cyan-400 font-black text-sm
-                                flex-shrink-0">
-                  {i + 1}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-white text-sm font-semibold">
-                      {getWeekLabel(chapter.weekId)}
-                    </p>
-                    <p className="text-gray-600 text-xs flex-shrink-0 ml-2">
-                      {formatDate(chapter.generatedAt)}
-                    </p>
-                  </div>
-                  <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
-                    {preview}…
-                  </p>
-                </div>
-
-                <span className="text-gray-600 group-hover:text-cyan-400
-                                 transition-colors text-sm flex-shrink-0 mt-1">
-                  →
-                </span>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// ─── Recent Activity ───────────────────────────────────────────────────────
-const ACTIVITY_ICONS = {
-  challenge_solved:    '✅',
-  challenge_attempted: '🎯',
-  challenge_published: '📤',
-  arena_win:           '🏆',
-  arena_loss:          '⚔️',
-  level_up:            '🚀',
-  daily_completed:     '📅',
-  story_generated:     '📖',
-};
-
-function ActivityFeed({ activities }) {
-  return (
-    <Card>
-      <SectionTitle icon="📡" title="Recent Activity" />
-
-      {activities.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-4xl mb-3">🌑</p>
-          <p className="text-gray-400 text-sm">No recent activity.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {activities.map((a, i) => (
-            <motion.div
-              key={a.id || i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y:  0 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-start gap-3 p-3 bg-white/5 rounded-xl
-                         border border-white/5"
-            >
-              <span className="text-lg flex-shrink-0 mt-0.5">
-                {ACTIVITY_ICONS[a.type] || '📌'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-gray-300 text-sm leading-snug">{a.message}</p>
-                {a.createdAt && (
-                  <p className="text-gray-600 text-xs mt-0.5">
-                    {formatDate(a.createdAt)}
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// ─── Chapter Reader Modal ──────────────────────────────────────────────────
 function ChapterModal({ chapter, onClose }) {
   const text = chapter?.content || chapter?.story || '';
+  const closeRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (closeRef.current) closeRef.current.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center
-                 p-4 bg-black/70 backdrop-blur-sm"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.93, y: 20 }}
-        animate={{ opacity: 1, scale: 1,    y:  0  }}
-        exit={{   opacity: 0, scale: 0.93, y: 20  }}
-        transition={{ type:'spring', damping:24, stiffness:280 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-[#0d0d1f] border border-white/10
-                   rounded-2xl shadow-2xl overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4
-                        border-b border-white/10">
-          <div>
-            <p className="text-white font-bold">
-              📖 {getWeekLabel(chapter?.weekId)}
-            </p>
-            <p className="text-gray-500 text-xs mt-0.5">
-              {formatDate(chapter?.generatedAt)}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20
-                       flex items-center justify-center text-gray-400
-                       hover:text-white transition-all"
-          >✕</button>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
-          <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-            {text}
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 flex justify-end">
-          <button
-            onClick={() => navigator.clipboard.writeText(text)}
-            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-          >
-            📋 Copy to clipboard
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="pf-modal" onClick={onClose}>
+      <div className="pf-dialog" role="dialog" aria-modal="true" aria-labelledby="pf-ch-title" onClick={(e) => e.stopPropagation()}>
+        <header><div><strong id="pf-ch-title">{getWeekLabel(chapter?.weekId)}</strong><span>{formatDate(chapter?.generatedAt)}</span></div>
+          <button className="pf-tbtn" ref={closeRef} onClick={onClose}>Close</button></header>
+        <div className="body">{text}</div>
+        <footer><button className="pf-tbtn" onClick={() => { navigator.clipboard?.writeText(text).then(() => setCopied(true)).catch(() => {}); }}>{copied ? 'Copied' : 'Copy to clipboard'}</button></footer>
+      </div>
+    </div>
   );
 }
 
-// ─── Main Profile Component ────────────────────────────────────────────────
+// ─── Main Profile ─────────────────────────────────────────────────────────────
 export default function Profile({ user, userData }) {
   const navigate = useNavigate();
   const { streak, bestStreak, claimedToday } = useStreak(user);
   const { unlocked, newBadges, clearNewBadges } = useAchievements(user, userData);
-  const [archive,         setArchive]         = useState([]);
-  const [activities,      setActivities]      = useState([]);
+  const [archive, setArchive] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
-  const [pageLoading,     setPageLoading]     = useState(true); // ✅ renamed
-  const [activeTab,       setActiveTab]       = useState('overview');
-
+  const [pageLoading, setPageLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [previewTier, setPreviewTier] = useState(null);
+  const [drawer, setDrawer] = useState(false);
+  const [toast, setToast] = useState('');
   const uid = user?.uid;
 
-  // ── Fetch archive ─────────────────────────────────────────────────────────
+  // ── Level and tier ──
+  const xp = userData?.xp ?? 0;
+  const xpInfo = xpProgress(xp);
+  const level = userData?.level ?? xpInfo.level;
+  const tierIdx = Math.min(Math.max(level, 1), 5) - 1;
+  const tierNow = TIERS[tierIdx], nextName = LEVEL_NAMES[level + 1];
+  const toNext = XP_PER_LEVEL - (xp % XP_PER_LEVEL);
+  const shownTier = previewTier == null ? tierNow : TIERS[previewTier];
+
+  // ── Avatar look: saved on the user doc if present, else per-device ──
+  const lookKey = `evoprofile:${uid || 'anon'}`;
+  const [look, setLook] = useState(() => {
+    let saved = userData?.avatarLook || null;
+    if (!saved) { try { saved = JSON.parse(localStorage.getItem(lookKey) || 'null'); } catch (e) { saved = null; } }
+    const out = { ...DEFAULT_LOOK };
+    if (saved) {
+      const ok = (list, v) => { const it = list.find((x) => x.id === v); return it && it.tier <= tierIdx; };
+      if (ok(BANNERS, saved.banner)) out.banner = saved.banner;
+      if (ok(ACCS, saved.acc)) out.acc = saved.acc;
+      if (HAIR.some((h) => h[0] === saved.hair)) out.hair = saved.hair;
+      if (TOPS.some((t) => t[0] === saved.top)) out.top = saved.top;
+      if (TOP_COLORS.includes(saved.topColor)) out.topColor = saved.topColor;
+      if (HAIR_COLORS.includes(saved.hairColor)) out.hairColor = saved.hairColor;
+    }
+    return out;
+  });
+  const changeLook = useCallback((k, v) => {
+    setLook((prev) => { const next = { ...prev, [k]: v }; try { localStorage.setItem(lookKey, JSON.stringify(next)); } catch (e) { /* ignore */ } return next; });
+  }, [lookKey]);
+  const shownAcc = previewTier != null && TIERS[previewTier].acc ? TIERS[previewTier].acc : look.acc;
+
+  const showToast = useCallback((m) => { setToast(m); }, []);
+  const closeDrawer = useCallback(() => setDrawer(false), []);
+  const closeChapter = useCallback(() => setSelectedChapter(null), []);
+  const onLockedItem = useCallback((it) => showToast(`Reach ${TIERS[it.tier].name} to unlock ${it.name}`), [showToast]);
+  useEffect(() => { if (!toast) return undefined; const id = setTimeout(() => setToast(''), 2200); return () => clearTimeout(id); }, [toast]);
+
+  // ── Data ──
   const fetchArchive = useCallback(async () => {
     if (!uid) return;
-    try {
-      const res = await axios.get(`${API_BASE}/story/${uid}/archive`);
-      setArchive(res.data?.archive || []);
-    } catch (err) {
-      console.error('[Profile] fetchArchive:', err);
-    }
+    try { const res = await axios.get(`${API_BASE}/story/${uid}/archive`); setArchive(res.data?.archive || []); }
+    catch (err) { console.error('[Profile] fetchArchive:', err); }
   }, [uid]);
-
-  // ── Fetch activity feed ───────────────────────────────────────────────────
   const fetchActivities = useCallback(async () => {
     if (!uid) return;
     try {
-      const q = query(
-        collection(db, 'activityFeed'),
-        where('uid', '==', uid),
-        orderBy('createdAt', 'desc'),
-        limit(20),
-      );
+      const q = query(collection(db, 'activityFeed'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(20));
       const snap = await getDocs(q);
       setActivities(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error('[Profile] fetchActivities:', err);
-    }
+    } catch (err) { console.error('[Profile] fetchActivities:', err); }
   }, [uid]);
-
-  // ── On mount ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!uid) return;
-    Promise.all([fetchArchive(), fetchActivities()])
-      .finally(() => setPageLoading(false)); // ✅ renamed
+    Promise.all([fetchArchive(), fetchActivities()]).finally(() => setPageLoading(false));
   }, [uid, fetchArchive, fetchActivities]);
 
-  const TABS = [
-  { id:'overview',      label:'Overview',      icon:'📊' },
-  { id:'role',          label:'Life Role',     icon:'🎭' },
-  { id:'arena',         label:'Arena',         icon:'⚔️' },
-  { id:'achievements',  label:'Badges',        icon:'🏅' }, // ✅ new
-  { id:'stories',       label:'Stories',       icon:'📖' },
-  { id:'activity',      label:'Activity',      icon:'📡' },
-  { id:'notifications', label:'Alerts',        icon:'🔔' },
- ];
+  // ── 3D banner (loaded after first paint) ──
+  const stageRef = useRef(null), sceneRef = useRef(null);
+  const latest = useRef({ look, shownAcc, color: shownTier.color });
+  latest.current = { look, shownAcc, color: shownTier.color };
+  useEffect(() => {
+    let dead = false;
+    import('./ProfileScene')
+      .then((m) => {
+        if (dead || !stageRef.current) return;
+        const L = latest.current;
+        sceneRef.current = m.default(stageRef.current, { look: L.look, acc: L.shownAcc, accent: L.color, banner: L.look.banner });
+      })
+      .catch((e) => console.warn('3D banner unavailable:', e));
+    return () => { dead = true; if (sceneRef.current) sceneRef.current.destroy(); sceneRef.current = null; };
+  }, []);
+  useEffect(() => { if (sceneRef.current) sceneRef.current.setAvatar(look, shownAcc); }, [look, shownAcc]);
+  useEffect(() => { if (sceneRef.current) sceneRef.current.setBanner(look.banner); }, [look.banner]);
+  useEffect(() => { if (sceneRef.current) sceneRef.current.setAccent(shownTier.color); }, [shownTier.color]);
 
+  // ── Tabs keyboard ──
+  const tabRefs = useRef({});
+  const onTabKey = (e) => {
+    const i = TABS.findIndex((t) => t.id === activeTab); let n = i;
+    if (e.key === 'ArrowRight') n = (i + 1) % TABS.length; else if (e.key === 'ArrowLeft') n = (i + TABS.length - 1) % TABS.length;
+    else if (e.key === 'Home') n = 0; else if (e.key === 'End') n = TABS.length - 1; else return;
+    e.preventDefault(); setActiveTab(TABS[n].id); const el = tabRefs.current[TABS[n].id]; if (el) el.focus();
+  };
+
+  const [xpBar, setXpBar] = useState(0);
+  useEffect(() => { const id = requestAnimationFrame(() => setXpBar(xpInfo.progress)); return () => cancelAnimationFrame(id); }, [xpInfo.progress]);
+  const ringC = 2 * Math.PI * 50;
+  const elo = userData?.elo ?? 1000, eloIdx = ELO_TIERS.reduce((a, t, i) => (elo >= t[1] ? i : a), 0), eloNext = ELO_TIERS[eloIdx + 1];
+  const unlockedCount = Array.isArray(unlocked) ? unlocked.length : Object.keys(unlocked || {}).length;
+  const role = userData?.lifeRole, skipped = userData?.onboardingSkipped || role?.source === 'skipped';
+  const name = user?.displayName || 'DSA Coder';
+  const handle = (name.split(' ')[0] || 'dev').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'dev';
+  const joinDate = formatDate(userData?.createdAt);
+  const findRole = () => navigate('/onboarding');
+
+  const tierDetail = previewTier == null
+    ? <><b>{tierNow.name}</b> is your tier. Tap another title to preview its gear on your avatar.</>
+    : <><b>{shownTier.name}</b> · reach level {previewTier + 1}{previewTier === tierIdx + 1 ? ` (${toNext} XP to go)` : ''}. Unlocks: {shownTier.unlock} Previewing now.</>;
 
   return (
-    <div className="min-h-screen bg-[#060612] text-white overflow-x-hidden">
+    <div className="pf" style={{ '--tier': shownTier.color }}>
+      <div className="pf-crt" aria-hidden="true" />
+      <div className="pf-page">
+        <div className="pf-top">
+          <button className="pf-back" onClick={() => navigate('/world')}>&larr; World</button>
+          <div className="pf-path"><b>{handle}</b>@<i>evoworld</i>:~/profile$</div>
+        </div>
 
-      {/* ── Background glow ── */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2
-                        w-[700px] h-[400px] rounded-full
-                        bg-purple-600/8 blur-[130px]" />
+        {/* ── 3D banner ── */}
+        <section className="pf-hero" aria-label="Your profile banner">
+          <div className="pf-stage" ref={stageRef} aria-hidden="true" />
+          <div className="pf-shade" />
+          <div className="pf-who">
+            <h1>{name}</h1>
+            <p>{user?.email}{joinDate ? ` · joined ${joinDate}` : ''}</p>
+            <div className="pf-chip">{tierNow.name.toUpperCase()} · LEVEL {level}</div>
+            <div className="pf-xpmini">
+              <div><span>{xp.toLocaleString()} XP</span><span>{level < 5 && nextName ? `${toNext} XP to ${nextName}` : 'Max level'}</span></div>
+              <div className="pf-bar"><i style={{ width: `${xpBar}%` }} /></div>
+            </div>
+          </div>
+          <div className="pf-tools">
+            <button className="pf-tbtn" onClick={() => setDrawer(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>Customize
+            </button>
+          </div>
+          <div className="pf-hint">drag to rotate · click to wave</div>
+          <div className="pf-tiers">
+            <p className="pf-tierdetail" style={{ '--tc': shownTier.color }}>{tierDetail}</p>
+            <div className="pf-tierrow" role="group" aria-label="Tier titles">
+              {TIERS.map((t, i) => (
+                <button key={t.name} className={`pf-tier${i === tierIdx ? ' current' : ''}`} style={{ '--tc': t.color }} aria-pressed={previewTier === i}
+                  onClick={() => setPreviewTier(previewTier === i || i === tierIdx ? null : i)}>
+                  {t.name}<small>{i === tierIdx ? 'CURRENT' : i < tierIdx ? 'EARNED' : `LEVEL ${i + 1}`}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Tabs ── */}
+        <div className="pf-tabs" role="tablist" aria-label="Profile sections" onKeyDown={onTabKey}>
+          {TABS.map((t) => (
+            <button key={t.id} ref={(el) => { tabRefs.current[t.id] = el; }} id={`pf-tab-${t.id}`} role="tab" className="pf-tab"
+              aria-selected={activeTab === t.id} tabIndex={activeTab === t.id ? 0 : -1} onClick={() => setActiveTab(t.id)}>
+              {ICONS[t.id]}{t.label}
+            </button>
+          ))}
+        </div>
+
+        <MilestoneBar streak={streak} bestStreak={bestStreak} claimedToday={claimedToday} />
+
+        {/* ── Panels ── */}
+        <main className="pf-panel" role="tabpanel" aria-labelledby={`pf-tab-${activeTab}`} tabIndex={0}>
+          {activeTab === 'overview' && (
+            <div className="pf-bento">
+              <Card className="c-level" title="level progress">
+                <div className="pf-ringwrap"><div className="pf-ring">
+                  <svg viewBox="0 0 120 120"><circle className="tr" cx="60" cy="60" r="50" /><circle className="pg" cx="60" cy="60" r="50" style={{ strokeDasharray: `${ringC * xpBar / 100} ${ringC}` }} /></svg>
+                  <div className="mid"><b>{Math.round(xpInfo.progress)}%</b><span>{level < 5 ? `${XP_PER_LEVEL - toNext} / ${XP_PER_LEVEL} XP` : 'max level'}</span></div>
+                </div></div>
+                <p className="pf-lvltext"><b>{tierNow.name}</b> · level {level}{level < 5 && nextName ? <><br />{toNext} XP to reach <b>{nextName}</b></> : null}</p>
+                {tierIdx < 4 && <div className="pf-perks"><b>Next unlock:</b> {TIERS[tierIdx + 1].unlock}</div>}
+              </Card>
+              <Card className="c-skills" title="skill graph"><SkillGraph solvedProblems={userData?.solvedProblems} /></Card>
+              <Card className="c-elo" title="arena elo">
+                <div className="pf-big"><CountUp value={elo} /></div>
+                <div className="pf-sub">{ELO_TIERS[eloIdx][0]}{eloNext ? ` · ${eloNext[1] - elo} to ${eloNext[0]}` : ' · top tier'}</div>
+                <div className="pf-ladder">{ELO_TIERS.map((t, i) => <i key={t[0]} className={`${i <= eloIdx ? 'on ' : ''}${i === eloIdx ? 'here' : ''}`} />)}</div>
+                <div className="pf-ladlab"><span>{ELO_TIERS[0][0]}</span><span>{ELO_TIERS[4][0]}</span></div>
+              </Card>
+              <Card className="c-role" title="life role">
+                <div className="pf-rolename">{role?.primary || 'Explorer'}</div>
+                {(!role || skipped)
+                  ? <><div className="pf-sub">Find your real Life Role and earn a bonus.</div><button className="pf-cta" onClick={findRole}>Find my Life Role: +200 XP, 50 credits</button></>
+                  : <div className="pf-sub">{role.description}</div>}
+              </Card>
+              <Card className="c-heat" title="activity, last 26 weeks"><Heatmap activities={activities} streak={streak || 0} claimedToday={claimedToday} /></Card>
+              <Card className="c-badge" title="badges">
+                <div className="pf-big"><CountUp value={unlockedCount} /></div><div className="pf-sub">badges unlocked</div>
+                <button className="pf-cta" onClick={() => setActiveTab('achievements')}>See all badges</button>
+              </Card>
+              <Card className="c-tile" title="total xp"><div className="pf-big"><CountUp value={xp} /></div></Card>
+              <Card className="c-tile" title="credits"><div className="pf-big"><CountUp value={userData?.credits ?? 0} /></div></Card>
+              <Card className="c-tile" title="weekly xp"><div className="pf-big"><CountUp value={userData?.weeklyXp ?? 0} /></div></Card>
+              <Card className="c-tile" title="challenges created">
+                <div className="pf-big"><CountUp value={userData?.challengesCreated ?? 0} /></div>
+                <div className="pf-sub">avg rating {userData?.avgChallengeRating ? `${userData.avgChallengeRating.toFixed(1)} / 5` : '—'}</div>
+              </Card>
+            </div>
+          )}
+          {activeTab === 'role' && <LifeRolePanel userData={userData} onFindRole={findRole} />}
+          {activeTab === 'arena' && <ArenaPanel userData={userData} />}
+          {activeTab === 'achievements' && <Card className="pf-full" title="badges"><AchievementsGrid unlocked={unlocked} /></Card>}
+          {activeTab === 'stories' && (
+            <Card className="pf-full" title="life stories">
+              {pageLoading ? <div className="pf-empty">loading stories…</div>
+                : archive.length === 0 ? <div className="pf-empty">No stories yet.<br />Stories are generated weekly from your activity.</div>
+                : archive.map((ch, i) => (
+                  <button key={ch.weekId || i} className="pf-story" onClick={() => setSelectedChapter(ch)}>
+                    <b>{i + 1}</b>
+                    <div><strong>{getWeekLabel(ch.weekId)}</strong><p>{(ch?.content || ch?.story || '').slice(0, 140)}…</p></div>
+                    <time>{formatDate(ch.generatedAt)}</time>
+                  </button>
+                ))}
+            </Card>
+          )}
+          {activeTab === 'activity' && (
+            <Card className="pf-full" title="recent activity">
+              {pageLoading ? <div className="pf-empty">loading activity…</div>
+                : activities.length === 0 ? <div className="pf-empty">No recent activity.</div>
+                : <ul className="pf-list">{activities.map((a, i) => (
+                    <li key={a.id || i}><b>{ACTIVITY_LABELS[a.type] || 'EVENT'}</b>{a.message}{a.createdAt && <time>{formatDate(a.createdAt)}</time>}</li>
+                  ))}</ul>}
+            </Card>
+          )}
+          {activeTab === 'notifications' && <NotificationsPanel user={user} />}
+        </main>
       </div>
 
-      {/* ── Nav ── */}
-      <motion.nav
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y:   0  }}
-        className="relative z-10 flex items-center justify-between
-                   px-6 py-4 border-b border-white/5"
-      >
-        <motion.button
-          whileHover={{ scale:1.04, x:-2 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() => navigate('/world')}
-          className="text-gray-400 hover:text-white transition-colors text-sm"
-        >
-          ← World
-        </motion.button>
-
-        <span className="text-cyan-400 font-mono text-xs tracking-widest uppercase">
-          Profile
-        </span>
-
-        <div className="w-16" />
-      </motion.nav>
-
-      {pageLoading ? ( // ✅ renamed
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration:1.5, repeat:Infinity, ease:'linear' }}
-            className="w-10 h-10 rounded-full border-2 border-transparent
-                       border-t-cyan-400 border-r-purple-500"
-          />
-        </div>
-      ) : (
-        <div className="relative z-10 max-w-2xl mx-auto px-4 py-6 space-y-5">
-
-          {/* ── Header ── */}
-          <ProfileHeader user={user} userData={userData} />
-
-          {/* ── Tabs ── */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {TABS.map((t) => (
-              <motion.button
-                key={t.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl
-                            text-xs font-semibold whitespace-nowrap transition-all
-                            flex-shrink-0
-                            ${activeTab === t.id
-                              ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400'
-                              : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                            }`}
-              >
-                <span>{t.icon}</span>
-                {t.label}
-              </motion.button>
-            ))}
-          </div>
-
-          {/* ── Tab content ── */}
-          <AnimatePresence mode="wait">
-
-            {activeTab === 'overview' && (
-              <motion.div key="overview"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }} className="space-y-5">
-                <StreakBanner                          // ✅ add this
-                 streak={streak}
-                 bestStreak={bestStreak}
-                 claimedToday={claimedToday}
-                />
-                <StatsGrid userData={userData} />
-              </motion.div>
-            )}
-            {activeTab === 'achievements' && (
-             <motion.div key="achievements"
-              initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-              exit={{ opacity:0, y:-10 }}>
-             <AchievementsGrid unlocked={unlocked} />
-            </motion.div>
-           )}
-
-
-            {activeTab === 'role' && (
-              <motion.div key="role"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }}>
-                <LifeRoleCard userData={userData} />
-              </motion.div>
-            )}
-
-            {activeTab === 'arena' && (
-              <motion.div key="arena"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }}>
-                <ArenaRecord userData={userData} />
-              </motion.div>
-            )}
-
-            {activeTab === 'stories' && (
-              <motion.div key="stories"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }}>
-                <StoriesSection
-                  archive={archive}
-                  onReadChapter={setSelectedChapter}
-                />
-              </motion.div>
-            )}
-
-            {activeTab === 'activity' && (
-              <motion.div key="activity"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }}>
-                <ActivityFeed activities={activities} />
-              </motion.div>
-            )}
-
-            {activeTab === 'notifications' && (
-              <motion.div key="notifications"
-                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-10 }}>
-                <NotificationsCard user={user} /> {/* ✅ isolated component */}
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-          <AchievementToast
-           newBadges={newBadges}
-           onDismiss={clearNewBadges}
-         />
-        </div>
+      {drawer && (
+        <CustomizeDrawer look={look} tierIdx={tierIdx} onClose={closeDrawer} onChange={changeLook} onLocked={onLockedItem} />
       )}
-
-      {/* ── Chapter modal ── */}
-      <AnimatePresence>
-        {selectedChapter && (
-          <ChapterModal
-            chapter={selectedChapter}
-            onClose={() => setSelectedChapter(null)}
-          />
-        )}
-      </AnimatePresence>
+      {selectedChapter && <ChapterModal chapter={selectedChapter} onClose={closeChapter} />}
+      {toast && <div className="pf-toast" role="status">{toast}</div>}
+      <AchievementToast newBadges={newBadges} onDismiss={clearNewBadges} />
     </div>
   );
 }
