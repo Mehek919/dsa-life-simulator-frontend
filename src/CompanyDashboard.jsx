@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
-
 const ADMIN_KEY = process.env.REACT_APP_ADMIN_KEY || '';
-
 function timeAgo(ts) {
   if (!ts) return '';
   const date = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
@@ -15,7 +13,6 @@ function timeAgo(ts) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 }
-
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 const inp = {
   width:'100%', background:'#060910', border:'1px solid #1e2a3a',
