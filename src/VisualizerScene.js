@@ -15,7 +15,6 @@ export function mountVisualizer(container, { onTip = () => {} } = {}) {
   R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
   R.setClearColor(0x06051a, 1);
   if (SRGB && 'outputColorSpace' in R) R.outputColorSpace = SRGB;
-  else if ('outputEncoding' in R && THREE.sRGBEncoding) R.outputEncoding = THREE.sRGBEncoding;
   const el = container;
   el.prepend(R.domElement);
 
