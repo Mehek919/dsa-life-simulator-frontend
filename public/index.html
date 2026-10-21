@@ -15,6 +15,9 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://dsalifesimulator.com" />
 
+    <!-- AI assistants (ChatGPT, Claude, Perplexity) -->
+    <link rel="alternate" type="text/plain" title="LLM summary" href="https://dsalifesimulator.com/llms.txt" />
+
     <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
     <meta property="og:type"        content="website" />
     <meta property="og:url"         content="https://dsalifesimulator.com" />
@@ -37,25 +40,71 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="manifest"         href="%PUBLIC_URL%/manifest.json" />
 
-    <!-- Structured data for search engines -->
+    <!-- Structured data for search engines and AI assistants -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "DSA Life Simulator",
-      "url": "https://dsalifesimulator.com",
-      "description": "Master Data Structures and Algorithms through a gamified life simulation with 1v1 arena battles, AI story generation, and leaderboards.",
-      "applicationCategory": "EducationalApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "DSA Life Simulator"
-      }
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "DSA Life Simulator",
+          "alternateName": "EvoWorld",
+          "url": "https://dsalifesimulator.com",
+          "description": "A gamified coding interview prep platform. Progress through company-themed districts, earn XP, keep streaks, fight boss battles, battle other coders 1v1 and take AI mock interviews with company-style interviewers.",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "Web",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "audience": {
+            "@type": "Audience",
+            "audienceType": "Software engineering job candidates and students"
+          },
+          "author": {
+            "@type": "Organization",
+            "name": "DSA Life Simulator"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "How is DSA Life Simulator different from LeetCode?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "LeetCode is a problem list. DSA Life Simulator is a progression game: problems are grouped into company-themed districts that unlock as you go, with XP, streaks, boss battles, 1v1 arena battles and an AI mock interviewer."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is DSA Life Simulator free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, you can start for free and play the first district right away."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Which companies does it prepare you for?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "FAANG companies, enterprise software companies like Microsoft, Oracle, Salesforce and Adobe, fintech companies like Stripe, PayPal and Wise, and hardware companies like NVIDIA, Tesla and Qualcomm."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Does it have AI mock interviews?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. The AI interviewer uses company-style personas, asks follow-up questions about your reasoning and gives a hiring-style report at the end."
+              }
+            }
+          ]
+        }
+      ]
     }
     </script>
   </head>
