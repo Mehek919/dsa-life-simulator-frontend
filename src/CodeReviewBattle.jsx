@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
+const AIPilot = lazy(() => import('./AIPilot'));
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const DIFF_COLORS = { Easy: '#3ddc97', Medium: '#ffb020', Hard: '#ff4d5e' };
 const SEV_COLORS  = { Critical: '#ff4d5e', High: '#f97316', Medium: '#ffb020', Low: '#8f9bae' };
@@ -36,9 +37,11 @@ const STYLE = `
 .crb-ln{background:none;border:0;padding:0 14px 0 8px;width:100%;text-align:right;color:#4b5870;font:inherit;cursor:pointer;line-height:1.7}
 .crb-ln:hover{color:#5ad8ff}
 .crb-scroll{scrollbar-width:thin;scrollbar-color:#243045 transparent}
+.crb-show-sm{display:none}
 @media (max-width:900px){
   .crb-desk{transform:none !important}
   .crb-hide-sm{display:none !important}
+  .crb-show-sm{display:inline !important}
   .crb-review-body{flex-direction:column !important;overflow-y:auto}
   .crb-review-side{width:100% !important;border-left:0 !important;border-top:1px solid #1c2636}
   .crb-review-code{min-height:55vh}
@@ -913,8 +916,41 @@ function ResultScreen({ result, session, onRedo, onHome }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+// ── Mode switch: Review (read a human PR) | Ship with Copilot (AI Pilot) ──────
+const MODES = [
+  { id: 'review',  label: 'Review',            short: 'Review',            sub: 'Call out the bugs in a teammate\'s PR' },
+  { id: 'copilot', label: 'Ship with Copilot', short: 'Copilot', sub: 'Fix AI-written code with a copilot' },
+];
+function ModeBar({ mode, onChange }) {
+  return (
+    <div role="tablist" aria-label="Code Review mode"
+      style={{ position: 'relative', zIndex: 5, display: 'flex', justifyContent: 'center', padding: '10px 16px', background: '#06080c', borderBottom: '1px solid #1c2636' }}>
+      <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: '#0a0f17', border: '1px solid #1c2636', width: '100%', maxWidth: 620, boxSizing: 'border-box' }}>
+        {MODES.map(m => {
+          const on = m.id === mode;
+          return (
+            <button key={m.id} type="button" role="tab" aria-selected={on} className="crb-btn" onClick={() => onChange(m.id)}
+              style={{ textAlign: 'left', minWidth: 0, flex: '1 1 0', padding: '8px 14px', borderRadius: 9, cursor: 'pointer', border: `1px solid ${on ? 'rgba(90,216,255,.45)' : 'transparent'}`, background: on ? 'rgba(90,216,255,.10)' : 'transparent', color: on ? '#e8f8ff' : '#8f9bae' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, letterSpacing: '.08em', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <span className="crb-hide-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.label.toUpperCase()}</span>
+                <span className="crb-show-sm">{m.short.toUpperCase()}</span>
+                {m.id === 'copilot' && <span className="crb-hide-sm" style={{ flexShrink: 0, fontSize: 9, letterSpacing: '.14em', padding: '2px 6px', borderRadius: 999, border: '1px solid rgba(61,220,151,.5)', color: '#3ddc97' }}>NEW</span>}
+              </div>
+              <div className="crb-hide-sm" style={{ fontSize: 12, marginTop: 2, color: on ? '#9fdcf2' : '#6f7b8e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.sub}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CodeReviewBattle({ user, userData, setUserData }) {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const mode = params.get('mode') === 'copilot' ? 'copilot' : 'review';
+  const setMode = (m) => setParams(m === 'copilot' ? { mode: 'copilot' } : {}, { replace: true });
+  const [pilotPhase, setPilotPhase] = useState('loading');
   const [phase,       setPhase]       = useState('select');
   const [session,     setSession]     = useState(null);
   const [result,      setResult]      = useState(null);
@@ -990,9 +1026,22 @@ export default function CodeReviewBattle({ user, userData, setUserData }) {
     );
   }
 
+  if (mode === 'copilot') {
+    return (
+      <>
+        <style>{STYLE}</style>
+        {pilotPhase === 'select' && <ModeBar mode={mode} onChange={setMode} />}
+        <Suspense fallback={<div style={{ ...shellStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="crb-silver" style={{ fontFamily: DISPLAY, fontWeight: 700, letterSpacing: '.2em' }}>LOADING...</span></div>}>
+          <AIPilot user={user} userData={userData} setUserData={setUserData} onPhaseChange={setPilotPhase} />
+        </Suspense>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{STYLE}</style>
+      {phase === 'select' && <ModeBar mode={mode} onChange={setMode} />}
       {screen}
     </>
   );
