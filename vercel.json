@@ -1,7 +1,8 @@
+
 {
   "rewrites": [
     {
-      "source": "/((?!api/.*|sitemap\\.xml|robots\\.txt|favicon\\.ico|manifest\\.json|og-image\\.png|apple-touch-icon\\.png|.*\\.(?:js|css|png|jpg|jpeg|svg|ico|json|webmanifest)).*)",
+      "source": "/((?!api/.*|sitemap\\.xml|robots\\.txt|llms\\.txt|favicon\\.ico|manifest\\.json|og-image\\.png|apple-touch-icon\\.png|.*\\.(?:js|css|png|jpg|jpeg|svg|ico|json|webmanifest)).*)",
       "destination": "/index.html"
     }
   ],
@@ -52,5 +53,4 @@
     }
   ]
 }
-
 
