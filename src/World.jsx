@@ -41,7 +41,7 @@ const DISTRICTS = [
   { num: '04', name: 'enterprise_ops', color: '#ff7a66', zones: [
     { id: 'company',        code: 'HRP', label: 'HR Portal',      path: '/company',        tag: 'RECRUIT',      threat: 1, desc: 'For recruiters and hiring teams' },
     { id: 'visualizer',     code: 'VIZ', label: 'Visualizer',     path: '/visualizer',     tag: 'ANALYZE',      threat: 2, desc: 'See algorithms run step by step' },
-    { id: 'code-review',    code: 'CRV', label: 'Code Review',    path: '/code-review',    tag: 'WARNING',      threat: 3, desc: 'Find the bugs before they ship' },
+    { id: 'code-review',    code: 'CRV', label: 'Code Review',    path: '/code-review',    tag: 'WARNING',      threat: 3, desc: 'Find the bugs, or fix AI code with a copilot' },
     { id: 'incident',       code: 'INC', label: 'Incident',       path: '/incident',       tag: 'EMERGENCY',    threat: 5, desc: 'Production is down. Fix it.' },
   ] },
 ];
