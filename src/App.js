@@ -521,6 +521,7 @@ const AppShell = () => {
            }
          />
          <Route path="/code-review" element={<CodeReviewBattle user={user} userData={userData} setUserData={setUserData} />} />
+         <Route path="/ai-pilot"    element={<Navigate to="/code-review?mode=copilot" replace />} />
          <Route path="/incident"    element={<IncidentResponse user={user} userData={userData} setUserData={setUserData} />} />
           {/* ── Protected: Skills Profile ── */}
           <Route path="/skills" element={<Guard user={user}><LazySkillsProfile user={user} userData={userData} /></Guard>} />
