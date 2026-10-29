@@ -11,6 +11,14 @@ import {
   sameOutput,
   inputHint,
 } from './runner';
+import DSAShortPlayer from './components/shorts/DSAShortPlayer';
+
+// ── Backend (Render) base URL, used by DSA Shorts ─────────────────────────────
+// Use the SAME value your other components use to call the backend.
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  '';
 
 // ── Judge0 config ──────────────────────────────────────────────────────────────
 const JUDGE0_URL  = 'https://judge0-ce.p.rapidapi.com';
@@ -738,6 +746,7 @@ export default function CodeEditor({
   const [testResults, setTestResults] = useState(null);
   const [activeOut,   setActiveOut]   = useState('output');
   const [toast,       setToast]       = useState(null);
+  const [showShort,   setShowShort]   = useState(false); // DSA Short after a solve
   const MAX_ATTEMPTS = 3;
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -869,6 +878,8 @@ export default function CodeEditor({
           `🎉 Accepted! +${res.xp || 0} XP +${res.credits || 0} Credits`,
           'success'
         );
+        // Odyssey only: Mock Interview passes hideHints, so no short there.
+        if (!hideHints && problem?.id) setShowShort(true);
         return;
       }
 
@@ -1477,6 +1488,22 @@ export default function CodeEditor({
         </div>
       )}
 
+      {/* ── DSA Short (plays after a solved Odyssey problem) ── */}
+      <AnimatePresence>
+        {showShort && (
+          <DSAShortPlayer
+            problemId={problem.id}
+            apiBase={API_BASE_URL}
+            getToken={() => user?.getIdToken?.()}
+            onClose={() => setShowShort(false)}
+            onNext={() => {
+              setShowShort(false);
+              if (onBack) onBack();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
@@ -1515,4 +1542,3 @@ export default function CodeEditor({
     </div>
   );
 }
-
