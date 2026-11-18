@@ -5,7 +5,6 @@ import axios from 'axios';
 import API_BASE from './config';
 import { useNavigate } from 'react-router-dom';
 import './Hub.css';
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TOPICS       = ['Array', 'String', 'Tree', 'Graph', 'DP', 'LinkedList', 'Stack', 'Queue', 'Hash Table', 'Binary Search', 'Sorting', 'Recursion'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
@@ -314,7 +313,7 @@ export default function Hub({ user, userData, setUserData }) {
       <div className="page">
         <div className="top">
           <button className="btn" onClick={() => navigate('/world')}>&larr; World</button>
-          <div className="path"><b>{handle}</b>@<i>evoworld</i>:~/hub$</div>
+          <div className="path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/hub$</div>
           <span className="pill"><b>{credits}</b> credits</span><span className="pill">Lv.{level} {LEVEL_NAMES[level] || 'Legend'}</span>
           <button className="btn" onClick={() => navigate('/game')}>Go to Odyssey &rarr;</button>
         </div>
@@ -339,7 +338,7 @@ export default function Hub({ user, userData, setUserData }) {
                     <span className="kicker"><i />CHALLENGE OF THE DAY</span>
                     <h3 id="hb-cotd"><Rich text={daily.question} /></h3>
                     <div className="meta"><Tag color={DC[diffKey(daily.difficulty)]}>{diffKey(daily.difficulty).toUpperCase()}</Tag><Tag color="#c99bff">{topicLabel(daily.topic).toUpperCase()}</Tag>
-                      {daily.starter ? <Tag color="#35e0ff">STARTER · BY EVOWORLD</Tag> : <Tag color="#f4b740">+{SOLVE_REWARD.credits} CR · BY {String(daily.creatorName || 'ANONYMOUS').toUpperCase()}</Tag>}</div>
+                      {daily.starter ? <Tag color="#35e0ff">STARTER · BY DSA LIFE SIMULATOR</Tag> : <Tag color="#f4b740">+{SOLVE_REWARD.credits} CR · BY {String(daily.creatorName || 'ANONYMOUS').toUpperCase()}</Tag>}</div>
                     <PlayBlock key={daily.id} item={daily} userId={uid} onAttempt={handleAttempt} onRate={handleRate} onResult={onDailyResult} />
                   </div>
                   <div className="cube" ref={cubeHost} aria-hidden="true" />
@@ -363,7 +362,7 @@ export default function Hub({ user, userData, setUserData }) {
                 {['all', 'easy', 'medium', 'hard'].map((d) => <button key={d} className="chip d" style={{ '--c': DC[d] || '#fff' }} aria-pressed={diffF === d} onClick={() => setDiffF(d)}>{d === 'all' ? 'All levels' : cap(d)}</button>)}
                 {community && <><span className="sep" />{SORTS.map(([k, label]) => <button key={k} className="chip" aria-pressed={sort === k} onClick={() => setSort(k)}>{label}</button>)}</>}
               </div>
-              <div className="gridh"><h2>{community ? 'COMMUNITY CHALLENGES' : 'STARTER PUZZLES'}</h2><span>{community ? `${visible.length} challenge${visible.length === 1 ? '' : 's'}` : 'Made by EvoWorld while the community warms up · practice, no credits'}</span></div>
+              <div className="gridh"><h2>{community ? 'COMMUNITY CHALLENGES' : 'STARTER PUZZLES'}</h2><span>{community ? `${visible.length} challenge${visible.length === 1 ? '' : 's'}` : 'Made by DSA Life Simulator while the community warms up · practice, no credits'}</span></div>
               <div className="puzzles">
                 {visible.length ? visible.map((p) => {
                   const own = !p.starter && p.createdBy === uid;
@@ -372,7 +371,7 @@ export default function Hub({ user, userData, setUserData }) {
                     <button key={p.id} className={`pz${cls}`} style={{ '--c': DC[diffKey(p.difficulty)] || '#c99bff' }} onClick={() => openPlay(p.id)}>
                       <span className="meta"><Tag color={DC[diffKey(p.difficulty)]}>{diffKey(p.difficulty).toUpperCase()}</Tag><Tag color="#c99bff">{topicLabel(p.topic)}</Tag></span>
                       <span className="q"><Rich text={p.question} /></span>
-                      {p.starter ? <span className="by">Starter · by EvoWorld</span>
+                      {p.starter ? <span className="by">Starter · by DSA Life Simulator</span>
                         : <span className="stats"><span>by {p.creatorName || 'Anonymous'}</span><span>🎯 {p.attempts ?? 0}</span><span>✅ {p.passes ?? 0}</span><span>⭐ {p.rating ? Number(p.rating).toFixed(1) : '—'}</span>{!own && <span className="reward">+{SOLVE_REWARD.credits} CR</span>}</span>}
                     </button>
                   );
