@@ -210,7 +210,7 @@ export default function Lab({ user, userData, setUserData }) {
       <div className="page">
         <div className="top">
           <button className="btn" onClick={() => navigate('/world')}>&larr; Back to World</button>
-          <div className="path"><b>{handle}</b>@<i>evoworld</i>:~/lab/forge$</div>
+          <div className="path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/lab/forge$</div>
           <button className="btn sound" aria-pressed={soundOn} onClick={toggleSound} title="Forge sounds">{soundOn ? '🔊 Sound' : '🔇 Muted'}</button>
           <div className="credits" aria-live="polite"><b>{credits}</b> credits</div>
         </div>
