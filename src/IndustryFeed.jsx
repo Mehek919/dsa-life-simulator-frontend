@@ -149,7 +149,7 @@ export default function IndustryFeed() {
                       {insight.insights.map((t, i) => <div key={i} className="ins"><b>{i + 1}.</b><span>{t}</span></div>)}</div>
                     {insight.tracks?.length > 0 && <div className="sec"><small>ROADMAP TRACKS TO FOCUS ON</small>
                       {insight.tracks.map((t) => <button key={t} className="trk" onClick={() => navigate('/roadmap')}>{t}</button>)}</div>}
-                    {insight.actions?.length > 0 && <div className="sec"><small>DO IT IN EVOWORLD</small>
+                    {insight.actions?.length > 0 && <div className="sec"><small>DO IT IN DSA LIFE SIMULATOR</small>
                       {insight.actions.map((a, i) => <button key={i} className="act" onClick={() => navigate(a.path)}><b>{a.title}</b>{a.body}</button>)}</div>}
                   </>
                 )}
