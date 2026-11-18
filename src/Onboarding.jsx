@@ -6,8 +6,6 @@ import API_BASE from './config';
 import {
   QUESTIONS, DEFAULTS, TOTAL_XP, fill, pick, buildContext, toResponses,
 } from './Onboardingquestions';
-────────────────────────────────────────────────────────────────────────────
-
 const XP_PER_ANSWER = 10;
 const STORAGE_KEY   = 'evo_onboarding_v2';
 
