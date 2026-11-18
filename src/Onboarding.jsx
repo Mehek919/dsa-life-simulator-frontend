@@ -5,14 +5,8 @@ import axios from 'axios';
 import API_BASE from './config';
 import {
   QUESTIONS, DEFAULTS, TOTAL_XP, fill, pick, buildContext, toResponses,
-} from './onboardingQuestions';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EvoWorld onboarding: 17 questions, one per feature.
-// Each answer flips a reveal card: what the feature is, why we asked, where it lives.
-// Finishing calls POST /onboarding/complete, which saves the answers, grants
-// +200 XP / +50 credits once, and returns an AI Life Role.
-// ─────────────────────────────────────────────────────────────────────────────
+} from './Onboardingquestions';
+────────────────────────────────────────────────────────────────────────────
 
 const XP_PER_ANSWER = 10;
 const STORAGE_KEY   = 'evo_onboarding_v2';
@@ -175,7 +169,7 @@ function IntroStage({ onStart, onSkip, skipping, userName, resuming }) {
         style={{ color: '#666', fontSize: 15, margin: '0 0 32px', lineHeight: 1.6 }}
       >
         It's 2:47 AM and your phone just buzzed. Something broke.
-        Answer {QUESTIONS.length} quick questions to find out what, and to unlock every secret of EvoWorld.
+        Answer {QUESTIONS.length} quick questions to find out what, and to unlock every secret of DSA Life Simulator.
       </motion.p>
 
       <motion.div
