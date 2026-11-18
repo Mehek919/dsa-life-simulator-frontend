@@ -216,10 +216,10 @@ function Tour({ steps, step, onNext, onSkip }) {
 
 // ─── Layout picker: the player chooses how DSA Life Simulator looks ─────────────────────
 const LAYOUTS = [
-  { id: '3d', title: '3D City', img: '/layouts/city-3d.webp', tag: 'Immersive',
+  { id: '3d', title: '3D City', img: '/layouts/layout-city-3d.jpg', tag: 'Immersive',
     body: 'Walk your avatar around a living city. Every zone is a building you can enter.',
     points: ['Explore with click, tap or WASD', 'Other players walking around', 'Best on laptops and newer phones'] },
-  { id: 'list', title: 'Classic Lobby', img: '/layouts/lobby-2d.webp', tag: 'Fast and light',
+  { id: 'list', title: 'Classic Lobby', img: '/layouts/layout-lobby-2d.jpg', tag: 'Fast and light',
     body: 'Everything on one screen: your main quest, the Odyssey trail and every zone.',
     points: ['One click to any zone', 'Loads instantly', 'Great on older phones and slow internet'] },
 ];
