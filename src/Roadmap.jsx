@@ -404,7 +404,7 @@ export default function Roadmap({ user, userData }) {
     <div className="rm">
       <div className="crt" aria-hidden="true" />
       <div className="page">
-        <div className="top"><button className="btn" onClick={() => navigate('/world')}>&larr; World</button><div className="path"><b>{handle}</b>@<i>evoworld</i>:~/roadmap$</div></div>
+        <div className="top"><button className="btn" onClick={() => navigate('/world')}>&larr; World</button><div className="path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/roadmap$</div></div>
 
         {/* ── Epic banner ── */}
         <section className="banner" aria-labelledby="rm-h1">
