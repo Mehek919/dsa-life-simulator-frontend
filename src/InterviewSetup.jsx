@@ -1,7 +1,3 @@
-// InterviewSetup.jsx
-// The mock-interview setup screen ("AI Interview Chamber"). Drop-in replacement for the old
-// CompanySelector inside MockInterview.jsx: same props ({ onStart, error }) and it calls
-// onStart(company, topics, interviewType, jdText, realWorld, aiAssistEnabled) exactly as before.
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './InterviewSetup.css';
@@ -162,7 +158,7 @@ export default function InterviewSetup({ onStart, error }) {
     <div className="iv">
       <div className="crt" aria-hidden="true" />
       <div className="page">
-        <div className="top"><button className="btn" onClick={() => navigate('/world')}>&larr; World</button><div className="path"><b>candidate</b>@<i>evoworld</i>:~/interview$</div></div>
+        <div className="top"><button className="btn" onClick={() => navigate('/world')}>&larr; World</button><div className="path"><b>candidate</b>@<i>dsalifesimulator</i>:~/interview$</div></div>
         <span className="kicker"><i />AI INTERVIEW CHAMBER</span>
         <h1>Crack the <span>{mode.label}</span> round.</h1>
         <p className="lede">A cinematic mock interview with company-specific pressure, AI observation, real-world mode, tracked AI assistance, voice rounds and hiring-report style feedback.</p>
