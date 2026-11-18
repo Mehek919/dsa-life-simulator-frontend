@@ -107,7 +107,7 @@ function renderCardPng({ name, xp, stage, level, solved, streak, weekLabel, fini
       g.fillStyle = '#fff'; g.font = '800 40px Inter, sans-serif'; g.fillText(name.slice(0, 20), 56, 560);
       g.font = '600 22px Inter, sans-serif'; g.globalAlpha = 0.85; g.fillText(STAGES[stage][0], 56, 596); g.globalAlpha = 1;
       [['SOLVED', solved], ['XP', xp], ['STREAK', streak]].forEach(([l, v], i) => { const x = 56 + i * 170; g.fillStyle = 'rgba(255,255,255,.12)'; rr(x, 630, 150, 100, 14); g.fill(); g.fillStyle = '#fff'; g.font = '700 16px Inter, sans-serif'; g.fillText(l, x + 16, 662); g.font = '900 34px Inter, sans-serif'; g.fillText(String(v), x + 16, 708); });
-      g.font = '700 16px "JetBrains Mono", monospace'; g.globalAlpha = 0.8; g.fillText(`EVOWORLD · ${weekLabel.toUpperCase()}`, 56, 780); g.globalAlpha = 1;
+      g.font = '700 16px "JetBrains Mono", monospace'; g.globalAlpha = 0.8; g.fillText(`DSA LIFE SIMULATOR · ${weekLabel.toUpperCase()}`, 56, 780); g.globalAlpha = 1;
       c.toBlob((b) => resolve(b), 'image/png');
     };
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(avatarSvg(stage, r1, '#ffffff', false));
@@ -127,8 +127,8 @@ function TradingCard({ info, onClose }) {
   const tilt = (e) => { if (reduceMotion() || !cardRef.current) return; const r = cardRef.current.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; cardRef.current.style.transform = `rotateY(${x * 22}deg) rotateX(${-y * 18}deg)`; cardRef.current.style.setProperty('--hx', `${(x + 0.5) * 100}%`); };
   const make = async () => { const blob = await renderCardPng({ ...info, finish }); if (png) URL.revokeObjectURL(png.url); setPng({ blob, url: URL.createObjectURL(blob) }); };
   const share = async () => {
-    const file = new File([png.blob], 'evoworld-card.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My EvoWorld card' }); } catch (e) { /* cancelled */ } }
+    const file = new File([png.blob], 'dsa-life-simulator-card.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My DSA Life Simulator card' }); } catch (e) { /* cancelled */ } }
   };
   return (
     <div className="shade open" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -140,7 +140,7 @@ function TradingCard({ info, onClose }) {
               <div className="art" dangerouslySetInnerHTML={{ __html: avatarSvg(info.stage, r1, '#ffffff') }} />
               <h4>{info.name}</h4><div className="cls">{STAGES[info.stage][0]}</div>
               <div className="st"><div>SOLVED<b>{info.solved}</b></div><div>XP<b>{info.xp}</b></div><div>STREAK<b>{info.streak}</b></div></div>
-              <div className="ft"><span>EVOWORLD · {info.weekLabel.toUpperCase()}</span></div>
+              <div className="ft"><span>DSA LIFE SIMULATOR · {info.weekLabel.toUpperCase()}</span></div>
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ function TradingCard({ info, onClose }) {
             <div className="png">
               <img src={png.url} alt="Your trading card" />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                <a className="cta" href={png.url} download="evoworld-card.png" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Download</a>
+                <a className="cta" href={png.url} download="dsa-life-simulator-card.png" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Download</a>
                 {typeof navigator !== 'undefined' && navigator.canShare && <button type="button" className="ghost" onClick={share}>Share</button>}
               </div>
             </div>
