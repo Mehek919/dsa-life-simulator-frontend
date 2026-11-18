@@ -198,7 +198,7 @@ export default function Office({ user, userData: propUserData }) {
       <div className="page">
         <div className="top">
           <button className="btn" onClick={() => navigate('/world')}>&larr; World</button>
-          <div className="path"><b>{firstName.toLowerCase()}</b>@<i>evoworld</i>:~/office$</div>
+          <div className="path"><b>{firstName.toLowerCase()}</b>@<i>dsalifesimulator</i>:~/office$</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span className="lvl" style={{ '--lc': lc }}>{LEVEL_NAMES[level] || 'Legend'} · Lv {level}</span>
           </div>
