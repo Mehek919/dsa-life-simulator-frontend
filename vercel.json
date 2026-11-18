@@ -1,8 +1,7 @@
-
 {
   "rewrites": [
     {
-      "source": "/((?!api/.*|sitemap\\.xml|robots\\.txt|llms\\.txt|favicon\\.ico|manifest\\.json|og-image\\.png|apple-touch-icon\\.png|.*\\.(?:js|css|png|jpg|jpeg|svg|ico|json|webmanifest)).*)",
+      "source": "/((?!api/.*|sitemap\\.xml|robots\\.txt|llms\\.txt|favicon\\.ico|manifest\\.json|og-image\\.png|apple-touch-icon\\.png|.*\\.(?:js|css|png|jpg|jpeg|webp|gif|avif|svg|ico|json|webmanifest|txt|woff|woff2|ttf|mp3|mp4|webm)).*)",
       "destination": "/index.html"
     }
   ],
@@ -53,4 +52,3 @@
     }
   ]
 }
-
