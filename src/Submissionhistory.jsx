@@ -167,7 +167,7 @@ export default function SubmissionHistory({ user, userData }) {
     <div className="sh">
       <div className="crt" aria-hidden="true" />
       <div className="page">
-        <div className="top"><button className="btn" onClick={() => navigate(-1)}>&larr; Back</button><div className="path"><b>{handle}</b>@<i>evoworld</i>:~/history$</div></div>
+        <div className="top"><button className="btn" onClick={() => navigate(-1)}>&larr; Back</button><div className="path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/history$</div></div>
         <span className="kicker"><i />SUBMISSION HISTORY</span>
         <h1>Every attempt, <span>on the record</span></h1>
         <p className="lede">Accepted, failed, and everything in between.</p>
