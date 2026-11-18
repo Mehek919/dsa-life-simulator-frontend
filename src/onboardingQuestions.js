@@ -264,7 +264,7 @@ export const QUESTIONS = [
     id: "apartment",
     section: "Your World",
     emoji: "🏠",
-    question: "Your apartment in EvoWorld is empty. What's the first thing you buy?",
+    question: "Your apartment in DSA Life Simulator is empty. What's the first thing you buy?",
     options: [
       { value: "chair", label: "A gaming chair" },
       { value: "whiteboard", label: "A whiteboard" },
