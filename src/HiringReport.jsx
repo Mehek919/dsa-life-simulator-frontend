@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-
 const REC_COLORS = {
   'Strong Hire': '#00c896',
   'Hire':        '#4285f4',
   'Lean Hire':   '#f5c542',
   'No Hire':     '#ff4d4d',
 };
-
 const BENCHMARKS = {
   communicationScore:   72,
   problemSolvingScore:  68,
@@ -562,7 +560,7 @@ export function downloadHiringReportPDF({ report, company, interviewType, result
   ${report.feedback  ? `<div class="sec-title">💬 Detailed Feedback</div><p style="font-size:13px;color:#374151;line-height:1.8">${report.feedback}</p>` : ''}
 
   <div class="footer">
-    <span>EvoWorld AI Interview Platform</span>
+    <span>DSA Life Simulator AI Interview Platform</span>
     <span>Generated ${new Date().toISOString()}</span>
   </div>
   <script>window.onload=()=>window.print()</script>
