@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   World (game lobby). Display font for titles, sans for reading, mono for numbers.
+   One palette, one radius scale. Glow is reserved for things you can act on.
+   ───────────────────────────────────────────────────────────────────────────── */
 .ew {
-  --bg: #070b12; --surface: rgba(16, 22, 32, .82); --surface-solid: #111823; --surface-2: #1a2333; --line: rgba(120, 150, 190, .16); --line-2: rgba(120, 150, 190, .3);
+  --bg: #070b12; --surface: rgba(16, 22, 32, .94); --surface-solid: #111823; --surface-2: #1a2333; --line: rgba(120, 150, 190, .16); --line-2: rgba(120, 150, 190, .3);
   --ink: #edf2f8; --muted: #93a1b5; --faint: #5f6d82;
   --accent: #39d98a; --accent-2: #1fb36b; --accent-ink: #03140a; --blue: #5aa9ff; --violet: #a78bfa; --gold: #f4b740; --hot: #ff6b6b; --ok: #39d98a;
   --r-sm: 8px; --r: 12px; --r-lg: 18px;
@@ -19,8 +24,14 @@
 .ew :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* 3D city behind everything, then a veil so text stays readable */
-.ew-bg { position: fixed; inset: 0; z-index: 0; }
-.ew-bg canvas { display: block; width: 100%; height: 100%; }
+.ew-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 15% 0%, rgba(57, 217, 138, .10), transparent 70%),
+    radial-gradient(50% 40% at 100% 15%, rgba(90, 169, 255, .08), transparent 70%),
+    radial-gradient(60% 50% at 50% 100%, rgba(167, 139, 250, .07), transparent 70%),
+    linear-gradient(rgba(120, 150, 190, .05) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(120, 150, 190, .05) 1px, transparent 1px) 0 0 / 48px 48px,
+    #070b12; }
 .ew-veil { position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(7, 11, 18, .55) 0%, rgba(7, 11, 18, .78) 40%, rgba(7, 11, 18, .92) 100%),
               radial-gradient(70% 50% at 50% 0%, rgba(57, 217, 138, .08), transparent 70%); }
@@ -54,8 +65,7 @@
 .ew-chip.small { height: 22px; padding: 0 8px; font-size: 11px; }
 
 /* ── HUD ── */
-.ew-bar { position: sticky; top: 0; z-index: 30; background: linear-gradient(180deg, rgba(7, 11, 18, .95), rgba(7, 11, 18, .82));
-  backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.ew-bar { position: sticky; top: 0; z-index: 30; background: linear-gradient(180deg, rgba(7, 11, 18, .95), rgba(7, 11, 18, .82)); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
 .ew-bar-in { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 14px; }
 .ew-portrait { position: relative; flex: none; width: 54px; height: 54px; }
 .ew-portrait-in { width: 100%; height: 100%; overflow: hidden; display: grid; place-items: center;
@@ -146,7 +156,7 @@
 .ew-quest-actions { display: flex; align-items: center; gap: 18px; }
 
 /* ── Daily quests ── */
-.ew-dailies { padding: 18px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 10px; }
+.ew-dailies { padding: 18px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
 .ew-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .ew-panel-head h2 { font-family: var(--display); font-size: 17px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .ew-panel-head span { font-size: 11px; color: var(--faint); }
@@ -177,7 +187,7 @@
 
 /* ── 2. Odyssey trail ── */
 .ew-trail-wrap { position: relative; padding: 22px 8px 18px; border-radius: var(--r-lg); border: 1px solid var(--line);
-  background: radial-gradient(100% 120% at 50% 100%, rgba(57, 217, 138, .07), transparent 60%), var(--surface); backdrop-filter: blur(8px); }
+  background: radial-gradient(100% 120% at 50% 100%, rgba(57, 217, 138, .07), transparent 60%), var(--surface); }
 .ew-trail { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .ew-stop { position: relative; }
 /* the road between stops: dashed when the next stop is still fogged, solid and lit when both are open */
@@ -227,7 +237,7 @@
 .ew-group-head span { font-size: 13px; color: var(--faint); }
 .ew-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
 .ew-zone { position: relative; overflow: hidden; width: 100%; height: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 16px 14px 14px; text-align: left;
-  border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); backdrop-filter: blur(6px);
+  border-radius: var(--r); border: 1px solid var(--line); background: var(--surface);
   transition: border-color .15s, transform .15s, box-shadow .15s; }
 .ew-zone::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, var(--g), transparent); opacity: .7; }
 .ew-zone:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--g) 50%, transparent); box-shadow: 0 10px 28px rgba(0, 0, 0, .4), 0 0 20px color-mix(in srgb, var(--g) 18%, transparent); }
@@ -251,7 +261,7 @@
 .ew-empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
 
 /* ── 4. Activity ── */
-.ew-activity ul { border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); backdrop-filter: blur(6px); }
+.ew-activity ul { border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); }
 .ew-activity li { display: flex; align-items: center; gap: 12px; padding: 11px 14px; font-size: 14px; color: var(--muted); }
 .ew-activity li + li { border-top: 1px solid var(--line); }
 .ew-activity li b { color: var(--ink); font-weight: 600; }
@@ -328,7 +338,7 @@
    3D world mode: the city fills the screen, UI floats on top.
    ───────────────────────────────────────────────────────────────────────────── */
 .ew.ew3d { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; padding-bottom: 0; background: #070b14; }
-.ew3d .ew-bar { position: absolute; left: 0; right: 0; top: 0; background: linear-gradient(180deg, rgba(5, 8, 15, .85), rgba(5, 8, 15, 0)); border-bottom: 0; backdrop-filter: none; pointer-events: none; }
+.ew3d .ew-bar { position: absolute; left: 0; right: 0; top: 0; background: linear-gradient(180deg, rgba(5, 8, 15, .85), rgba(5, 8, 15, 0)); border-bottom: 0; pointer-events: none; }
 .ew3d .ew-bar-in { pointer-events: auto; max-width: none; padding: 12px 18px; }
 .w3-stage { position: absolute; inset: 0; z-index: 0; }
 .w3-stage .ws-canvas { display: block; width: 100%; height: 100%; cursor: grab; }
@@ -338,7 +348,7 @@
 .ws-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .ws-label { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 1px;
   padding: 4px 10px 5px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(6, 10, 18, .78); color: #edf2f8;
-  font: 600 13px/1.2 "Chakra Petch", Inter, sans-serif; letter-spacing: .02em; white-space: nowrap; cursor: pointer; backdrop-filter: blur(4px);
+  font: 600 13px/1.2 "Chakra Petch", Inter, sans-serif; letter-spacing: .02em; white-space: nowrap; cursor: pointer;
   transition: border-color .15s, background .15s; }
 .ws-label small { font: 500 10px/1.2 Inter, sans-serif; color: #93a1b5; letter-spacing: 0; }
 .ws-label:hover, .ws-label.near { border-color: #39d98a; background: rgba(10, 28, 22, .9); }
@@ -358,7 +368,7 @@
 /* quests */
 .w3-side { position: absolute; z-index: 20; top: 78px; right: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .w3-qbtn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(244, 183, 64, .45);
-  background: rgba(8, 12, 22, .82); color: var(--gold); font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; backdrop-filter: blur(6px); }
+  background: rgba(8, 12, 22, .82); color: var(--gold); font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .w3-qbtn span { min-width: 20px; height: 20px; padding: 0 6px; display: grid; place-items: center; border-radius: 99px; background: var(--hot); color: #fff; font-family: var(--mono); font-size: 11px; }
 .w3-drawer { width: 330px; max-height: calc(100dvh - 160px); overflow: auto; background: rgba(10, 15, 26, .9); animation: ew-pop .2s ease; }
 
@@ -366,7 +376,7 @@
 .w3-quest { position: absolute; z-index: 20; left: 18px; bottom: 18px; width: 360px; padding: 16px 16px 14px; border-radius: var(--r-lg);
   border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); overflow: hidden;
   background: radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--c) 24%, transparent), transparent 60%), rgba(9, 13, 22, .9);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .55); backdrop-filter: blur(8px); }
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55); }
 .w3-quest .ew-quest-ribbon { margin-left: -16px; padding-left: 16px; height: 24px; font-size: 11.5px; }
 .w3-quest.boss .ew-quest-ribbon { background: var(--hot); }
 .w3-quest-min { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); background: rgba(0, 0, 0, .3); color: var(--muted); font-size: 12px; }
@@ -388,7 +398,7 @@
 /* door prompt */
 .w3-prompt { position: absolute; z-index: 25; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px;
   width: min(520px, calc(100vw - 32px)); padding: 12px 12px 12px 14px; border-radius: var(--r-lg);
-  border: 1px solid color-mix(in srgb, var(--g) 60%, transparent); background: rgba(8, 12, 22, .92); backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--g) 60%, transparent); background: rgba(8, 12, 22, .92);
   box-shadow: 0 0 30px color-mix(in srgb, var(--g) 25%, transparent), 0 16px 40px rgba(0, 0, 0, .6); animation: w3-prompt .25s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes w3-prompt { from { opacity: 0; transform: translate(-50%, 14px) scale(.96); } }
 .w3-prompt-ic { flex: none; width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; font-size: 26px; color: var(--g);
@@ -408,7 +418,7 @@
 .w3-hint { position: absolute; z-index: 15; right: 18px; bottom: 18px; display: flex; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(8, 12, 22, .7); color: var(--muted); font-size: 12px; pointer-events: none; }
 .w3-hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; margin-right: 4px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--ink); }
 .w3-listbtn { position: fixed; z-index: 26; right: 18px; bottom: 62px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 10px;
-  border: 1px solid var(--line-2); background: rgba(8, 12, 22, .82); color: var(--ink); font-size: 13px; font-weight: 600; backdrop-filter: blur(6px); }
+  border: 1px solid var(--line-2); background: rgba(8, 12, 22, .82); color: var(--ink); font-size: 13px; font-weight: 600; }
 .w3-listbtn:hover { border-color: var(--accent); }
 .ew:not(.ew3d) .w3-listbtn { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); border-color: rgba(57, 217, 138, .5); color: var(--accent); font-family: var(--display); letter-spacing: .04em; text-transform: uppercase; }
 
@@ -429,7 +439,7 @@
    Layout picker: first visit, and "Change layout" from the menu.
    ───────────────────────────────────────────────────────────────────────────── */
 .lp { position: fixed; inset: 0; z-index: 95; overflow-y: auto; display: grid; place-items: center; padding: 24px 16px calc(96px + env(safe-area-inset-bottom, 0px));
-  background: radial-gradient(70% 60% at 50% 0%, rgba(57, 217, 138, .12), transparent 70%), rgba(5, 8, 14, .96); color: #edf2f8;
+  background: radial-gradient(70% 60% at 50% 0%, rgba(57, 217, 138, .12), transparent 70%), #05080e; color: #edf2f8;
   font-family: "Inter", system-ui, sans-serif; animation: ew-rise .35s cubic-bezier(.2, .8, .2, 1); }
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
 .lp-in { position: relative; width: 100%; max-width: 980px; text-align: center; }
