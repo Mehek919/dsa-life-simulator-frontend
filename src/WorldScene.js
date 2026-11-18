@@ -496,11 +496,11 @@ export default function mountWorldScene(container, opts) {
 
   // ── Loop ──
   const clock = new THREE.Clock();
-  let raf = 0, ready = false, alive = true;
+  let raf = 0, ready = false, alive = true, paused = false;
   const frame = () => {
     if (!alive) return;
     raf = requestAnimationFrame(frame);
-    if (document.hidden) return;
+    if (document.hidden || paused) { clock.getDelta(); return; }
     const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
 
     // player movement: keys first, then click target
@@ -558,6 +558,7 @@ export default function mountWorldScene(container, opts) {
 
   return {
     ok: true,
+    setPaused(v) { paused = !!v; },
     setLocked(set) {
       all.forEach((b) => { if (b.field) { b.locked = set.has(b.id); b.field.visible = b.locked; } });
     },
