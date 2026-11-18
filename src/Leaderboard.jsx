@@ -734,7 +734,7 @@ export default function Leaderboard({ user, userData }) {
             <Icon name="back" size={16} /> Back
           </button>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 13, letterSpacing: '.32em', color: '#f5c451' }}>EVOWORLD</span>
+            <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 13, letterSpacing: '.32em', color: '#f5c451' }}>DSA LIFE SIMULATOR</span>
             <span style={{ fontSize: 13, color: '#8a97ad' }}>Compete. Climb. Conquer.</span>
           </div>
         </div>
