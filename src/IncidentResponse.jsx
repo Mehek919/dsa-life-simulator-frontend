@@ -417,7 +417,7 @@ function ScenarioSelector({ onStart, loading, error, onBack, audioOn, onToggleAu
               <Icon d={I.back} /> Back
             </button>
             <span style={{ fontSize: 13, color: GREEN }}>
-              oncall@evoworld:~$ <span style={{ color: '#e9f1ff' }}>pager --status</span>
+              oncall@dsalifesimulator:~$ <span style={{ color: '#e9f1ff' }}>pager --status</span>
               <span className="ir-caret" style={{ display: 'inline-block', width: 8, height: 15, marginLeft: 4, verticalAlign: -2, background: GREEN }} />
             </span>
           </div>
@@ -1050,7 +1050,7 @@ function PostmortemScreen({ postmortem, session, durationMin, onRedo, onHome }) 
         style={{ position: 'relative', maxWidth: 760, margin: '0 auto', background: 'linear-gradient(180deg,#050b08,#020403)', border: '1px solid #1d3a2a', borderRadius: 18, padding: 'clamp(20px, 4vw, 34px)', boxShadow: '0 0 50px rgba(57,255,136,.08), 0 40px 80px rgba(0,0,0,.6)' }}>
 
         <div style={{ fontSize: 13, color: GREEN, marginBottom: 14 }}>
-          oncall@evoworld:~$ <span style={{ color: '#e9f1ff' }}>postmortem --incident {scenario.id}</span>
+          oncall@dsalifesimulator:~$ <span style={{ color: '#e9f1ff' }}>postmortem --incident {scenario.id}</span>
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
