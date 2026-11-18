@@ -7,8 +7,8 @@ import axios from 'axios';
 import API_BASE from './config';
 import { computeOdyssey } from './odysseyData';
 import { loadLook } from './avatarKit';
-import previewCity from './assets/layouts/layout-city-3d.jpg';
-import previewLobby from './assets/layouts/layout-lobby-2d.jpg';
+import previewCity from './assets/layout-city-3d.jpg';
+import previewLobby from './assets/layout-lobby-2d.jpg';
 import './World.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
