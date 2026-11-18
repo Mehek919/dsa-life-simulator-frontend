@@ -224,7 +224,7 @@ export default function Arena({ user, userData, setUserData }) {
       <div className="ar-page">
         <div className="ar-top">
           <button className="ar-btn" onClick={() => navigate('/world')}>&larr; World</button>
-          <div className="ar-path"><b>{handle}</b>@<i>evoworld</i>:~/arena$</div>
+          <div className="ar-path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/arena$</div>
         </div>
 
         {inLobby && (
