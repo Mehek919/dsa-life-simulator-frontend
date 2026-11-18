@@ -474,7 +474,7 @@ export default function Profile({ user, userData }) {
       <div className="pf-page">
         <div className="pf-top">
           <button className="pf-back" onClick={() => navigate('/world')}>&larr; World</button>
-          <div className="pf-path"><b>{handle}</b>@<i>evoworld</i>:~/profile$</div>
+          <div className="pf-path"><b>{handle}</b>@<i>dsalifesimulator</i>:~/profile$</div>
         </div>
 
         {/* ── 3D banner ── */}
