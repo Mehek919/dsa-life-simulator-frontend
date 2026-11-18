@@ -7,6 +7,8 @@ import axios from 'axios';
 import API_BASE from './config';
 import { computeOdyssey } from './odysseyData';
 import { loadLook } from './avatarKit';
+import previewCity from './assets/layouts/layout-city-3d.jpg';
+import previewLobby from './assets/layouts/layout-lobby-2d.jpg';
 import './World.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,8 +72,6 @@ const SCENE_PLACES = ['train', 'battle', 'records'].flatMap((gid) => GROUPS.find
 const groupOf = (id) => GROUPS.find((g) => g.places.some((p) => p.id === id));
 const VIEW_KEY = 'evo-world-view';
 const canWebGL = () => { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } };
-// The 3D city draws one glowing hub per group with a node per zone.
-const BG_HUBS = [{ color: '#ff6b6b', zones: GROUPS[0].places }, { color: '#5aa9ff', zones: GROUPS[1].places }, { color: '#f4b740', zones: GROUPS[2].places }, { color: '#39d98a', zones: [{}, {}, {}] }];
 
 const TOUR_3D = [
   { target: null, title: 'Welcome to DSA Life Simulator', body: 'This is your city. Every building is a place to train, fight or track your progress.' },
@@ -216,10 +216,10 @@ function Tour({ steps, step, onNext, onSkip }) {
 
 // ─── Layout picker: the player chooses how DSA Life Simulator looks ─────────────────────
 const LAYOUTS = [
-  { id: '3d', title: '3D City', img: '/layouts/layout-city-3d.jpg', tag: 'Immersive',
+  { id: '3d', title: '3D City', img: previewCity, tag: 'Immersive',
     body: 'Walk your avatar around a living city. Every zone is a building you can enter.',
     points: ['Explore with click, tap or WASD', 'Other players walking around', 'Best on laptops and newer phones'] },
-  { id: 'list', title: 'Classic Lobby', img: '/layouts/layout-lobby-2d.jpg', tag: 'Fast and light',
+  { id: 'list', title: 'Classic Lobby', img: previewLobby, tag: 'Fast and light',
     body: 'Everything on one screen: your main quest, the Odyssey trail and every zone.',
     points: ['One click to any zone', 'Loads instantly', 'Great on older phones and slow internet'] },
 ];
@@ -291,7 +291,6 @@ export default function World({ user, userData, onLogout }) {
   const [questMin, setQuestMin] = useState(false);
   const stageRef = useRef(null);
   const sceneRef = useRef(null);
-  const bgRef = useRef(null);
   const searchRef = useRef(null);
   const menuRef = useRef(null);
   const trailRef = useRef(null);
@@ -311,14 +310,7 @@ export default function World({ user, userData, onLogout }) {
   const isNew = solvedCount === 0;
   const isRecruiter = RECRUITER_ROLES.includes(userData?.role);
 
-  // ── 3D city in the background (existing scene), dimmed behind the UI ──
-  useEffect(() => {
-    let cleanup = null, dead = false;
-    import('./CyberBackground')
-      .then((m) => { if (!dead && bgRef.current) cleanup = m.default(bgRef.current, BG_HUBS); })
-      .catch(() => {});
-    return () => { dead = true; if (cleanup) cleanup(); };
-  }, [view]);
+  // The Classic Lobby uses a plain CSS background: no WebGL, so it stays fast on any device.
 
   // ── The walkable 3D hub ──
   const onArriveRef = useRef(null);
@@ -340,6 +332,9 @@ export default function World({ user, userData, onLogout }) {
     }).catch(() => { if (!dead) setView('list'); });
     return () => { dead = true; setNearId(null); if (sceneRef.current) sceneRef.current.destroy(); sceneRef.current = null; };
   }, [view, uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (sceneRef.current && sceneRef.current.setPaused) sceneRef.current.setPaused(pickerOpen || confirmLogout);
+  }, [pickerOpen, confirmLogout, sceneReady]);
   const switchView = (v) => { setView(v); setMenuOpen(false); setPickerOpen(false); try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* ignore */ } };
   const openPicker = () => { setMenuOpen(false); setPickerOpen(true); };
 
@@ -637,7 +632,7 @@ export default function World({ user, userData, onLogout }) {
 
   return (
     <div className="ew">
-      <div className="ew-bg" ref={bgRef} aria-hidden="true" />
+      <div className="ew-bg" aria-hidden="true" />
       <div className="ew-veil" aria-hidden="true" />
 
       {/* ── HUD ── */}
