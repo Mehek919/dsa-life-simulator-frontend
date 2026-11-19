@@ -130,80 +130,152 @@ function Login({ onLogin }) {
   };
 
   const ssoLabel = (key, label) => (busy === key ? 'Opening ' + label + '…' : 'Continue with ' + label);
+  const signinRef = useRef(null);
+  const toSignin = () => {
+    const el = signinRef.current; if (!el) return;
+    el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    const first = el.querySelector('.lg-sso'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 400);
+  };
 
   return (
     <div className="lg-page">
-      <div className="lg-brand">
-        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-          <rect x="2" y="18" width="8" height="10" rx="2" fill="#c98a52" />
-          <rect x="11" y="11" width="8" height="17" rx="2" fill="#f2c14e" />
-          <rect x="20" y="3" width="8" height="25" rx="2" fill="#35c4e6" />
-        </svg>
-        DSA Life Simulator
+      <header className="lg-top">
+        <div className="lg-brand">
+          <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+            <rect x="2" y="18" width="8" height="10" rx="2" fill="#c98a52" />
+            <rect x="11" y="11" width="8" height="17" rx="2" fill="#f2c14e" />
+            <rect x="20" y="3" width="8" height="25" rx="2" fill="#35c4e6" />
+          </svg>
+          DSA Life Simulator
+        </div>
+        <nav className="lg-nav" aria-label="Page">
+          <a href="#how">How it works</a>
+          <button type="button" onClick={toSignin}>Sign in</button>
+        </nav>
+      </header>
+
+      {/* ── Hero: what it is, in one look ── */}
+      <div className="lg-hero">
+        <main className="lg-copy">
+          <p className="lg-eyebrow">Free coding interview practice</p>
+          <h1>Interview prep, but it fights back.</h1>
+          <p className="lg-lede">
+            <b>DSA Life Simulator</b> helps you crack coding interviews. Practice the data structures and algorithms
+            problems top tech companies ask, rehearse with an AI interviewer, and level up like in a game.
+          </p>
+          <ul className="lg-checks">
+            <li><b>770+ interview problems</b> from Google, Amazon, Microsoft and 21 more</li>
+            <li><b>AI mock interviews</b> with follow-up questions and a hiring report</li>
+            <li><b>Game-style progress:</b> XP, streaks, ranks and live 1v1 battles</li>
+          </ul>
+
+          <section className="lg-signin" ref={signinRef} aria-labelledby="lg-signin-title">
+            <h2 id="lg-signin-title">Start practicing for free</h2>
+            <p className="lg-signin-sub">New here or coming back, the same buttons sign you in.</p>
+
+            <button className="lg-sso" onClick={() => signInWith('google')} disabled={!!busy}>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.87 2.68-6.62z" />
+                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z" />
+                <path fill="#FBBC05" d="M3.96 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33z" />
+                <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z" />
+              </svg>
+              {ssoLabel('google', 'Google')}
+            </button>
+
+            <div className="lg-sso-row">
+              <button className="lg-sso" onClick={() => signInWith('github')} disabled={!!busy}>
+                <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true">
+                  <path fill="#121826" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+                {busy === 'github' ? 'Opening…' : 'GitHub'}
+              </button>
+              <button className="lg-sso" onClick={() => signInWith('microsoft')} disabled={!!busy}>
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <rect x="1" y="1" width="7.5" height="7.5" fill="#F25022" />
+                  <rect x="9.5" y="1" width="7.5" height="7.5" fill="#7FBA00" />
+                  <rect x="1" y="9.5" width="7.5" height="7.5" fill="#00A4EF" />
+                  <rect x="9.5" y="9.5" width="7.5" height="7.5" fill="#FFB900" />
+                </svg>
+                {busy === 'microsoft' ? 'Opening…' : 'Microsoft'}
+              </button>
+            </div>
+
+            <div className="lg-or">or</div>
+
+            <form className="lg-email" onSubmit={onEmailSubmit}>
+              <label className="lg-sr" htmlFor="lg-email-input">Email address</label>
+              <input id="lg-email-input" type="email" placeholder="you@college.edu" autoComplete="email" required
+                value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy === 'email'} />
+              <button type="submit" disabled={!!busy}>
+                {busy === 'email' ? 'Sending…' : confirmingLink ? 'Finish signing in' : 'Email me a link'}
+              </button>
+            </form>
+
+            {notice && <p className="lg-notice" role="status">{notice}</p>}
+            {error && <p className="lg-error" role="alert">{error}</p>}
+
+            <p className="lg-fine">
+              Free, no credit card. Side effects may include enjoying dynamic programming.
+              By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
+            </p>
+          </section>
+        </main>
+
+        <section className="lg-stage" ref={stageRef}
+          aria-label="Animation: a player climbs from Bronze to Legend while an interviewer heckles, then gets hired">
+          <p className="lg-stage-cap">Every problem you solve raises your rating. Climb from Bronze to Legend.</p>
+        </section>
       </div>
 
-      <section className="lg-stage" ref={stageRef}
-        aria-label="Animation: a player climbs from Bronze to Legend while an interviewer heckles, then gets hired" />
+      {/* ── How it works ── */}
+      <section className="lg-sec" id="how" aria-labelledby="lg-how-title">
+        <p className="lg-eyebrow">How it works</p>
+        <h2 id="lg-how-title">From “I’m stuck on arrays” to “you’re hired” in three steps</h2>
+        <ol className="lg-steps">
+          <li>
+            <span className="lg-step-n">1</span>
+            <span className="lg-step-ic" aria-hidden="true">🎯</span>
+            <h3>Pick your target company</h3>
+            <p>Choose Google, Amazon, Stripe, TCS or a whole sector. You get a path built from the problems those companies actually ask.</p>
+          </li>
+          <li>
+            <span className="lg-step-n">2</span>
+            <span className="lg-step-ic" aria-hidden="true">💻</span>
+            <h3>Solve problems as story missions</h3>
+            <p>Each mission is a real DSA question: arrays, graphs, dynamic programming and more. Code in your browser, run the tests, earn XP.</p>
+          </li>
+          <li>
+            <span className="lg-step-n">3</span>
+            <span className="lg-step-ic" aria-hidden="true">🎙️</span>
+            <h3>Prove it under pressure</h3>
+            <p>Face an AI interviewer that pushes back like a real one and get a hiring report. Or battle another coder live, 1v1.</p>
+          </li>
+        </ol>
+      </section>
 
-      <main className="lg-copy">
-        <h1>Interview prep, but it fights back.</h1>
-        <p className="lg-lede">Battle real coders 1v1, climb from Bronze to Legend, and survive AI interviewers who grill you like Google and Amazon do.</p>
-        <ul className="lg-perks">
-          <li><b>40+</b> battle modes</li>
-          <li><b>15+</b> AI interviewer types</li>
-          <li>Bosses from FAANG to fintech</li>
+      {/* ── What makes it different ── */}
+      <section className="lg-sec" aria-labelledby="lg-diff-title">
+        <p className="lg-eyebrow">Why it works</p>
+        <h2 id="lg-diff-title">Most prep sites give you a list. We give you a reason to keep going.</h2>
+        <div className="lg-diff">
+          <div><small>Most prep sites</small><b>A long list of problems</b><span>→</span><strong>A guided path per company, with a story</strong></div>
+          <div><small>Most prep sites</small><b>You practice alone, in silence</b><span>→</span><strong>An AI interviewer and live 1v1 battles</strong></div>
+          <div><small>Most prep sites</small><b>Easy to quit after a week</b><span>→</span><strong>XP, streaks and ranks that pull you back daily</strong></div>
+        </div>
+      </section>
+
+      {/* ── Who it is for + closing CTA ── */}
+      <section className="lg-sec lg-end" aria-labelledby="lg-who-title">
+        <h2 id="lg-who-title">Built for</h2>
+        <ul className="lg-who">
+          <li><span aria-hidden="true">🎓</span>Students preparing for campus placements</li>
+          <li><span aria-hidden="true">🚀</span>Freshers going for their first tech job</li>
+          <li><span aria-hidden="true">🔁</span>Engineers switching to product companies</li>
         </ul>
-
-        <section className="lg-signin" aria-labelledby="lg-signin-title">
-          <h2 id="lg-signin-title">Pick your weapon</h2>
-
-          <button className="lg-sso" onClick={() => signInWith('google')} disabled={!!busy}>
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.87 2.68-6.62z" />
-              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z" />
-              <path fill="#FBBC05" d="M3.96 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33z" />
-              <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z" />
-            </svg>
-            {ssoLabel('google', 'Google')}
-          </button>
-
-          <button className="lg-sso" onClick={() => signInWith('github')} disabled={!!busy}>
-            <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill="#121826" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-            {ssoLabel('github', 'GitHub')}
-          </button>
-
-          <button className="lg-sso" onClick={() => signInWith('microsoft')} disabled={!!busy}>
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <rect x="1" y="1" width="7.5" height="7.5" fill="#F25022" />
-              <rect x="9.5" y="1" width="7.5" height="7.5" fill="#7FBA00" />
-              <rect x="1" y="9.5" width="7.5" height="7.5" fill="#00A4EF" />
-              <rect x="9.5" y="9.5" width="7.5" height="7.5" fill="#FFB900" />
-            </svg>
-            {ssoLabel('microsoft', 'Microsoft')}
-          </button>
-
-          <div className="lg-or">or</div>
-
-          <form className="lg-email" onSubmit={onEmailSubmit}>
-            <label className="lg-sr" htmlFor="lg-email-input">Email address</label>
-            <input id="lg-email-input" type="email" placeholder="you@college.edu" autoComplete="email" required
-              value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy === 'email'} />
-            <button type="submit" disabled={!!busy}>
-              {busy === 'email' ? 'Sending…' : confirmingLink ? 'Finish signing in' : 'Send magic link'}
-            </button>
-          </form>
-
-          {notice && <p className="lg-notice" role="status">{notice}</p>}
-          {error && <p className="lg-error" role="alert">{error}</p>}
-
-          <p className="lg-fine">
-            Free to play, no credit card. Side effects may include enjoying dynamic programming.
-            By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
-          </p>
-        </section>
-      </main>
+        <button type="button" className="lg-cta" onClick={toSignin}>Start practicing free</button>
+        <p className="lg-fine">Takes 10 seconds. No credit card.</p>
+      </section>
     </div>
   );
 }
