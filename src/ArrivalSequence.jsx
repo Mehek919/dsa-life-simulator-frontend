@@ -3,21 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import API_BASE from './config';
 import { COMPANY_PERSONAS } from './companyPersonas';
-
-/**
- * ArrivalSequence.jsx
- *
- * The full physical-arrival experience between "Start Interview" and the
- * actual interview phase. Stage order:
- *
- *   exterior -> lobby -> waiting -> walk -> entrance -> smalltalk -> transition
- *
- * IMPORTANT: every stage advances on a guaranteed setTimeout, never gated on
- * speech synthesis finishing. Speech plays alongside the visuals as a bonus
- * layer, if it fails silently (missing voices, browser blocks it, etc) the
- * sequence still progresses at a natural pace.
- */
-
 const ENVIRONMENTS = {
   google: {
     buildingName: 'Googleplex, Building 43',
@@ -629,6 +614,11 @@ export default function ArrivalSequence({
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2 }}
                 style={{ color: '#444', fontSize: 11, marginTop: 16, fontStyle: 'italic' }}>
                 {COMPANY_PERSONAS[company].archetype}
+                {COMPANY_PERSONAS[company].basis && COMPANY_PERSONAS[company].basis !== 'general' && (
+                  <span style={{ display: 'block', marginTop: 4, fontStyle: 'normal', fontSize: 10, color: '#555' }}>
+                    {{ official: 'Style based on official company sources', reported: 'Style based on public candidate reports', inspired: 'Inspired by limited public reports' }[COMPANY_PERSONAS[company].basis]}
+                  </span>
+                )}
               </motion.div>
             )}
           </motion.div>
