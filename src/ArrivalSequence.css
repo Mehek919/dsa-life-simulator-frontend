@@ -112,7 +112,10 @@
 
 /* Talk */
 .arr-talk { width: 100%; margin-top: 16px; }
-.arr-ex { margin-top: 10px; font-size: 13.5px; } .arr-ex .you { text-align: right; color: #c9d0dc; } .arr-ex .them { color: var(--muted); margin-top: 4px; }
+.arr-ex { margin-top: 10px; font-size: 14px; }
+.arr-ex .you { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.arr-ex .you span { max-width: 80%; padding: 9px 13px; border-radius: 14px 14px 4px 14px; background: color-mix(in srgb, var(--c1) 22%, #161c2a); color: #eef1f7; line-height: 1.5; }
+.arr-typing { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .arr-reply { display: flex; gap: 8px; margin-top: 14px; }
 .arr-reply input { flex: 1; min-height: 42px; background: rgba(8, 11, 18, .85); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font: inherit; font-size: 14px; padding: 0 12px; outline: none; }
 .arr-reply input:focus { border-color: var(--c1); }
