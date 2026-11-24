@@ -36,7 +36,7 @@
  .iv .cos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
  .iv .co { position: relative; padding: 12px; text-align: left; cursor: pointer; border: 1px solid rgba(255,255,255,.12); background: #120d1c; transition: border-color .15s, transform .15s; overflow: hidden; }
  .iv .co:hover { border-color: var(--bc); transform: translateY(-2px); }
- .iv .co[aria-pressed="true"] { border: 2px solid var(--bc); background: color-mix(in srgb, var(--bc) 14%, #120d1c); box-shadow: 0 0 24px color-mix(in srgb, var(--bc) 40%, transparent); }
+ .iv .co[aria-pressed="true"], .iv .co[aria-checked="true"] { border: 2px solid var(--bc); background: color-mix(in srgb, var(--bc) 14%, #120d1c); box-shadow: 0 0 24px color-mix(in srgb, var(--bc) 40%, transparent); }
  .iv .tick { display: inline-grid; place-items: center; min-width: 58px; height: 34px; padding: 0 8px; font-size: 13px; font-weight: 800; letter-spacing: .04em; color: #0a0612; background: var(--bc); box-shadow: 0 0 16px color-mix(in srgb, var(--bc) 50%, transparent); }
  .iv .co b { display: block; margin-top: 8px; font-size: 14px; } .iv .co small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
  .iv .mets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
@@ -127,3 +127,11 @@
 .iv .based .src { margin-top: 10px; display: flex; flex-direction: column; gap: 0; } .iv .based .src b { font-size: 11px; letter-spacing: .1em; color: var(--muted); }
 .iv .based .src a { color: var(--cyan); text-decoration: none; overflow-wrap: anywhere; min-height: 28px; display: inline-flex; align-items: center; align-self: flex-start; } .iv .based .src a:hover { text-decoration: underline; }
 .iv .based .fine { margin: 10px 0 0; font-size: 11px; color: var(--muted); }
+
+/* Company world tabs */
+.iv .worlds { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+.iv .world { position: relative; min-height: 38px; padding: 0 10px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.iv .world i { font-style: normal; font-size: 10.5px; padding: 1px 6px; background: rgba(255,255,255,.08); color: var(--muted); }
+.iv .world[aria-selected="true"] { color: var(--ink); border-color: var(--vio); background: rgba(177,140,255,.14); box-shadow: inset 0 -2px 0 var(--vio); }
+.iv .world .dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+@media (max-width: 560px) { .iv .worlds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .iv .world { flex: 0 0 auto; } }
