@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { getAuth } from 'firebase/auth';
+import API_BASE from './config';
 import { COMPANY_PERSONAS, getPersona } from './companyPersonas';
 import { getExperience } from './companyExperience';
 import { Sky, Building, Person } from './ArrivalScenes';
@@ -30,6 +33,22 @@ const SKIPPABLE = { lobby: 2500, waiting: 2500, results: 2500 };
 const FORMAT_LABEL = { onsite: 'Onsite visit', video: 'Video interview', pair: 'Pair programming session', campus: 'Campus drive · virtual panel' };
 const TYPE_LABEL = { coding: 'Coding', 'system-design': 'System design', behavioral: 'Behavioral' };
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+async function authHeaders() {
+  try {
+    const u = getAuth().currentUser;
+    return u ? { Authorization: `Bearer ${await u.getIdToken()}` } : {};
+  } catch { return {}; }
+}
+
+// Used only if the backend can't be reached: still answer the question, don't just say "Got it"
+function offlineReply(text, x, roundLabel) {
+  const t = text.toLowerCase();
+  if (/\b(how long|time|minutes|duration)\b/.test(t)) return `This round is ${roundLabel}. I'll keep an eye on the clock for us.`;
+  if (/\b(hint|question|problem)\b/.test(t)) return "You'll see the problem in just a moment, I'll share it when we start.";
+  if (t.includes('?') || /\b(what|why|how|mean|meant|explain|clarify|which|who|when)\b/.test(t)) return `Good question. What I meant: ${x.lines.note || x.lines.greet}`;
+  return ['Sounds good.', 'Great, thanks for sharing.', 'Nice, okay.'][text.length % 3];
+}
 
 function speak(text) {
   try {
@@ -155,6 +174,7 @@ export default function ArrivalSequence({
   interviewType = 'coding',
   stage: round = null,
   userName = 'Candidate',
+  sessionId = null,
   onEnterInterview,
 }) {
   const x = useMemo(() => getExperience(company, round, interviewType), [company, round, interviewType]);
@@ -171,6 +191,7 @@ export default function ArrivalSequence({
   const [muted, setMuted] = useState(false);
   const [reply, setReply] = useState('');
   const [replies, setReplies] = useState([]);
+  const [replying, setReplying] = useState(false);
   const audioRef = useAudio(!muted && step !== 'start');
   const firstName = x.interviewer.name.split(' ')[0];
   const talk = [x.lines.greet, x.lines.note].filter(Boolean);
@@ -197,11 +218,29 @@ export default function ArrivalSequence({
   }, [step, talkIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const skipAll = () => { window.speechSynthesis?.cancel?.(); onEnterInterview?.(); };
-  const sendReply = () => {
-    const t = reply.trim(); if (!t) return;
-    const acks = ['Got it, thanks.', 'Sounds good.', 'Great, that helps.'];
-    setReplies((r) => [...r, { you: t, them: acks[r.length % acks.length] }]);
+  // The candidate can talk back: the interviewer answers in character (backend /smalltalk)
+  const sendReply = async () => {
+    const t = reply.trim(); if (!t || replying) return;
     setReply('');
+    setReplies((r) => [...r, { you: t, them: null }]);
+    setReplying(true);
+    const history = [
+      ...talk.slice(0, talkIdx + 1).map((line) => ({ role: 'interviewer', text: line })),
+      ...replies.flatMap((r) => [{ role: 'candidate', text: r.you }, ...(r.them ? [{ role: 'interviewer', text: r.them }] : [])]),
+    ];
+    let answer = null;
+    if (sessionId) {
+      try {
+        const res = await axios.post(`${API_BASE}/mock-interview/${sessionId}/smalltalk`, {
+          message: t, interviewerName: x.interviewer.name, interviewerRole: x.interviewer.role, history,
+        }, { headers: await authHeaders(), timeout: 15000 });
+        answer = res.data?.reply || null;
+      } catch { /* fall back below */ }
+    }
+    answer = answer || offlineReply(t, x, roundLabel);
+    setReplies((r) => r.map((e, i) => (i === r.length - 1 ? { ...e, them: answer } : e)));
+    setReplying(false);
+    if (!muted) speak(answer);
   };
   const advanceTalk = () => (talkIdx < talk.length - 1 ? setTalkIdx((i) => i + 1) : setStep('start'));
   const isCall = x.format !== 'onsite';
@@ -338,10 +377,15 @@ export default function ArrivalSequence({
                 const inner = (
                   <div className="arr-talk">
                     <Bubble key={talkIdx} who={`${firstName} · ${x.interviewer.role}`} accent={c1}>{talk[talkIdx]}</Bubble>
-                    {replies.map((r, i) => <div key={i} className="arr-ex"><div className="you">{r.you}</div><div className="them">{firstName}: {r.them}</div></div>)}
+                    {replies.map((r, i) => (
+                      <div key={i} className="arr-ex">
+                        <div className="you"><span>{r.you}</span></div>
+                        {r.them ? <Bubble who={firstName} accent={c1}>{r.them}</Bubble> : <div className="arr-typing">{firstName} is typing <span className="dots"><i /><i /><i /></span></div>}
+                      </div>
+                    ))}
                     <div className="arr-reply">
                       <input value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendReply()} placeholder="Say something back (optional)…" aria-label="Your reply" />
-                      <button onClick={sendReply} disabled={!reply.trim()}>Reply</button>
+                      <button onClick={sendReply} disabled={!reply.trim() || replying}>Reply</button>
                     </div>
                     <button className="arr-go" onClick={advanceTalk}>{talkIdx < talk.length - 1 ? 'Continue' : "I'm ready, let's start"}</button>
                     {basisText && <div className="arr-basis">{basisText}. Interviewer and questions are fictional; not affiliated with {companyName}.</div>}
