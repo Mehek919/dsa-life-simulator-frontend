@@ -1,5 +1,18 @@
+// companyPersonas.js
+// Company interviewer personas for the mock interview AI, each grounded in public information.
+//
+// Shared by the frontend (setup screen "Based on" panel, arrival screen, hiring report) and the
+// backend (system prompts). Keep ONE copy in sync in both repos.
+//
+// Every persona states how well it is supported:
+//   basis: 'official'  the company itself publishes how it interviews (careers pages, official blogs, its own people)
+//          'reported'  built from candidate reports and interview prep sites; the company publishes little
+//          'inspired'  very few public reports; the style is our best guess and is labelled that way
+// Interviews are original. We never claim to use a company's real questions.
+
 const REVIEWED = '2026-11-24';
 
+// Amazon's Leadership Principles, used to score Amazon rounds (amazon.jobs/content/en/our-workplace/leadership-principles)
 const AMAZON_LPS = [
   'Customer Obsession', 'Ownership', 'Invent and Simplify', 'Are Right, A Lot', 'Learn and Be Curious',
   'Hire and Develop the Best', 'Insist on the Highest Standards', 'Think Big', 'Bias for Action', 'Frugality',
