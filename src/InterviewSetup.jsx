@@ -1,17 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './InterviewSetup.css';
+import { getPersona, REVIEWED } from './companyPersonas';
 
-// Same values as CONFIGS in MockInterview.jsx (kept in sync by hand: update both if you change one)
+// Same values as CONFIGS in MockInterview.jsx (kept in sync by hand: update both if you change one).
+// `duration` is the default round; per-round lengths and their sources live in companyPersonas.js.
 const CONFIGS = {
-  google:    { company: 'Google',    tick: 'GOOGL', color: '#4c8dff', duration: 45, desc: 'Optimal solutions + complexity analysis' },
-  amazon:    { company: 'Amazon',    tick: 'AMZN',  color: '#ff9f43', duration: 40, desc: 'Clean code + edge cases + LP principles' },
-  meta:      { company: 'Meta',      tick: 'META',  color: '#3f8cff', duration: 35, desc: 'Speed + graphs + DP problems' },
-  microsoft: { company: 'Microsoft', tick: 'MSFT',  color: '#35c4e6', duration: 45, desc: 'Collaborative + communication focused' },
-  apple:     { company: 'Apple',     tick: 'AAPL',  color: '#d7dde6', duration: 45, desc: 'Elegant production-quality code' },
+  google:    { company: 'Google',    tick: 'GOOGL', color: '#4c8dff', duration: 45, desc: 'Structured: how you reason through an unfamiliar problem' },
+  amazon:    { company: 'Amazon',    tick: 'AMZN',  color: '#ff9f43', duration: 55, desc: 'Leadership Principles + scalable, well-tested code' },
+  meta:      { company: 'Meta',      tick: 'META',  color: '#3f8cff', duration: 35, desc: 'Fast pace: two problems in a short screen' },
+  microsoft: { company: 'Microsoft', tick: 'MSFT',  color: '#35c4e6', duration: 45, desc: 'Clean, tested, bug-free code + corner cases' },
+  apple:     { company: 'Apple',     tick: 'AAPL',  color: '#d7dde6', duration: 45, desc: 'Project deep dives + attention to detail' },
   general:   { company: 'General',   tick: 'GEN',   color: '#b18cff', duration: 60, desc: 'Mixed difficulty fundamentals' },
 };
-const problemCount = (key) => (key === 'microsoft' ? 3 : 2);
+const problemCount = (key, round) => (round && round.problems) || (key === 'microsoft' ? 3 : 2);
+// Rounds a company offers for this interview type. Screens only exist for coding; Amazon's Bar Raiser fits any company round.
+const roundsFor = (key, type) => {
+  const rounds = getPersona(key).rounds || [];
+  return type === 'coding' || key === 'amazon' ? rounds : rounds.slice(-1);
+};
+const BASIS = {
+  official: { label: 'Official sources', tip: 'Built mainly from what the company itself publishes, plus candidate reports where a point says "reported".' },
+  reported: { label: 'Candidate reports', tip: 'The company publishes little, so this follows public candidate reports and prep guides.' },
+  inspired: { label: 'Inspired by', tip: 'Very few public reports exist, so this interviewer is our best estimate.' },
+};
+const fmtReviewed = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+function BasedOn({ companyKey }) {
+  const p = getPersona(companyKey);
+  const b = BASIS[p.basis];
+  if (!b) return null;
+  return (
+    <details className="based">
+      <summary><span className={`basis ${p.basis}`} title={b.tip}>{b.label}</span>How this {p.name} interviewer is built</summary>
+      <p className="tip">{b.tip}</p>
+      <ul>{p.facts.map((f) => <li key={f}>{f}</li>)}</ul>
+      <div className="src"><b>Sources</b>{p.sources.map((x) => <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer">{x.label} ↗</a>)}</div>
+      <p className="fine">Last reviewed {fmtReviewed(REVIEWED)}. Questions are original, not real {p.name} questions. Not affiliated with or endorsed by {p.name}.</p>
+    </details>
+  );
+}
 const TOPICS = ['Array', 'String', 'Linked List', 'Tree', 'Graph', 'DP', 'Hash Table', 'Stack', 'Heap', 'Binary Search', 'Sorting', 'Sliding Window', 'Matrix', 'DFS', 'BFS'];
 
 // Your 16 modes (same ids and tiers), grouped by what the round tests
@@ -112,10 +140,13 @@ export default function InterviewSetup({ onStart, error }) {
   const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
   const [starting, setStarting] = useState(false);
   const [charged, setCharged] = useState(false);
+  const [roundId, setRoundId] = useState(null);
 
   const mode = MODES[interviewType], group = mode.group, config = CONFIGS[selected];
   const usesCompany = COMPANY_ROUNDS.includes(interviewType);
-  const minutes = estMinutes(interviewType, selected);
+  const rounds = usesCompany && selected !== 'general' ? roundsFor(selected, interviewType) : [];
+  const round = rounds.find((r) => r.id === roundId) || rounds[0] || null;
+  const minutes = round ? round.minutes : estMinutes(interviewType, selected);
   const needsJd = interviewType === 'personalized' && jdText.length < 50;
   const disabledStart = starting || needsJd;
 
@@ -124,7 +155,8 @@ export default function InterviewSetup({ onStart, error }) {
     if (disabledStart) return;
     setStarting(true);
     const companyToSend = usesCompany ? selected : interviewType;   // same rule as before
-    await onStart(companyToSend, topics, interviewType, jdText, interviewType === 'coding' && realWorld, aiAssistEnabled);
+    await onStart(companyToSend, topics, interviewType, jdText, interviewType === 'coding' && realWorld, aiAssistEnabled,
+      round ? { stage: round.id, duration: round.minutes } : {});
     setStarting(false);
   };
 
@@ -186,11 +218,22 @@ export default function InterviewSetup({ onStart, error }) {
                   {Object.entries(CONFIGS).map(([key, c]) => (
                     <button key={key} id={`iv-co-${key}`} className="co" role="radio" aria-checked={selected === key} aria-pressed={selected === key} tabIndex={selected === key ? 0 : -1} style={{ '--bc': c.color }} onClick={() => setSelected(key)}>
                       <span className="tick" aria-hidden="true">{c.tick}</span><b>{c.company}</b>
-                      <small>{interviewType === 'coding' ? `${c.duration} min · ${problemCount(key)} problems` : 'Company-style round'}</small>
+                      <small>{interviewType === 'coding' ? `${c.duration} min · ${problemCount(key, roundsFor(key, 'coding')[0])} problems` : 'Company-style round'}</small>
                       <span className="focus">{c.desc}</span>
                     </button>
                   ))}
                 </div>
+                {rounds.length > 1 && (
+                  <div className="rounds" role="radiogroup" aria-label={`${config.company} round`}>
+                    {rounds.map((r) => (
+                      <button key={r.id} className="round" role="radio" aria-checked={round.id === r.id} onClick={() => setRoundId(r.id)}>
+                        <b>{r.label}</b><span>{r.minutes} min{r.problems ? ` · ${r.problems} problems` : ''}</span>{r.note && <small>{r.note}</small>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {rounds.length === 1 && rounds[0].note && <p className="roundnote">{rounds[0].label}: {rounds[0].minutes} min{rounds[0].estimate ? ' (estimate)' : ''}. {rounds[0].note}.</p>}
+                <BasedOn companyKey={selected} />
               </section>
             )}
 
@@ -254,8 +297,8 @@ export default function InterviewSetup({ onStart, error }) {
                 <div className="phd"><span>INTERVIEW PASS</span><b>{passNo}</b></div>
                 <div className="route"><b>YOU</b><i /><b>{routeTo}</b></div>
                 <div className="fields">
-                  <div>MODE<b>{mode.label}</b></div><div>GATE<b>{mode.tier}</b></div><div>TIMER<b>{interviewType === 'coding' ? `${minutes} min` : `~${minutes} min`}</b></div>
-                  <div>PROBLEMS<b>{interviewType === 'coding' ? problemCount(selected) : 'AI-generated'}</b></div>
+                  <div>MODE<b>{mode.label}</b></div><div>{round ? 'ROUND' : 'GATE'}<b>{round ? round.label : mode.tier}</b></div><div>TIMER<b>{interviewType === 'coding' ? `${minutes} min` : `~${minutes} min`}</b></div>
+                  <div>PROBLEMS<b>{interviewType === 'coding' ? problemCount(selected, round) : 'AI-generated'}</b></div>
                   <div>TOPICS<b>{interviewType === 'coding' && topics.length ? topics.slice(0, 2).join(', ') + (topics.length > 2 ? ` +${topics.length - 2}` : '') : 'Mixed'}</b></div>
                   <div>BOOSTERS<b>{boosters.length ? boosters.join(' + ') : 'None'}</b></div>
                 </div>
