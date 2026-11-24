@@ -12,8 +12,41 @@ const CONFIGS = {
   microsoft: { company: 'Microsoft', tick: 'MSFT',  color: '#35c4e6', duration: 45, desc: 'Clean, tested, bug-free code + corner cases' },
   apple:     { company: 'Apple',     tick: 'AAPL',  color: '#d7dde6', duration: 45, desc: 'Project deep dives + attention to detail' },
   general:   { company: 'General',   tick: 'GEN',   color: '#b18cff', duration: 60, desc: 'Mixed difficulty fundamentals' },
+  // Enterprise Empire
+  oracle:     { company: 'Oracle',     tick: 'ORCL',  color: '#f2564b', duration: 60, desc: 'Medium coding + design, Java/SQL fundamentals' },
+  adobe:      { company: 'Adobe',      tick: 'ADBE',  color: '#ff5a4f', duration: 60, desc: 'DSA first, then core CS and design' },
+  salesforce: { company: 'Salesforce', tick: 'CRM',   color: '#2fa8f0', duration: 60, desc: 'Technical skill + quality + company values' },
+  broadcom:   { company: 'Broadcom',   tick: 'AVGO',  color: '#e0313f', duration: 60, desc: 'C, pointers, bits, memory and OS' },
+  // FinTech Frontier
+  stripe:      { company: 'Stripe',    tick: 'STRP',  color: '#8f86ff', duration: 45, problems: 1, desc: 'One practical problem that grows new requirements' },
+  paypal:      { company: 'PayPal',    tick: 'PYPL',  color: '#3b8ff0', duration: 60, desc: 'DSA + language fundamentals, explain as you go' },
+  'ant group': { company: 'Ant Group', tick: 'ANT',   color: '#1fbf6a', duration: 60, desc: 'Java, concurrency, microservices, databases' },
+  adyen:       { company: 'Adyen',     tick: 'ADYEN', color: '#2bd17e', duration: 60, desc: 'Practical engineering, not LeetCode puzzles' },
+  wise:        { company: 'Wise',      tick: 'WISE',  color: '#9fe870', duration: 60, problems: 1, desc: 'Pair programming on one real-world problem' },
+  // Consulting Kingdom
+  accenture: { company: 'Accenture', tick: 'ACN',   color: '#b47cff', duration: 20, problems: 1, desc: 'Short interview: basics, projects, communication' },
+  tcs:       { company: 'TCS',       tick: 'TCS',   color: '#4f86f7', duration: 45, desc: 'Technical, managerial, then HR' },
+  infosys:   { company: 'Infosys',   tick: 'INFY',  color: '#3fa3e0', duration: 60, desc: 'DSA + core CS, interrupted to test your thinking' },
+  capgemini: { company: 'Capgemini', tick: 'CAP',   color: '#2bb7e8', duration: 30, problems: 1, desc: 'Basics and your resume, after the assessments' },
+  cognizant: { company: 'Cognizant', tick: 'CTSH',  color: '#3d7bf0', duration: 45, desc: 'Coding, SQL, OOP and your projects' },
+  // Silicon Frontier
+  tesla:     { company: 'Tesla',     tick: 'TSLA',  color: '#ff4b4b', duration: 60, desc: 'Defend your past decisions, then live coding' },
+  nvidia:    { company: 'NVIDIA',    tick: 'NVDA',  color: '#86c440', duration: 45, desc: 'C/C++, OS, concurrency and memory' },
+  qualcomm:  { company: 'Qualcomm',  tick: 'QCOM',  color: '#4a7cff', duration: 60, desc: 'Embedded C, OS/RTOS, then your resume' },
+  bosch:     { company: 'Bosch',     tick: 'BOSCH', color: '#ff5a5a', duration: 60, desc: 'C, OOP and data structures + project depth' },
+  'li auto': { company: 'Li Auto',   tick: 'LI',    color: '#4fd1c5', duration: 60, desc: 'Algorithms + design for connected vehicles' },
 };
-const problemCount = (key, round) => (round && round.problems) || (key === 'microsoft' ? 3 : 2);
+// Company tabs on the setup screen, matching the districts of the World
+const COMPANY_WORLDS = [
+  { id: 'bigtech',    label: 'Big Tech',          keys: ['google', 'amazon', 'meta', 'microsoft', 'apple', 'general'] },
+  { id: 'enterprise', label: 'Enterprise',        keys: ['oracle', 'adobe', 'salesforce', 'broadcom'] },
+  { id: 'fintech',    label: 'FinTech',           keys: ['stripe', 'paypal', 'ant group', 'adyen', 'wise'] },
+  { id: 'consulting', label: 'Consulting',        keys: ['accenture', 'tcs', 'infosys', 'capgemini', 'cognizant'] },
+  { id: 'silicon',    label: 'Silicon',           keys: ['tesla', 'nvidia', 'qualcomm', 'bosch', 'li auto'] },
+];
+const worldOf = (key) => (COMPANY_WORLDS.find((w) => w.keys.includes(key)) || COMPANY_WORLDS[0]).id;
+const coId = (key) => `iv-co-${key.replace(/\s+/g, '-')}`;
+const problemCount = (key, round) => (round && round.problems) || CONFIGS[key]?.problems || (key === 'microsoft' ? 3 : 2);
 // Rounds a company offers for this interview type. Screens only exist for coding; Amazon's Bar Raiser fits any company round.
 const roundsFor = (key, type) => {
   const rounds = getPersona(key).rounds || [];
@@ -141,6 +174,8 @@ export default function InterviewSetup({ onStart, error }) {
   const [starting, setStarting] = useState(false);
   const [charged, setCharged] = useState(false);
   const [roundId, setRoundId] = useState(null);
+  const [world, setWorld] = useState('bigtech');
+  const worldKeys = (COMPANY_WORLDS.find((w) => w.id === world) || COMPANY_WORLDS[0]).keys;
 
   const mode = MODES[interviewType], group = mode.group, config = CONFIGS[selected];
   const usesCompany = COMPANY_ROUNDS.includes(interviewType);
@@ -173,9 +208,9 @@ export default function InterviewSetup({ onStart, error }) {
   }, []);
 
   const onCompanyKey = (e) => {
-    const keys = Object.keys(CONFIGS), i = keys.indexOf(selected), d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    const keys = worldKeys, i = Math.max(0, keys.indexOf(selected)), d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!d) return; e.preventDefault(); const next = keys[(i + d + keys.length) % keys.length]; setSelected(next);
-    const el = document.getElementById(`iv-co-${next}`); if (el) el.focus();
+    const el = document.getElementById(coId(next)); if (el) el.focus();
   };
 
   const boosters = [interviewType === 'coding' && realWorld && 'Real-world', aiAssistEnabled && 'AI IDE'].filter(Boolean);
@@ -213,12 +248,19 @@ export default function InterviewSetup({ onStart, error }) {
 
             {usesCompany && (
               <section className="card" aria-labelledby="iv-s2">
-                <div className="step"><h2 id="iv-s2"><b>0{step++}</b>SELECT COMPANY</h2><span>{config.company} selected</span></div>
+                <div className="step"><h2 id="iv-s2"><b>0{step++}</b>SELECT COMPANY</h2><span>{config.company} selected · {Object.keys(CONFIGS).length - 1} companies</span></div>
+                <div className="worlds" role="tablist" aria-label="Company groups">
+                  {COMPANY_WORLDS.map((w) => (
+                    <button key={w.id} role="tab" className="world" aria-selected={world === w.id} onClick={() => setWorld(w.id)}>
+                      {w.label}<i>{w.keys.filter((k) => k !== 'general').length}</i>{worldOf(selected) === w.id && world !== w.id && <span className="dot" aria-label="selected company is here" />}
+                    </button>
+                  ))}
+                </div>
                 <div className="cos" role="radiogroup" aria-labelledby="iv-s2" onKeyDown={onCompanyKey}>
-                  {Object.entries(CONFIGS).map(([key, c]) => (
-                    <button key={key} id={`iv-co-${key}`} className="co" role="radio" aria-checked={selected === key} aria-pressed={selected === key} tabIndex={selected === key ? 0 : -1} style={{ '--bc': c.color }} onClick={() => setSelected(key)}>
+                  {worldKeys.map((key) => [key, CONFIGS[key]]).map(([key, c]) => (
+                    <button key={key} id={coId(key)} className="co" role="radio" aria-checked={selected === key} tabIndex={selected === key || (!worldKeys.includes(selected) && key === worldKeys[0]) ? 0 : -1} style={{ '--bc': c.color }} onClick={() => setSelected(key)}>
                       <span className="tick" aria-hidden="true">{c.tick}</span><b>{c.company}</b>
-                      <small>{interviewType === 'coding' ? `${c.duration} min · ${problemCount(key, roundsFor(key, 'coding')[0])} problems` : 'Company-style round'}</small>
+                      <small>{interviewType === 'coding' ? `${(roundsFor(key, 'coding')[0] || c).minutes || c.duration} min · ${problemCount(key, roundsFor(key, 'coding')[0])} problem${problemCount(key, roundsFor(key, 'coding')[0]) > 1 ? 's' : ''}` : 'Company-style round'}</small>
                       <span className="focus">{c.desc}</span>
                     </button>
                   ))}
