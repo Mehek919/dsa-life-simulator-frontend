@@ -25,7 +25,7 @@ async function getAuthHeaders() {
 }
 const CONFIGS = {
   google:    { company:'Google',    logo:'🔍', color:'#4285f4', duration:45, desc:'Optimal solutions + complexity analysis' },
-  amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:40, desc:'Clean code + edge cases + LP principles'  },
+  amazon:    { company:'Amazon',    logo:'📦', color:'#ff9900', duration:55, desc:'Leadership Principles + scalable, tested code' },
   meta:      { company:'Meta',      logo:'🌐', color:'#0081fb', duration:35, desc:'Speed + graphs + DP problems'             },
   microsoft: { company:'Microsoft', logo:'🪟', color:'#00a4ef', duration:45, desc:'Collaborative + communication focused'    },
   apple:     { company:'Apple',     logo:'🍎', color:'#a2aaad', duration:45, desc:'Elegant production-quality code'          },
@@ -1671,7 +1671,8 @@ export default function MockInterview({ user, userData, setUserData }) {
     interviewType = 'coding',
     jdText = '',
     realWorld = false,
-    aiAssistEnabled = false
+    aiAssistEnabled = false,
+    { stage = null, duration = null } = {}
   ) => {
     setStartError(null);
 
@@ -1685,6 +1686,8 @@ export default function MockInterview({ user, userData, setUserData }) {
         jdText,
         realWorld,
         aiAssistEnabled,
+        stage,     // e.g. 'screen', 'onsite', 'loop', 'bar-raiser' (see companyPersonas.js rounds)
+        duration,  // minutes for the chosen round
       }, { headers: authHeaders });
 
       if (!res.data.success) {
@@ -1692,7 +1695,8 @@ export default function MockInterview({ user, userData, setUserData }) {
       }
 
       setCompany(selectedCompany);
-      setSession(res.data);
+      // The chosen round's length wins, so the timer is right even before the backend stores it
+      setSession({ ...res.data, stage: res.data.stage || stage, duration: duration || res.data.duration });
       setProbIdx(0);
       setSolved([]);
       setTabSwitches(0);
